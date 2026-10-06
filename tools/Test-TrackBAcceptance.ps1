@@ -19,6 +19,7 @@ param(
 $candidate = Get-Content -LiteralPath $CandidateSummary -Raw | ConvertFrom-Json
 $functional = Get-Content -LiteralPath $FunctionalReport -Raw | ConvertFrom-Json
 $visual = Get-Content -LiteralPath $VisualReport -Raw | ConvertFrom-Json
+$candidateBuildValid = @($candidate.builds | ForEach-Object { [string] $_ }) -contains 'KoroneDiscordShell'
 
 $requiredSummaryGroups = @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal')
 $missingGroups = @($requiredSummaryGroups | Where-Object { -not $candidate.psobject.Properties.Name.Contains($_) })
@@ -90,7 +91,8 @@ $report = [pscustomobject] @{
     resourceMetrics = @($resourceFields | ForEach-Object {
         [pscustomobject] @{ name = $_.name; value = [math]::Round($_.value, 5); limit = $_.limit; passed = ($_.value -le $_.limit) }
     })
-    passed = $resourcePassed -and $functionalPassed -and $visualPassed
+    candidateBuildValid = $candidateBuildValid
+    passed = $candidateBuildValid -and $resourcePassed -and $functionalPassed -and $visualPassed
 }
 
 if ($OutputPath) {

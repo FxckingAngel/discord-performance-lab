@@ -76,7 +76,7 @@ try {
         throw 'Feature-support probe does not distinguish an unavailable registry from a reported capability.'
     }
     $acceptanceGateSource = Get-Content -LiteralPath $acceptanceGateTool -Raw
-    foreach ($requiredField in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal', 'functionalProcessValid', 'functionalCoverageComplete', 'functionalPassed', 'visualPassed', 'visualComparisonValid', 'measurementEvidence')) {
+    foreach ($requiredField in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal', 'candidateBuildValid', 'functionalProcessValid', 'functionalCoverageComplete', 'functionalPassed', 'visualPassed', 'visualComparisonValid', 'measurementEvidence')) {
         if ($acceptanceGateSource -notmatch [regex]::Escape($requiredField)) {
             throw "Track B acceptance gate does not evaluate $requiredField."
         }
@@ -295,6 +295,7 @@ try {
         [pscustomobject]@{ id = $_; status = 'PASS' }
     }
     [pscustomobject]@{
+        builds = @('KoroneDiscordShell')
         workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
         privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
@@ -308,6 +309,16 @@ try {
     if (-not $acceptanceResult.passed) {
         throw "Synthetic Track B acceptance gate should pass when every gate is satisfied: $($acceptanceResult | ConvertTo-Json -Compress)"
     }
+    $candidateBuildFixture = Get-Content -LiteralPath $acceptanceCandidatePath -Raw | ConvertFrom-Json
+    $candidateBuildFixture.builds = @('DiscordPTB')
+    $candidateBuildFixture | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
+    $wrongBuildText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $wrongBuildResult = $wrongBuildText | ConvertFrom-Json
+    if ($wrongBuildResult.passed -or $wrongBuildResult.candidateBuildValid) {
+        throw 'Acceptance gate must reject a resource summary attributed to the stock Discord build.'
+    }
+    $candidateBuildFixture.builds = @('KoroneDiscordShell')
+    $candidateBuildFixture | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
     [pscustomobject]@{ processName = 'DiscordPTB'; passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     $wrongProcessText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $wrongProcessResult = $wrongProcessText | ConvertFrom-Json
@@ -316,6 +327,7 @@ try {
     }
     [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     [pscustomobject]@{
+        builds = @('KoroneDiscordShell')
         workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 251 }
         privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
@@ -328,6 +340,7 @@ try {
         throw 'Acceptance gate must reject a private-working-set p95 over the target even when the median passes.'
     }
     [pscustomobject]@{
+        builds = @('KoroneDiscordShell')
         workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
         privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 251 }
@@ -353,6 +366,7 @@ try {
         throw 'Acceptance gate must reject an incomplete screenshot comparison object.'
     }
     [pscustomobject]@{
+        builds = @('KoroneDiscordShell')
         workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
         privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
