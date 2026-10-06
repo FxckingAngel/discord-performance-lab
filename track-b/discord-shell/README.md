@@ -34,3 +34,5 @@ For a private login-state check, close the ordinary shell first and use `KoroneD
 The shell is still a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. The two native capabilities are not a complete desktop compatibility layer. It is not an optimized client, an official Discord build, or a feature-complete replacement.
 
 Track B measurements must count the complete WebView2 process tree, not only `KoroneDiscordShell.exe`. Use the existing benchmark tools with a separate process name and record startup, settled working set, private memory, CPU, GPU activity, process count, handles, threads, and responsiveness.
+
+For a controlled official-client CDP session, use `tools/Launch-DiscordOfficialDiagnostic.ps1` with the exact official executable path. It refuses to start while a matching official process is already running, preserves the existing profile, and exposes only a loopback debugging port. It does not automate login or write credentials. Close the diagnostic client manually after the read-only probe is complete.
