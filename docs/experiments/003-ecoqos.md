@@ -34,6 +34,8 @@ Two stock idle runs were compared with two EcoQoS idle runs:
 
 The startup observer measures process-tree stabilization, not UI readiness. EcoQoS startup stayed within the observed stock range, but the functional checklist has not yet been completed.
 
+A later window-aware run recorded process-tree stabilization at 12.135 s, the first main window at 1.260 s, and the final title `Friends - Discord`. The window was responsive in every sampled observation. This confirms launch and window responsiveness only; it does not confirm navigation, messaging, voice, media, notifications, settings persistence, or cleanup.
+
 ## Acceptance state
 
-The quantitative gate passed. A runtime smoke check also passed: the root process was responsive, exposed a main window titled `Friends - Discord`, and carried the EcoQoS switch. Normal navigation, messaging, notifications, voice, media, settings persistence, and cleanup remain unverified and are still required before final acceptance.
+The quantitative gate passed. Runtime smoke checks passed twice: the root process was responsive, exposed a main window titled `Friends - Discord`, and carried the EcoQoS switch. A stock restore was then verified by launching without the candidate switch. Normal navigation, messaging, notifications, voice, media, settings persistence, and cleanup remain unverified and are still required before final acceptance.
