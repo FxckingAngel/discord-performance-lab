@@ -51,6 +51,8 @@ It records process-tree working set, private bytes, CPU time, handles, threads, 
 
 For startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Measure-DiscordStartup.ps1). It refuses to launch over an existing instance and records process-tree timing plus the first responsive main window and its title; it still does not prove that every Discord feature is ready.
 
+For a read-only view of the current launch profile, process count, root command line, and main-window responsiveness, use [tools/Get-DiscordPerformanceProfileState.ps1](tools/Get-DiscordPerformanceProfileState.ps1). It does not restart or modify Discord.
+
 Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to apply the regression gate to two generated summaries.
 
 The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqos` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`.
