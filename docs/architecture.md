@@ -31,6 +31,8 @@ Candidate changes must have a clear distribution and rollback story. Prefer supp
 
 Before implementation, the project will verify the current Discord client distribution terms and any applicable API or developer requirements. The result belongs in a project decision record.
 
+The current boundary is recorded in [Decision 0001](decisions/0001-client-boundary.md). The installed Discord client is treated as an external dependency, not as source code for this repository.
+
 ### 4. Functional verification
 
 Performance tests are not sufficient. A candidate is rejected when it loses or degrades ordinary Discord behavior, including authentication, server and channel navigation, messaging, notifications, voice, video, screen sharing, media, accessibility, settings, updates, and clean uninstall or rollback.
