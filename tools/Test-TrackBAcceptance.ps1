@@ -20,7 +20,7 @@ $candidate = Get-Content -LiteralPath $CandidateSummary -Raw | ConvertFrom-Json
 $functional = Get-Content -LiteralPath $FunctionalReport -Raw | ConvertFrom-Json
 $visual = Get-Content -LiteralPath $VisualReport -Raw | ConvertFrom-Json
 
-$requiredSummaryGroups = @('privateWorkingSetMiB', 'privateMemoryMiB', 'cpuPercentOfTotal')
+$requiredSummaryGroups = @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal')
 $missingGroups = @($requiredSummaryGroups | Where-Object { -not $candidate.psobject.Properties.Name.Contains($_) })
 if ($missingGroups.Count -gt 0) {
     throw "Candidate summary is missing required metric groups: $($missingGroups -join ', ')."
@@ -29,8 +29,12 @@ if ($missingGroups.Count -gt 0) {
 $requiredMetricValues = @(
     [pscustomobject] @{ name = 'privateWorkingSetMiB.median'; value = $candidate.privateWorkingSetMiB.median }
     [pscustomobject] @{ name = 'privateWorkingSetMiB.p95'; value = $candidate.privateWorkingSetMiB.p95 }
+    [pscustomobject] @{ name = 'workingSetMiB.median'; value = $candidate.workingSetMiB.median }
+    [pscustomobject] @{ name = 'workingSetMiB.p95'; value = $candidate.workingSetMiB.p95 }
     [pscustomobject] @{ name = 'privateMemoryMiB.median'; value = $candidate.privateMemoryMiB.median }
     [pscustomobject] @{ name = 'privateMemoryMiB.p95'; value = $candidate.privateMemoryMiB.p95 }
+    [pscustomobject] @{ name = 'processCount.median'; value = $candidate.processCount.median }
+    [pscustomobject] @{ name = 'processCount.maximum'; value = $candidate.processCount.maximum }
     [pscustomobject] @{ name = 'cpuPercentOfTotal.medianRun'; value = $candidate.cpuPercentOfTotal.medianRun }
     [pscustomobject] @{ name = 'cpuPercentOfTotal.p95Run'; value = $candidate.cpuPercentOfTotal.p95Run }
 )
@@ -65,6 +69,12 @@ $report = [pscustomobject] @{
     functionalPassed = $functionalPassed
     visualComparisonValid = $visualComparisonValid
     visualPassed = $visualPassed
+    measurementEvidence = [pscustomobject] @{
+        totalWorkingSetMedianMiB = [double] $candidate.workingSetMiB.median
+        totalWorkingSetP95MiB = [double] $candidate.workingSetMiB.p95
+        processCountMedian = [double] $candidate.processCount.median
+        processCountMaximum = [double] $candidate.processCount.maximum
+    }
     resourceMetrics = @($resourceFields | ForEach-Object {
         [pscustomobject] @{ name = $_.name; value = [math]::Round($_.value, 5); limit = $_.limit; passed = ($_.value -le $_.limit) }
     })
