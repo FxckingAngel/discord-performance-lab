@@ -29,7 +29,12 @@ function Get-DiscordProcessSnapshot {
         [int] $TreeRootPid
     )
 
-    $processes = @(Get-CimInstance Win32_Process -Filter "Name='$Name.exe'")
+    $processes = if ($TreeRootPid -gt 0) {
+        @(Get-CimInstance Win32_Process)
+    }
+    else {
+        @(Get-CimInstance Win32_Process -Filter "Name='$Name.exe'")
+    }
     if ($TreeRootPid -gt 0) {
         $treePids = [System.Collections.Generic.HashSet[int]]::new()
         $pending = [System.Collections.Generic.Queue[int]]::new()

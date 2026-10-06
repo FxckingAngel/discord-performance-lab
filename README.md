@@ -1,6 +1,6 @@
 # Korone's Discord Performance Lab
 
-Korone's Discord Performance Lab is a private research project for reducing Discord's resource use while retaining normal user-facing functionality.
+Korone's Discord Performance Lab is a private research project for evaluating a lightweight Discord desktop shell while retaining normal user-facing functionality.
 
 The project starts with measurement, not patches. Each proposed change must be compared with stock Discord on the same machine, account, Discord channel state, and workload. A lower RAM number is not a win if it causes missing notifications, broken calls, unreliable media playback, damaged updates, or a poor user experience.
 
@@ -19,6 +19,12 @@ The project starts with measurement, not patches. Each proposed change must be c
 - Automating user accounts or modifying Discord's network protocol in ways that resemble a self-bot.
 - DLL injection, arbitrary code injection, anti-cheat bypasses, or patching a running installation without a clear, safe boundary.
 - Claiming official status or compatibility before testing supports that claim.
+
+## Architecture tracks
+
+- [Track B architecture decision](docs/architecture-track-b.md)
+- [Track B shell prototype](track-b/discord-shell/README.md)
+- [Track B unauthenticated shell baseline](docs/benchmarks/track-b-unauthenticated-shell-2026-10-06.md)
 
 ## Project status
 
@@ -40,6 +46,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Adaptive profile scope decision](docs/decisions/0003-adaptive-profile-scope.md)
+- [Track B shell pivot decision](docs/decisions/0004-track-b-shell-pivot.md)
 - [Memory-priority experiment](docs/experiments/007-memory-priority.md)
 - [Background memory-priority profile](docs/experiments/008-memory-background-profile.md)
 - [Current active voice-session baseline](docs/benchmarks/stock-active-voice-current-2026-10-06.md)

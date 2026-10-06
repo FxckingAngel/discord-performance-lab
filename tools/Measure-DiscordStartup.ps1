@@ -66,9 +66,7 @@ function Select-RootedProcessTree {
 
 while ($stableCount -lt $StableSamples) {
     Start-Sleep -Seconds $PollIntervalSeconds
-    $current = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName.exe'" | Where-Object {
-        $_.ExecutablePath -and ((Resolve-Path -LiteralPath $_.ExecutablePath -ErrorAction SilentlyContinue).Path -eq $resolvedExecutable)
-    })
+    $current = @(Get-CimInstance Win32_Process)
     $current = @(Select-RootedProcessTree -Processes $current -TreeRootPid $rootPid)
     if ($current.Count -gt 0 -and -not $firstProcessAt) {
         $firstProcessAt = $watch.Elapsed.TotalSeconds
