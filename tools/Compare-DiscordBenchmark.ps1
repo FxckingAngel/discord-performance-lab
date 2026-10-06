@@ -26,6 +26,8 @@ $candidate = Get-Content -LiteralPath $CandidateSummary -Raw | ConvertFrom-Json
 $metrics = @(
     [pscustomobject] @{ name = 'workingSetMedianMiB'; baseline = [double] $baseline.workingSetMiB.median; candidate = [double] $candidate.workingSetMiB.median },
     [pscustomobject] @{ name = 'workingSetP95MiB'; baseline = [double] $baseline.workingSetMiB.p95; candidate = [double] $candidate.workingSetMiB.p95 },
+    [pscustomobject] @{ name = 'privateWorkingSetMedianMiB'; baseline = [double] $baseline.privateWorkingSetMiB.median; candidate = [double] $candidate.privateWorkingSetMiB.median },
+    [pscustomobject] @{ name = 'privateWorkingSetP95MiB'; baseline = [double] $baseline.privateWorkingSetMiB.p95; candidate = [double] $candidate.privateWorkingSetMiB.p95 },
     [pscustomobject] @{ name = 'privateMemoryMedianMiB'; baseline = [double] $baseline.privateMemoryMiB.median; candidate = [double] $candidate.privateMemoryMiB.median },
     [pscustomobject] @{ name = 'privateMemoryP95MiB'; baseline = [double] $baseline.privateMemoryMiB.p95; candidate = [double] $candidate.privateMemoryMiB.p95 },
     [pscustomobject] @{ name = 'cpuMedianPercentOfTotal'; baseline = [double] $baseline.cpuPercentOfTotal.medianRun; candidate = [double] $candidate.cpuPercentOfTotal.medianRun },
