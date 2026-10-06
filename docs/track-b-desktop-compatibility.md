@@ -37,6 +37,14 @@ The official Electron environment must be observed locally with read-only diagno
 | Rich Presence/game integration | Electron/Discord-supported desktop integration | Only a supported, separately tested native equivalent | No | Not measured |
 | Session persistence | Electron profile and storage | Isolated WebView2 user-data folder with normal interactive login | Prototype only | Included in tree |
 
+## WebView2 host-event boundary
+
+The installed WebView2 SDK exposes `CoreWebView2.PermissionRequested` for privileged resources and `CoreWebView2.NotificationReceived` for non-persistent web notifications. The permission event includes the requesting origin, permission kind, user-gesture state, and a grant/deny state. The notification event includes the sender origin and allows the host to leave WebView2's default notification UI in place or take over the notification lifecycle.
+
+Track B does not currently override either event. This preserves the existing WebView2 permission and notification behavior while voice/video and notification behavior are still being verified. The eventual native layer must restrict decisions to the Discord origin, preserve explicit user consent for microphone and camera, and measure any host notification path across the complete process tree. It must not auto-grant media access or replace notification behavior merely because the API exists.
+
+Sources: [WebView2 PermissionRequested](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.permissionrequested), [WebView2 permission kinds](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2permissionkind), and [WebView2 NotificationReceived](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.notificationreceived).
+
 ## Investigation order
 
 1. Capture sanitized, non-secret environment facts from official Electron and Track B: user agent, platform, runtime version, viewport, display scale, media-device availability, notification permission state, clipboard and drag/drop behavior, window APIs, and exposed global names.
