@@ -8,8 +8,14 @@ param(
     [string] $Profile = 'stock',
 
     [ValidateNotNullOrEmpty()]
-    [string] $ProcessName = 'DiscordPTB'
+    [string] $ProcessName = 'DiscordPTB',
+
+    [switch] $BackgroundIdleConfirmed
 )
+
+if ($Profile -eq 'adaptive' -and -not $BackgroundIdleConfirmed) {
+    throw 'Adaptive mode requires -BackgroundIdleConfirmed after active voice, video, and media work has ended.'
+}
 
 $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath).Path
 $existing = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName.exe'" | Where-Object {

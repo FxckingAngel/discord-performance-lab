@@ -76,8 +76,10 @@ EcoQoS is currently supported only as an experimental background-idle profile. T
 The adaptive profile keeps foreground use system-managed and applies EcoQoS only while the window is minimized or hidden:
 
 ```powershell
-.\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile adaptive
+.\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile adaptive -BackgroundIdleConfirmed
 ```
+
+The confirmation is required because a minimized Discord window can still have an active call or media session.
 
 The stock profile remains the rollback path:
 
