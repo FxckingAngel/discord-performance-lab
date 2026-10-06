@@ -76,6 +76,10 @@ $results = foreach ($scenario in $scenarios) {
                 [string] $current.Name -eq [string] $child.Name -and
                 [string] $current.CommandLine -eq [string] $child.CommandLine -and
                 [string] $current.CreationDate -eq [string] $child.CreationDate) {
+                $currentParent = Get-CimInstance Win32_Process -Filter "ProcessId=$([int] $current.ParentProcessId)" -ErrorAction SilentlyContinue
+                if ([int] $current.ParentProcessId -ne [int] $process.Id -and -not $currentParent) {
+                    continue
+                }
                 $current
             }
         }
@@ -85,4 +89,60 @@ $results = foreach ($scenario in $scenarios) {
     }
 }
 
+$normalRoots = @(Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -eq 'KoroneDiscordShell.exe' -and $_.ExecutablePath -eq $resolvedExecutable
+})
+if ($normalRoots.Count -gt 0) {
+    throw "Normal single-instance smoke test requires no existing verified shell roots. Existing PIDs: $($normalRoots.ProcessId -join ', ')."
+}
+
+$firstNormal = Start-Process -FilePath $resolvedExecutable -PassThru
+$secondNormal = $null
+try {
+    $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
+    do {
+        Start-Sleep -Milliseconds 250
+        $firstObserved = Get-Process -Id $firstNormal.Id -ErrorAction SilentlyContinue
+        if ($firstObserved -and $firstObserved.MainWindowHandle -ne [IntPtr]::Zero -and $firstObserved.Responding) {
+            break
+        }
+    } while ([DateTime]::UtcNow -lt $deadline)
+    if (-not $firstObserved -or -not $firstObserved.Responding) {
+        throw 'Normal shell did not become responsive for the single-instance smoke test.'
+    }
+
+    $secondNormal = Start-Process -FilePath $resolvedExecutable -PassThru
+    if (-not $secondNormal.WaitForExit(5000)) {
+        throw "Second normal launch did not exit while the first instance was running. PID $($secondNormal.Id)."
+    }
+    $verifiedRoots = @(Get-CimInstance Win32_Process | Where-Object {
+        $_.Name -eq 'KoroneDiscordShell.exe' -and $_.ExecutablePath -eq $resolvedExecutable
+    })
+    if ($verifiedRoots.Count -ne 1 -or [int] $verifiedRoots[0].ProcessId -ne $firstNormal.Id) {
+        throw "Expected one normal shell root after duplicate launch, found $($verifiedRoots.Count)."
+    }
+
+    $normalResult = [pscustomobject]@{
+        argument = '<normal>'
+        pid = $firstNormal.Id
+        duplicatePid = $secondNormal.Id
+        rootCountAfterDuplicateLaunch = $verifiedRoots.Count
+        duplicateExited = $true
+        passed = $true
+    }
+}
+finally {
+    if ($secondNormal -and -not $secondNormal.HasExited) {
+        Stop-Process -Id $secondNormal.Id -Force
+    }
+    if ($firstNormal -and -not $firstNormal.HasExited) {
+        [void] $firstNormal.CloseMainWindow()
+        $firstNormal.WaitForExit(5000)
+    }
+    if ($firstNormal -and -not $firstNormal.HasExited) {
+        Stop-Process -Id $firstNormal.Id -Force
+    }
+}
+
 $results
+$normalResult
