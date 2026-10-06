@@ -104,6 +104,9 @@ try {
             throw "Phase 2 summary does not report $requiredField."
         }
     }
+    if ($phase2SummarySource -notmatch 'processTree') {
+        throw 'Phase 2 summary does not retain complete process-tree totals.'
+    }
     if ($shellSource -notmatch 'Uri\.TryCreate') {
         throw 'Normal bridge origin validation does not parse the message source as a URI.'
     }

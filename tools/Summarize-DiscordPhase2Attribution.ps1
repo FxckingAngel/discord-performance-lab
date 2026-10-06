@@ -72,6 +72,34 @@ $roles = foreach ($group in @($roleSamples | Group-Object role)) {
         threadsMedian = Get-Percentile @($rows.threads) 0.50
     }
 }
+$treeSamples = foreach ($sample in @($input.samples)) {
+    $valid = @($sample.processes | Where-Object { $_.status -ne 'unavailable' })
+    if ($valid.Count -eq 0) { continue }
+    [pscustomobject]@{
+        timestamp = $sample.timestamp
+        processCount = $valid.Count
+        workingSetMiB = Get-OptionalSum -Rows $valid -Property 'workingSetMiB'
+        privateWorkingSetMiB = Get-OptionalSum -Rows $valid -Property 'privateWorkingSetMiB'
+        workingSetShareableMiB = Get-OptionalSum -Rows $valid -Property 'workingSetShareableMiB'
+        privateMemoryMiB = Get-OptionalSum -Rows $valid -Property 'privateMemoryMiB'
+        cpuPercentOfTotal = Get-OptionalSum -Rows $valid -Property 'cpuPercentOfTotal'
+    }
+}
+$treeSummary = [pscustomobject]@{
+    samples = @($treeSamples).Count
+    processCountMedian = Get-Percentile @($treeSamples.processCount) 0.50
+    processCountP95 = Get-Percentile @($treeSamples.processCount) 0.95
+    workingSetMedianMiB = Get-Percentile @($treeSamples.workingSetMiB) 0.50
+    workingSetP95MiB = Get-Percentile @($treeSamples.workingSetMiB) 0.95
+    privateWorkingSetMedianMiB = Get-Percentile @($treeSamples.privateWorkingSetMiB) 0.50
+    privateWorkingSetP95MiB = Get-Percentile @($treeSamples.privateWorkingSetMiB) 0.95
+    workingSetShareableMedianMiB = Get-Percentile @($treeSamples.workingSetShareableMiB) 0.50
+    workingSetShareableP95MiB = Get-Percentile @($treeSamples.workingSetShareableMiB) 0.95
+    privateMemoryMedianMiB = Get-Percentile @($treeSamples.privateMemoryMiB) 0.50
+    privateMemoryP95MiB = Get-Percentile @($treeSamples.privateMemoryMiB) 0.95
+    cpuMedianPercentOfTotal = Get-Percentile @($treeSamples.cpuPercentOfTotal) 0.50
+    cpuP95PercentOfTotal = Get-Percentile @($treeSamples.cpuPercentOfTotal) 0.95
+}
 $ranked = @($roles | Sort-Object workingSetMedianMiB -Descending)
 for ($index = 0; $index -lt $ranked.Count; $index++) {
     $ranked[$index] | Add-Member -NotePropertyName workingSetRank -NotePropertyValue ($index + 1)
@@ -83,6 +111,7 @@ $summary = [pscustomobject]@{
     scenario = $input.scenario
     rootPid = $input.rootPid
     sampleCount = @($input.samples).Count
+    processTree = $treeSummary
     roles = $ranked
 }
 $parent = Split-Path -Parent $OutputPath
