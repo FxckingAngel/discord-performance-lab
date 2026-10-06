@@ -28,4 +28,10 @@ Do not replace the production WinForms shell with this probe yet. Its measured p
 
 The probe is reversible through the diagnostic argument and does not alter the normal shell profile or Discord protocol.
 
-Raw samples remain local at `benchmarks/raw/track-b-native-host-probe-20261006.json` and its summary file.
+## Authenticated follow-up
+
+The same minimal host was then run against the normal Track B WebView2 profile for 126.8 seconds. It reached an eight-process tree with median private bytes of 582.50 MiB and median renderer private bytes of 353.13 MiB. The capture began at 854.27 MiB private bytes and ended at 541.27 MiB, so it had not reached a stable settled state. It also created an audio service that was not present in the one-renderer production settled capture.
+
+This follow-up is not an acceptance comparison and does not demonstrate a saving on the authenticated workload. It rejects promoting the minimal host based on the current evidence. The production shell remains the only Track B implementation under measurement, and renderer attribution remains the primary optimization path.
+
+Raw samples remain local at `benchmarks/raw/track-b-native-host-probe-20261006.json`, `benchmarks/raw/track-b-native-host-probe-20261006-summary.json`, `benchmarks/raw/track-b-native-host-authenticated-20261006.json`, and its summary file.

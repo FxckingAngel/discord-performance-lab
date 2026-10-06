@@ -47,9 +47,10 @@ internal static class Program
         var diagnosticAuthenticated = args.Length == 1 && string.Equals(args[0], "--diagnostic-authenticated", StringComparison.Ordinal);
         var diagnosticCapabilityEvents = args.Length == 1 && string.Equals(args[0], "--diagnostic-capability-events", StringComparison.Ordinal);
         var diagnosticNativeHost = args.Length == 1 && string.Equals(args[0], "--diagnostic-native-host", StringComparison.Ordinal);
-        if (diagnosticNativeHost)
+        var diagnosticNativeHostAuthenticated = args.Length == 1 && string.Equals(args[0], "--diagnostic-native-host-authenticated", StringComparison.Ordinal);
+        if (diagnosticNativeHost || diagnosticNativeHostAuthenticated)
         {
-            Application.Run(new NativeHostProbeContext());
+            Application.Run(new NativeHostProbeContext(diagnosticNativeHostAuthenticated));
             return;
         }
         try

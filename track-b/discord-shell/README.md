@@ -21,6 +21,8 @@ For runtime attribution only, `KoroneDiscordShell.exe --diagnostic-blank` opens 
 
 For native-host footprint research only, `KoroneDiscordShell.exe --diagnostic-native-host` uses a minimal native window and WebView2 controller with a separate `NativeHostProbeUserData` folder. It does not implement the production titlebar, tray, native bridges, or Discord workload and must not be treated as a Track B client.
 
+`--diagnostic-native-host-authenticated` uses the normal Track B WebView2 profile and loads Discord for a private footprint comparison. It is still a diagnostic shell without the production titlebar, tray, or bridges; close the normal shell first and keep its raw measurements private.
+
 For a separate unauthenticated environment probe against the actual Discord route, use `KoroneDiscordShell.exe --diagnostic-discord`. It uses a separate `EnvironmentProbeUserData` profile and loopback CDP port 9224. It must not be used to transfer credentials or claim a logged-in performance result.
 
 For a diagnostic-only UA experiment, use `KoroneDiscordShell.exe --diagnostic-official-ua`. It uses a separate `UserAgentProbeUserData` profile, reports the observed official Discord UA, and exposes loopback CDP port 9225. This does not add `DiscordNative` or any native capability and is not accepted as a desktop compatibility implementation.

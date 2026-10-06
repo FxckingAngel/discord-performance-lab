@@ -11,10 +11,10 @@ internal sealed class NativeHostProbeContext : ApplicationContext
 {
     private readonly NativeHostWindow window;
 
-    public NativeHostProbeContext()
+    public NativeHostProbeContext(bool authenticated)
     {
         SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
-        window = new NativeHostWindow(this);
+        window = new NativeHostWindow(this, authenticated);
         window.CreateControl();
     }
 
@@ -28,12 +28,14 @@ internal sealed class NativeHostProbeContext : ApplicationContext
         private const int WmClose = 0x0010;
         private const int WmSize = 0x0005;
         private readonly NativeHostProbeContext owner;
+        private readonly bool authenticated;
         private CoreWebView2Controller? controller;
         private CoreWebView2? webView;
 
-        public NativeHostWindow(NativeHostProbeContext owner)
+        public NativeHostWindow(NativeHostProbeContext owner, bool authenticated)
         {
             this.owner = owner;
+            this.authenticated = authenticated;
         }
 
         public void CreateControl()
@@ -72,7 +74,7 @@ internal sealed class NativeHostProbeContext : ApplicationContext
                 var userDataFolder = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "KoroneDiscordShell",
-                    "NativeHostProbeUserData");
+                    authenticated ? "WebView2UserData" : "NativeHostProbeUserData");
                 System.IO.Directory.CreateDirectory(userDataFolder);
                 var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
                 controller = await environment.CreateCoreWebView2ControllerAsync(Handle);
@@ -80,7 +82,7 @@ internal sealed class NativeHostProbeContext : ApplicationContext
                 webView.Settings.IsStatusBarEnabled = false;
                 controller.Bounds = GetClientBounds();
                 controller.IsVisible = true;
-                webView.Navigate("about:blank");
+                webView.Navigate(authenticated ? "https://discord.com/app" : "about:blank");
             }
             catch
             {
