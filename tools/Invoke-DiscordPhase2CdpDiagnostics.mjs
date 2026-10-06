@@ -78,28 +78,57 @@ function summarizeProfile(profile) {
   };
 }
 
-function nativeCategory(stack) {
-  const text = (Array.isArray(stack) ? stack.join(' ') : String(stack ?? '')).toLowerCase();
+function parseAddress(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  const parsed = /^0x[0-9a-f]+$/i.test(text) ? Number.parseInt(text, 16) : Number(text);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function moduleNamesForStack(stack, modules) {
+  const names = [];
+  for (const frame of Array.isArray(stack) ? stack : []) {
+    const address = parseAddress(frame);
+    if (address === null) continue;
+    const module = modules.find((candidate) => address >= candidate.base && address < candidate.base + candidate.size);
+    if (module?.name) names.push(module.name);
+  }
+  return names;
+}
+
+function nativeCategory(stack, moduleNames = []) {
+  const text = [...(Array.isArray(stack) ? stack : []), ...moduleNames].join(' ').toLowerCase();
   if (/v8|javascript|blink::v8|heap/.test(text)) return 'v8';
   if (/blink|dom|layout|style|paint|compositor/.test(text)) return 'blink';
   if (/skia|gpu|gl|d3d|texture|raster/.test(text)) return 'gpu-graphics';
   if (/webrtc|audio|video|media|mojo::/.test(text)) return 'media-webrtc';
   if (/image|png|jpeg|webp|gif|bitmap/.test(text)) return 'image-media';
   if (/net|http|url|cache|disk_cache/.test(text)) return 'network-cache';
-  if (/partitionalloc|malloc|calloc|allocator|base::/.test(text)) return 'chromium-native';
+  if (/partitionalloc|malloc|calloc|allocator|base::|msedgewebview2|chrome|chromium|edge/.test(text)) return 'chromium-native';
   return 'other';
 }
 
 function summarizeNativeMemoryProfile(profile) {
   const samples = Array.isArray(profile?.samples) ? profile.samples : [];
+  const modules = (Array.isArray(profile?.modules) ? profile.modules : []).map((module) => ({
+    name: String(module.name ?? ''),
+    base: parseAddress(module.baseAddress),
+    size: Number(module.size ?? 0),
+  })).filter((module) => module.name && module.base !== null && Number.isFinite(module.size) && module.size > 0);
   const sizes = samples.map((sample) => Number(sample.size ?? 0)).filter(Number.isFinite);
   const totals = samples.map((sample) => Number(sample.total ?? sample.size ?? 0)).filter(Number.isFinite);
   const stackDepths = samples.map((sample) => Array.isArray(sample.stack) ? sample.stack.length : 0);
   const categories = new Map();
+  let mappedFrames = 0;
+  let totalFrames = 0;
   for (const sample of samples) {
     const bytes = Number(sample.size ?? 0);
     if (!Number.isFinite(bytes) || bytes <= 0) continue;
-    const category = nativeCategory(sample.stack);
+    const stack = Array.isArray(sample.stack) ? sample.stack : [];
+    const moduleNames = moduleNamesForStack(stack, modules);
+    totalFrames += stack.length;
+    mappedFrames += moduleNames.length;
+    const category = nativeCategory(stack, moduleNames);
     const current = categories.get(category) ?? { category, sampledBytes: 0, sampleCount: 0 };
     current.sampledBytes += bytes;
     current.sampleCount += 1;
@@ -114,6 +143,8 @@ function summarizeNativeMemoryProfile(profile) {
     largestSampleBytes: sizes.length > 0 ? Math.max(...sizes) : 0,
     maximumStackDepth: stackDepths.length > 0 ? Math.max(...stackDepths) : 0,
     moduleCount: Array.isArray(profile?.modules) ? profile.modules.length : null,
+    moduleMappedFrameCount: mappedFrames,
+    moduleFrameCount: totalFrames,
     nativeAllocationCategories: [...categories.values()].sort((left, right) => right.sampledBytes - left.sampledBytes),
   };
 }
