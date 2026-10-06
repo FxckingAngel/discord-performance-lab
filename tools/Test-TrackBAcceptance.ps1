@@ -26,9 +26,24 @@ if ($missingGroups.Count -gt 0) {
     throw "Candidate summary is missing required metric groups: $($missingGroups -join ', ')."
 }
 
+$requiredMetricValues = @(
+    [pscustomobject] @{ name = 'privateWorkingSetMiB.median'; value = $candidate.privateWorkingSetMiB.median }
+    [pscustomobject] @{ name = 'privateWorkingSetMiB.p95'; value = $candidate.privateWorkingSetMiB.p95 }
+    [pscustomobject] @{ name = 'privateMemoryMiB.median'; value = $candidate.privateMemoryMiB.median }
+    [pscustomobject] @{ name = 'privateMemoryMiB.p95'; value = $candidate.privateMemoryMiB.p95 }
+    [pscustomobject] @{ name = 'cpuPercentOfTotal.medianRun'; value = $candidate.cpuPercentOfTotal.medianRun }
+    [pscustomobject] @{ name = 'cpuPercentOfTotal.p95Run'; value = $candidate.cpuPercentOfTotal.p95Run }
+)
+$missingValues = @($requiredMetricValues | Where-Object { $null -eq $_.value })
+if ($missingValues.Count -gt 0) {
+    throw "Candidate summary is missing required metric values: $(($missingValues | ForEach-Object name) -join ', ')."
+}
+
 $resourceFields = @(
     [pscustomobject] @{ name = 'privateWorkingSetMedianMiB'; value = [double] $candidate.privateWorkingSetMiB.median; limit = 250 }
+    [pscustomobject] @{ name = 'privateWorkingSetP95MiB'; value = [double] $candidate.privateWorkingSetMiB.p95; limit = 250 }
     [pscustomobject] @{ name = 'privateBytesMedianMiB'; value = [double] $candidate.privateMemoryMiB.median; limit = 250 }
+    [pscustomobject] @{ name = 'privateBytesP95MiB'; value = [double] $candidate.privateMemoryMiB.p95; limit = 250 }
     [pscustomobject] @{ name = 'cpuMedianPercentOfTotal'; value = [double] $candidate.cpuPercentOfTotal.medianRun; limit = 0.2 }
     [pscustomobject] @{ name = 'cpuP95PercentOfTotal'; value = [double] $candidate.cpuPercentOfTotal.p95Run; limit = 0.2 }
 )

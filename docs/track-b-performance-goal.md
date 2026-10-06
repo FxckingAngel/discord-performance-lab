@@ -20,13 +20,13 @@ The design target is approximately **250 MiB of total settled idle private/uniqu
 
 **Authenticated Track B checkpoint: CAPTURED; official same-route A/B pairing and parity validation pending**
 
-The settled resource target has now repeated in the same prepared session: a second 600-second observation measured 241.61 MiB median private bytes, 151.24 MiB median private working set, and 0.00635% CPU p95 across seven processes. This validates the resource target for that session, but it does not close the functional or visual-parity gates.
+The settled resource target has now repeated in the current build: two consecutive 600-second observations measured 243.64 MiB median and 244.05 MiB p95 private bytes, 153.87 MiB median and 166.45 MiB p95 private working set, and 0.001% median/p95 CPU across seven processes. This validates the resource target for that prepared session, but it does not close the functional or visual-parity gates.
 
 The authenticated benchmark is a manual UI checkpoint, not a blocked project goal. Use `tools/Invoke-TrackBManualCheckpoint.ps1` to launch or reuse Track B, then manually log in, navigate to the requested channel or DM, leave the state ready, and type `READY`. The script then measures the existing Track B process tree without UI automation. Official Discord does not need to be closed for this workflow.
 
 Use `tools/Invoke-TrackBFunctionalCheckpoint.ps1` for the feature gate after the shell is visibly ready. It requires exactly one responsive Track B process before prompting for sanitized PASS, FAIL, or UNTESTED results, and records the root PID and window state. It cannot produce a functional report for a missing or unresponsive shell.
 
-The final gate is `tools/Test-TrackBAcceptance.ps1`. It requires a complete Track B summary, an all-PASS functional report, and a visual report with every comparison condition confirmed, screenshots present, and an explicit visual-review PASS. Missing evidence produces a failed gate rather than being interpreted as success.
+The final gate is `tools/Test-TrackBAcceptance.ps1`. It requires a complete Track B summary with both memory medians and p95 values at or below the limits, CPU median and p95 at or below the limit, an all-PASS functional report, and a visual report with every comparison condition confirmed, screenshots present, and an explicit visual-review PASS. Missing evidence produces a failed gate rather than being interpreted as success.
 
 The minimized-WebView visibility candidate is documented separately in [Experiment 012](experiments/012-webview-visibility-candidate.md). It passed executable smoke tests but did not materially change settled foreground resource use, and its authenticated functional matrix is still unverified. The current `Verified` production binary remains the comparison baseline.
 

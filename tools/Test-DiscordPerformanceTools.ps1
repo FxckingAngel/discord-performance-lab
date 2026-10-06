@@ -203,8 +203,8 @@ try {
     $acceptanceVisualPath = Join-Path $tempRoot 'acceptance-visual.json'
     $acceptanceOutputPath = Join-Path $tempRoot 'acceptance-output.json'
     [pscustomobject]@{
-        privateWorkingSetMiB = [pscustomobject]@{ median = 150 }
-        privateMemoryMiB = [pscustomobject]@{ median = 240 }
+        privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
+        privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
         cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
     [pscustomobject]@{ passed = $true; results = @([pscustomobject]@{ status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
@@ -214,6 +214,31 @@ try {
     if (-not $acceptanceResult.passed) {
         throw "Synthetic Track B acceptance gate should pass when every gate is satisfied: $($acceptanceResult | ConvertTo-Json -Compress)"
     }
+    [pscustomobject]@{
+        privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 251 }
+        privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
+        cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
+    $highWorkingSetP95Text = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $highWorkingSetP95Result = $highWorkingSetP95Text | ConvertFrom-Json
+    if ($highWorkingSetP95Result.passed) {
+        throw 'Acceptance gate must reject a private-working-set p95 over the target even when the median passes.'
+    }
+    [pscustomobject]@{
+        privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
+        privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 251 }
+        cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
+    $highPrivateBytesP95Text = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $highPrivateBytesP95Result = $highPrivateBytesP95Text | ConvertFrom-Json
+    if ($highPrivateBytesP95Result.passed) {
+        throw 'Acceptance gate must reject private-bytes p95 over the target even when the median passes.'
+    }
+    [pscustomobject]@{
+        privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
+        privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
+        cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
     [pscustomobject]@{ parityReady = $true; visualReviewPassed = $false; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $rejectedAcceptanceText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $rejectedAcceptanceResult = $rejectedAcceptanceText | ConvertFrom-Json
