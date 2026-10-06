@@ -10,6 +10,8 @@ The shell must replace the Electron desktop container, not Discord's web client,
 
 The shell must also meet the separate [visual parity requirement](track-b-visual-parity.md). Discord's frontend must render the Discord application area, and the authenticated result must be visually and functionally almost indistinguishable from official desktop Discord under the same controlled state.
 
+It must also provide a minimal, audited [desktop compatibility layer](track-b-desktop-compatibility.md). Discord's frontend must recognize only desktop capabilities that Track B genuinely implements underneath it. Capability reporting cannot be used to spoof unsupported Electron APIs or security state.
+
 The design target is approximately **250 MiB total settled idle working set and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable.
 
 ## Target levels
@@ -90,4 +92,4 @@ Each desktop capability is an independent compatibility item. Before adding it, 
 5. If it reaches 150–250 MiB with normal functionality, record that as stretch success.
 6. If a critical feature cannot be preserved safely, document the limitation instead of adding a protocol or security bypass.
 
-No Track B result is called successful until the full-tree performance gate, required functional matrix, and visual parity review all pass.
+No Track B result is called successful until the full-tree performance gate, required functional matrix, visual parity review, and desktop compatibility matrix all pass.

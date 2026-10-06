@@ -51,9 +51,25 @@ function Get-DiscordProcessSnapshot {
         }
         $processes = @($processes | Where-Object { $treePids.Contains([int] $_.ProcessId) })
     }
+    $perfByPid = @{}
+    try {
+        foreach ($perfRow in @(Get-CimInstance Win32_PerfFormattedData_PerfProc_Process)) {
+            $perfPid = [int] $perfRow.IDProcess
+            if ($perfPid -gt 0) {
+                $perfByPid[$perfPid] = $perfRow
+            }
+        }
+    }
+    catch {
+        # Performance counters are supplementary; process APIs remain available.
+    }
     $rows = foreach ($process in $processes) {
         try {
             $current = Get-Process -Id $process.ProcessId -ErrorAction Stop
+            $perf = $perfByPid[[int] $process.ProcessId]
+            $workingSetBytes = [double] $current.WorkingSet64
+            $workingSetPrivateBytes = if ($perf) { [double] $perf.WorkingSetPrivate } else { $null }
+            $privateBytes = if ($perf) { [double] $perf.PrivateBytes } else { [double] $current.PrivateMemorySize64 }
             $role = 'browser'
             if ($process.CommandLine -match '--type=([^\s]+)') {
                 $role = $Matches[1]
@@ -69,8 +85,11 @@ function Get-DiscordProcessSnapshot {
                 role            = $role
                 path            = $current.Path
                 cpuSeconds      = $current.CPU
-                workingSetBytes = $current.WorkingSet64
-                privateBytes    = $current.PrivateMemorySize64
+                workingSetBytes = $workingSetBytes
+                workingSetPrivateBytes = $workingSetPrivateBytes
+                workingSetShareableBytes = if ($null -ne $workingSetPrivateBytes) { [math]::Max(0, $workingSetBytes - $workingSetPrivateBytes) } else { $null }
+                privateBytes    = $privateBytes
+                commitBytes     = $privateBytes
                 handles         = $current.HandleCount
                 threads         = $current.Threads.Count
             }
@@ -83,7 +102,10 @@ function Get-DiscordProcessSnapshot {
     [pscustomobject] @{
         processCount    = @($rows).Count
         workingSetBytes = [double] (($rows | Measure-Object workingSetBytes -Sum).Sum)
+        workingSetPrivateBytes = [double] (($rows | Measure-Object workingSetPrivateBytes -Sum).Sum)
+        workingSetShareableBytes = [double] (($rows | Measure-Object workingSetShareableBytes -Sum).Sum)
         privateBytes    = [double] (($rows | Measure-Object privateBytes -Sum).Sum)
+        commitBytes     = [double] (($rows | Measure-Object commitBytes -Sum).Sum)
         cpuSeconds      = [double] (($rows | Measure-Object cpuSeconds -Sum).Sum)
         processes       = @($rows)
     }
@@ -108,7 +130,10 @@ function Invoke-DiscordBenchmark {
             timestamp        = (Get-Date).ToUniversalTime().ToString('o')
             processCount     = $snapshot.processCount
             workingSetBytes  = $snapshot.workingSetBytes
+            workingSetPrivateBytes = $snapshot.workingSetPrivateBytes
+            workingSetShareableBytes = $snapshot.workingSetShareableBytes
             privateBytes     = $snapshot.privateBytes
+            commitBytes      = $snapshot.commitBytes
             cpuSeconds       = $snapshot.cpuSeconds
             processes        = $snapshot.processes
         })

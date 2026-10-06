@@ -45,3 +45,17 @@ A later 30-second rooted capture was taken while the shell remained responsive. 
 | Crashpad | 13.5 MiB | 2.9 MiB | 0.05 |
 
 This remains unauthenticated evidence. It shows that the current shell is well above the Track B target before optimization, with the renderer and GPU process accounting for most of the current private-memory footprint. It does not establish whether the same ownership persists after normal login and the required Discord workload.
+
+## Repeated private-accounting measurement
+
+Three settled repetitions against the running Discord-loaded shell used the updated rooted collector. The profile remained unauthenticated, so this is still not the required official-Discord comparison:
+
+| Metric | Run 1 | Run 2 | Run 3 | Median | p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Total working set | 851.4 MiB | 851.9 MiB | 850.0 MiB | 851.4 MiB | 851.8 MiB |
+| Private working set | 421.3 MiB | 421.8 MiB | 420.0 MiB | 421.3 MiB | 421.7 MiB |
+| Derived shareable working set | 430.1 MiB | 430.1 MiB | 430.1 MiB | 430.1 MiB | 430.1 MiB |
+| Private bytes / commit | 573.0 MiB | 572.9 MiB | 570.8 MiB | 572.9 MiB | 573.0 MiB |
+| Process count | 8 | 8 | 8 | 8 | 8 |
+
+Compared with the repeated blank-runtime median, the Discord-loaded shell adds approximately 475.5 MiB total working set, 348.2 MiB private working set, and 427.6 MiB private bytes/commit. The private-working-set result is materially lower than the ordinary summed working-set delta, but it is still above the 250 MiB complete-app target before authentication and normal desktop compatibility work.
