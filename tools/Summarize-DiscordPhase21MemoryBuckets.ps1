@@ -56,6 +56,20 @@ $nativeCategories = if ($cdp.nativeMemorySamplingWindow -and $cdp.nativeMemorySa
 } else {
     $null
 }
+function Get-NativeSampledMiB {
+    param([string] $Category)
+    $row = @($nativeCategories | Where-Object category -eq $Category | Select-Object -First 1)
+    if ($row.Count -eq 0) { return $null }
+    return $row[0].sampledMiB
+}
+$attributionCategories = @(
+    [pscustomobject]@{ category = 'v8'; status = 'measured'; measuredMiB = $v8UsedMiB; evidence = 'Runtime.getHeapUsage.usedSize'; interpretation = 'Live V8 heap only, not the full renderer allocation.' }
+    [pscustomobject]@{ category = 'blink-dom-layout'; status = if ($null -ne (Get-NativeSampledMiB 'blink')) { 'sampled-only' } else { 'not-measured' }; measuredMiB = Get-NativeSampledMiB 'blink'; evidence = 'CDP native allocation sampling when samples are available'; interpretation = 'Sampled stack bytes are not total Blink ownership.' }
+    [pscustomobject]@{ category = 'image-gif-media'; status = if ($null -ne (Get-NativeSampledMiB 'image-media')) { 'sampled-only' } else { 'not-measured' }; measuredMiB = Get-NativeSampledMiB 'image-media'; evidence = 'CDP native allocation sampling when samples are available'; interpretation = 'Decoded media and cache ownership is not fully measured by this sample.' }
+    [pscustomobject]@{ category = 'chromium-native'; status = if ($null -ne (Get-NativeSampledMiB 'chromium-native')) { 'sampled-only' } else { 'not-measured' }; measuredMiB = Get-NativeSampledMiB 'chromium-native'; evidence = 'CDP native allocation sampling when samples are available'; interpretation = 'Allocator and native runtime sample bytes are not total committed ownership.' }
+    [pscustomobject]@{ category = 'gpu-shared-textures'; status = if ($null -ne $gpuPrivateWorkingMiB) { 'process-boundary-only' } else { 'not-measured' }; measuredMiB = $gpuPrivateWorkingMiB; evidence = 'GPU process private working set'; interpretation = 'GPU process memory is not equivalent to shared texture ownership.' }
+    [pscustomobject]@{ category = 'webrtc-audio-video'; status = if ($null -ne (Get-NativeSampledMiB 'media-webrtc')) { 'sampled-only' } else { 'not-measured' }; measuredMiB = Get-NativeSampledMiB 'media-webrtc'; evidence = 'CDP native allocation sampling when samples are available'; interpretation = 'WebRTC and media allocations are not fully separated by this sample.' }
+)
 $domCounters = if ($cdp.domCounters -and -not $cdp.domCounters.error) {
     [pscustomobject]@{
         documents = $cdp.domCounters.documents
@@ -81,6 +95,7 @@ $result = [pscustomobject]@{
     v8HeapCapacityMiB = $v8TotalMiB
     rendererCount = $rendererAttribution.Count
     rendererAttribution = $rendererAttribution
+    attributionCategories = $attributionCategories
     buckets = $buckets
     nativeAllocationCategories = $nativeCategories
     domCounters = $domCounters
