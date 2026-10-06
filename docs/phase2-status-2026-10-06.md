@@ -85,6 +85,8 @@ The sampler was then corrected to batch process/GPU counter queries and compensa
 
 A new read-only `QueryWorkingSet` diagnostic preserves per-process resident-page flags. The current seven-process shell returned 527.016 MiB resident pages, 160.598 MiB marked with the PSAPI `Shared` flag, and 2.184 MiB with `ShareCount > 1`. These fields do not identify shared physical pages across processes and do not replace the existing private-working-set/private-bytes gates. The raw capture and interpretation are in `docs/benchmarks/track-b-working-set-page-flags-2026-10-06.md`.
 
+A synchronized per-PID cross-check then matched WMI and `Get-Counter` exactly: 166.82 MiB private working set and 256.59 MiB private bytes across all seven rooted processes. The earlier 256.8 MiB versus 265.6 MiB difference was caused by separate captures and timing/row availability, not a stable source-definition mismatch. Future comparisons must use synchronized samples or the direct rooted process-tree benchmark.
+
 ## Remaining Phase 2 work
 
 1. Capture the full scenario matrix: foreground idle, background idle, text scrolling, voice, video, screen sharing, media-heavy channel, notification, startup, and settled state.
