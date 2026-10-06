@@ -52,6 +52,9 @@ public static class TrackBVirtualMemory {
             ["mappedCommittedBytes"] = 0,
             ["imageCommittedBytes"] = 0,
             ["otherCommittedBytes"] = 0,
+            ["privateWritableCommittedBytes"] = 0,
+            ["privateExecutableCommittedBytes"] = 0,
+            ["privateOtherProtectionCommittedBytes"] = 0,
             ["regionCount"] = 0,
         };
         var process = OpenProcess(QueryInformation, false, processId);
@@ -69,6 +72,14 @@ public static class TrackBVirtualMemory {
                         : information.Type == MemImage ? "imageCommittedBytes"
                         : "otherCommittedBytes";
                     result[key] += regionSize;
+                    if (information.Type == MemPrivate) {
+                        var protection = information.Protect & 0xff;
+                        var writable = protection == 0x04 || protection == 0x08 || protection == 0x40 || protection == 0x80;
+                        var executable = protection == 0x10 || protection == 0x20 || protection == 0x40 || protection == 0x80;
+                        if (writable) result["privateWritableCommittedBytes"] += regionSize;
+                        if (executable) result["privateExecutableCommittedBytes"] += regionSize;
+                        if (!writable && !executable) result["privateOtherProtectionCommittedBytes"] += regionSize;
+                    }
                     result["regionCount"]++;
                 }
                 var next = unchecked((ulong)address.ToInt64() + regionSize);
@@ -133,6 +144,9 @@ $rows = foreach ($row in @(Get-Descendants)) {
             workingSetBytes = [long] $process.WorkingSet64
             privateBytes = [long] $process.PrivateMemorySize64
             privateCommittedBytes = [long] $memory.privateCommittedBytes
+            privateWritableCommittedBytes = [long] $memory.privateWritableCommittedBytes
+            privateExecutableCommittedBytes = [long] $memory.privateExecutableCommittedBytes
+            privateOtherProtectionCommittedBytes = [long] $memory.privateOtherProtectionCommittedBytes
             mappedCommittedBytes = [long] $memory.mappedCommittedBytes
             imageCommittedBytes = [long] $memory.imageCommittedBytes
             otherCommittedBytes = [long] $memory.otherCommittedBytes

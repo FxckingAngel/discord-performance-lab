@@ -6,18 +6,18 @@ Raw artifact: `benchmarks/raw/track-b-virtual-memory-types-current-20261006.json
 
 ## Per-process result
 
-| Role | Process private bytes | Private committed regions | Mapped committed | Image committed |
-| --- | ---: | ---: | ---: | ---: |
-| Renderer | 120.42 MiB | 112.44 MiB | 251.96 MiB | 369.80 MiB |
-| Browser/utility | 42.69 MiB | 31.26 MiB | 279.99 MiB | 474.75 MiB |
-| GPU process | 58.42 MiB | 23.56 MiB | 199.37 MiB | 599.83 MiB |
-| Network service | 13.25 MiB | 7.03 MiB | 231.45 MiB | 375.62 MiB |
-| Storage service | 7.58 MiB | 1.97 MiB | 227.46 MiB | 365.07 MiB |
-| Crashpad handler | 3.11 MiB | 1.24 MiB | 179.53 MiB | 33.76 MiB |
-| Native shell | 12.14 MiB | 7.90 MiB | 268.81 MiB | 115.26 MiB |
+| Role | Process private bytes | Private committed | Private writable | Private executable | Mapped committed | Image committed |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Renderer | 120.42 MiB | 112.44 MiB | 110.86 MiB | 1.88 MiB | 251.96 MiB | 369.80 MiB |
+| Browser/utility | 42.44 MiB | 31.04 MiB | 30.57 MiB | 0.00 MiB | 279.89 MiB | 474.81 MiB |
+| GPU process | 58.39 MiB | 23.52 MiB | 23.12 MiB | 0.01 MiB | 199.34 MiB | 599.84 MiB |
+| Network service | 13.21 MiB | 7.00 MiB | 6.80 MiB | 0.00 MiB | 231.45 MiB | 375.69 MiB |
+| Storage service | 7.58 MiB | 1.97 MiB | 1.88 MiB | 0.00 MiB | 227.55 MiB | 365.18 MiB |
+| Crashpad handler | 2.95 MiB | 1.11 MiB | 1.01 MiB | 0.00 MiB | 179.55 MiB | 33.77 MiB |
+| Native shell | 12.07 MiB | 7.84 MiB | 7.81 MiB | 0.01 MiB | 268.76 MiB | 115.28 MiB |
 
 ## Interpretation
 
-The renderer's process private bytes are close to its committed `MEM_PRIVATE` regions, while mapped and image-backed regions are much larger virtual reservations. This makes the renderer's remaining private allocation a useful target for allocator/runtime attribution, but it does not identify JavaScript, Blink, decoded media, WebRTC, or GPU ownership. The snapshot also does not prove that committed private pages are resident.
+The renderer's process private bytes are close to its committed `MEM_PRIVATE` regions, and roughly 110.86 MiB of that committed private space is writable while only 1.88 MiB is executable. This makes JIT code an unlikely explanation for most of the private remainder; writable allocator/runtime state is the larger category. It still does not identify JavaScript, Blink, decoded media, WebRTC, or GPU ownership, and the snapshot does not prove that committed private pages are resident.
 
 No renderer setting, Chromium switch, memory trimming, or page instrumentation was changed. The next candidate still needs a foreground process-tree comparison and normal-function checks.
