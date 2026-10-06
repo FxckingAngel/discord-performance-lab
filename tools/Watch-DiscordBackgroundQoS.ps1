@@ -45,6 +45,9 @@ do {
     $desiredMode = if ($minimized) { 'ecoqos' } else { 'system-managed' }
     if ($desiredMode -ne $lastMode) {
         $qosOutput = & $qosScript -RootPid $RootPid -ProcessName $ProcessName -Mode $desiredMode | Out-String
+        if ($LASTEXITCODE -ne 0) {
+            throw "QoS transition to $desiredMode failed for root PID $RootPid. $($qosOutput.Trim())"
+        }
         [pscustomobject]@{
             rootPid = $RootPid
             windowHandle = $windowHandle.ToInt64()
