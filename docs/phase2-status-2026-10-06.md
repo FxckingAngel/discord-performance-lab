@@ -63,6 +63,8 @@ The same diagnostic-only session had a single renderer at about 610 MiB median w
 
 This is useful separation evidence, not an optimization result. The Phase 2.1 seven-scenario matrix still requires three operator-labeled repetitions per scenario, and no renderer or GPU change has been made.
 
+A paired Track B diagnostic launch on the same date ended with an eight-process tree at about 661.9 MiB working set and 364.1 MiB private bytes. Its renderer held 187.5 MiB private bytes while CDP reported 54.68 MiB V8 heap used, leaving at least roughly 133 MiB of renderer private residual outside measured V8 heap. The paired state had 1,174 DOM nodes, 695 JavaScript listeners, three image elements, no video elements, and no active RTCPeerConnections. This is unauthenticated evidence and narrows the next attribution work to Blink/native Chromium/resource allocations, but it is not sufficient to select an optimization.
+
 The sanitized memory-bucket report for the diagnostic run separates 153.641 MiB of measured V8 heap from 521.73 MiB renderer private memory. The arithmetic leaves a 368.0 MiB non-V8 renderer residual lower bound. It is intentionally labeled unresolved and may include Blink, native Chromium, decoded media, shared buffers, or other allocations.
 
 ## ETW status
