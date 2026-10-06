@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 const port = Number(process.argv[2] ?? 9222);
 const durationSeconds = Math.max(1, Math.min(60, Number(process.argv[3] ?? 10)));
 const outputPath = process.argv[4];
+const collectGarbage = process.argv.includes('--collect-garbage');
 if (!outputPath) throw new Error('Output path is required.');
 
 const base = `http://127.0.0.1:${port}`;
@@ -192,6 +193,23 @@ try {
   await command('Runtime.enable');
   await command('Performance.enable');
   result.heapUsage = (await optionalCommand('Runtime.getHeapUsage')).result ?? null;
+  if (collectGarbage) {
+    const before = result.heapUsage;
+    const collected = await optionalCommand('HeapProfiler.collectGarbage');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const after = (await optionalCommand('Runtime.getHeapUsage')).result ?? null;
+    result.gcProbe = {
+      requested: true,
+      available: collected.available,
+      error: collected.error ?? null,
+      before,
+      after,
+      usedSizeDeltaBytes: before && after ? Number(after.usedSize ?? 0) - Number(before.usedSize ?? 0) : null,
+      totalSizeDeltaBytes: before && after ? Number(after.totalSize ?? 0) - Number(before.totalSize ?? 0) : null,
+    };
+  } else {
+    result.gcProbe = { requested: false };
+  }
   const metrics = await optionalCommand('Performance.getMetrics');
   result.performanceMetrics = metrics.available ? metricMap(metrics.result.metrics) : { error: metrics.error };
   const nativeMemory = await optionalCommand('Memory.getAllTimeSamplingProfile');

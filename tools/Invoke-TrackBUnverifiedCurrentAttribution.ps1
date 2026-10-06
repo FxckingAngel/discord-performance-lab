@@ -9,6 +9,8 @@ param(
     [ValidateRange(0, 600)]
     [int] $SettleSeconds = 60,
 
+    [switch] $CollectGarbage,
+
     [ValidateRange(1, 60)]
     [int] $IntervalSeconds = 5,
 
@@ -99,7 +101,9 @@ try {
         '-OutputPath', $processTreePath,
         '-ProcessName', 'KoroneDiscordShell'
     )
-    & $node.Source $cdpScript 9230 $DurationSeconds $cdpPath
+    $cdpArguments = @($cdpScript, '9230', "$DurationSeconds", $cdpPath)
+    if ($CollectGarbage) { $cdpArguments += '--collect-garbage' }
+    & $node.Source @cdpArguments
     if ($LASTEXITCODE -ne 0) { throw "CDP diagnostics failed with exit code $LASTEXITCODE." }
     if ($CaptureHeapSnapshot) {
         & $node.Source $heapScript 9230 $heapRawPath $heapSummaryPath
@@ -113,6 +117,7 @@ try {
         verification = 'unverified-route-and-workload'
         durationSeconds = $DurationSeconds
         settleSeconds = $SettleSeconds
+        collectGarbage = [bool] $CollectGarbage
         processTreePath = (Resolve-Path $processTreePath).Path
         cdpPath = (Resolve-Path $cdpPath).Path
         heapSummaryPath = if ($CaptureHeapSnapshot) { (Resolve-Path $heapSummaryPath).Path } else { $null }
