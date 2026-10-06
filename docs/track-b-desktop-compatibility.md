@@ -43,6 +43,14 @@ The official Electron environment must be observed locally with read-only diagno
 4. Implement one narrow capability, measure its process, memory, CPU, startup, and wakeup cost, then run the relevant functional scenario.
 5. Keep unsupported capabilities unavailable rather than claiming they work.
 
+The read-only probe is `tools/Invoke-DiscordEnvironmentProbe.mjs`. It requires a loopback CDP endpoint created for a controlled diagnostic launch. It records only sanitized aggregate environment facts and global-name presence; it does not serialize native object values or page data.
+
+## Measured Track B environment
+
+The isolated `--diagnostic-discord` profile was measured on 2026-10-06 using WebView2 Runtime 154.0.4258.53. The Discord route reported Edge/WebView2 user-agent data, `Win32`, a 1264x761 viewport at device-pixel ratio 1, and normal web capabilities for notifications, media devices, microphone/camera capture, display capture, clipboard, file pickers, downloads, drag/drop, and visual viewport APIs. It did not expose `DiscordNative`, `electron`, `require`, `process`, or `module` globals.
+
+This is evidence about the Track B web route, not proof that Discord Desktop accepts every capability as equivalent. The official Electron environment still requires a controlled CDP launch before the two sides can be compared. No Electron object is being spoofed based on this result.
+
 Raw environment dumps, heap snapshots, screenshots, message contents, account identifiers, tokens, and crash dumps remain local and private. Only sanitized capability names, aggregate measurements, and pass/fail outcomes belong in the repository.
 
 ## Acceptance

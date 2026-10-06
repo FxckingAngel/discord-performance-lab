@@ -10,6 +10,7 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
         var diagnosticBlank = args.Length == 1 && string.Equals(args[0], "--diagnostic-blank", StringComparison.Ordinal);
-        Application.Run(new MainForm(diagnosticBlank));
+        var diagnosticDiscord = args.Length == 1 && string.Equals(args[0], "--diagnostic-discord", StringComparison.Ordinal);
+        Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord));
     }
 }

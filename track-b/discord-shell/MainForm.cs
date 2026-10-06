@@ -12,13 +12,17 @@ public sealed class MainForm : Form
     private const string DiscordWebApp = "https://discord.com/app";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
     private readonly bool diagnosticBlank;
+    private readonly bool diagnosticDiscord;
 
-    public MainForm(bool diagnosticBlank)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord)
     {
         this.diagnosticBlank = diagnosticBlank;
+        this.diagnosticDiscord = diagnosticDiscord;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
-            : "Korone's Discord Shell (Prototype)";
+            : diagnosticDiscord
+                ? "Korone's Discord Shell (Environment Probe)"
+                : "Korone's Discord Shell (Prototype)";
         StartPosition = FormStartPosition.CenterScreen;
         Width = 1280;
         Height = 800;
@@ -36,9 +40,19 @@ public sealed class MainForm : Form
             var userDataFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "KoroneDiscordShell",
-                diagnosticBlank ? "RuntimeBaselineUserData" : "WebView2UserData");
+                diagnosticBlank
+                    ? "RuntimeBaselineUserData"
+                    : diagnosticDiscord
+                        ? "EnvironmentProbeUserData"
+                        : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
+            var diagnosticPort = diagnosticBlank ? 9223 : 9224;
+            var options = diagnosticBlank || diagnosticDiscord
+                ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
+                : null;
+            var environment = await CoreWebView2Environment.CreateAsync(
+                userDataFolder: userDataFolder,
+                options: options);
             await webView.EnsureCoreWebView2Async(environment);
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
@@ -67,7 +81,9 @@ public sealed class MainForm : Form
         {
             Text = diagnosticBlank
                 ? "Korone's Discord Shell (Runtime Baseline)"
-                : "Korone's Discord Shell (Prototype)";
+                : diagnosticDiscord
+                    ? "Korone's Discord Shell (Environment Probe)"
+                    : "Korone's Discord Shell (Prototype)";
         }
     }
 }

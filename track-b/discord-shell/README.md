@@ -15,7 +15,9 @@ From the repository root, with the local SDK installed:
 
 The machine must have the WebView2 Runtime installed. The first run uses the normal Discord web login flow. It does not import Discord desktop cookies or tokens.
 
-For runtime attribution only, `KoroneDiscordShell.exe --diagnostic-blank` opens `about:blank` in a separate WebView2 user-data folder. This mode does not load Discord and must not be used as an application performance result. It estimates the shell and WebView2 runtime floor against the normal Discord URL.
+For runtime attribution only, `KoroneDiscordShell.exe --diagnostic-blank` opens `about:blank` in a separate WebView2 user-data folder. This mode does not load Discord and must not be used as an application performance result. It estimates the shell and WebView2 runtime floor against the normal Discord URL. Diagnostic blank mode exposes only loopback CDP port 9223 for the sanitized environment probe and is not part of the normal shell.
+
+For a separate unauthenticated environment probe against the actual Discord route, use `KoroneDiscordShell.exe --diagnostic-discord`. It uses a separate `EnvironmentProbeUserData` profile and loopback CDP port 9224. It must not be used to transfer credentials or claim a logged-in performance result.
 
 ## Scope of this milestone
 
