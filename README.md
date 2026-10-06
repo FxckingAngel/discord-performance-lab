@@ -43,6 +43,8 @@ It records process-tree working set, private bytes, CPU time, handles, threads, 
 
 For process-tree startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Measure-DiscordStartup.ps1). It refuses to launch over an existing instance and measures process-tree first-seen and stable times; those values are not a substitute for UI-ready timing.
 
+Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to apply the regression gate to two generated summaries.
+
 ## Evidence standard
 
 Every performance claim should include the stock and candidate build identifiers, workload, machine state, sample count, raw data location, summary statistics, and any functional regressions observed. The benchmark plan defines the first comparison.
