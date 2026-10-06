@@ -90,6 +90,9 @@ try {
     if ($summaryObject.handles.median -ne 270 -or $summaryObject.threads.median -ne 45) {
         throw "Full-tree handle/thread summary was not calculated as expected."
     }
+    if ($summaryObject.rendererCount.median -ne 1 -or $summaryObject.rendererCount.maximum -ne 1) {
+        throw "Per-renderer process count summary was not calculated as expected."
+    }
     if ($null -eq $summaryObject.roleBreakdown.renderer -or $summaryObject.roleBreakdown.renderer.cpuPercentOfTotal.median -le 0) {
         throw "Role-level CPU attribution was not calculated as expected."
     }

@@ -55,6 +55,9 @@ $workingSetShareable = @($samples | ForEach-Object { if ($null -ne $_.workingSet
 $privateBytes = @($samples | ForEach-Object { [double] $_.privateBytes / 1MB })
 $commitBytes = @($samples | ForEach-Object { if ($null -ne $_.commitBytes) { [double] $_.commitBytes / 1MB } })
 $processCounts = @($samples | ForEach-Object { [double] $_.processCount })
+$rendererCounts = @($samples | ForEach-Object {
+    [double] @($_.processes | Where-Object { $_.role -eq 'renderer' }).Count
+})
 $handleTotals = @($samples | ForEach-Object {
     [double] (@($_.processes | ForEach-Object { [double] $_.handles } | Measure-Object -Sum).Sum)
 })
@@ -150,6 +153,10 @@ $summary = [pscustomobject] @{
     processCount = [pscustomobject] @{
         median = [math]::Round((Get-Quantile $processCounts 0.50), 2)
         maximum = [math]::Round(($processCounts | Measure-Object -Maximum).Maximum, 2)
+    }
+    rendererCount = [pscustomobject] @{
+        median = [math]::Round((Get-Quantile $rendererCounts 0.50), 2)
+        maximum = [math]::Round(($rendererCounts | Measure-Object -Maximum).Maximum, 2)
     }
     handles = [pscustomobject] @{
         median = [math]::Round((Get-Quantile $handleTotals 0.50), 2)
