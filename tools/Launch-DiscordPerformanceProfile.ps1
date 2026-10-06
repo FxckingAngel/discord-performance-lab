@@ -44,6 +44,7 @@ if ($Profile -eq 'adaptive') {
         '-File', $watcherScript,
         '-RootPid', $process.Id,
         '-ProcessName', $ProcessName,
+        '-BackgroundIdleConfirmed',
         '-PollIntervalSeconds', '2'
     ) -PassThru
 }

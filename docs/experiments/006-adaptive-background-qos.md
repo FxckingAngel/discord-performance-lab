@@ -6,20 +6,20 @@ Prototype utility; transition and functional acceptance pending.
 
 ## Change
 
-`tools/Watch-DiscordBackgroundQoS.ps1` watches one observed Discord root PID. It applies the existing EcoQoS control only while the main window is minimized or has no window handle, and returns the process tree to system-managed QoS when the window is restored.
+`tools/Watch-DiscordBackgroundQoS.ps1 -BackgroundIdleConfirmed` watches one observed Discord root PID. It applies the existing EcoQoS control only while the main window is minimized or has no window handle, and returns the process tree to system-managed QoS when the window is restored. The explicit confirmation is required for direct watcher use as well as launcher use.
 
 `tools/Launch-DiscordPerformanceProfile.ps1 -Profile adaptive -BackgroundIdleConfirmed` starts stock Discord and attaches this watcher automatically. The confirmation is required because a minimized Discord window can still have an active call or media session. The launcher reports both the Discord PID and watcher PID so the private profile can be inspected and stopped cleanly.
 
 Run once to evaluate the current state:
 
 ```powershell
-.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -Once
+.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -Once -BackgroundIdleConfirmed
 ```
 
 Run continuously with a two-second poll interval:
 
 ```powershell
-.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -PollIntervalSeconds 2
+.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -PollIntervalSeconds 2 -BackgroundIdleConfirmed
 ```
 
 ## Boundary

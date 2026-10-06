@@ -9,9 +9,15 @@ param(
 
     [switch] $Once,
 
+    [switch] $BackgroundIdleConfirmed,
+
     [ValidateNotNullOrEmpty()]
     [string] $ProcessName = 'DiscordPTB'
 )
+
+if (-not $BackgroundIdleConfirmed) {
+    throw 'Background QoS watching requires -BackgroundIdleConfirmed after active voice, video, and media work has ended.'
+}
 
 Add-Type -TypeDefinition @'
 using System;
