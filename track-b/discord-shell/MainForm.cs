@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
@@ -15,16 +16,20 @@ public sealed class MainForm : Form
     private readonly bool diagnosticBlank;
     private readonly bool diagnosticDiscord;
     private readonly bool diagnosticUserAgent;
+    private readonly bool diagnosticWindowBridge;
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
         this.diagnosticUserAgent = diagnosticUserAgent;
+        this.diagnosticWindowBridge = diagnosticWindowBridge;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
             : diagnosticUserAgent
                 ? "Korone's Discord Shell (User-Agent Probe)"
+                : diagnosticWindowBridge
+                    ? "Korone's Discord Shell (Window Bridge Probe)"
                 : diagnosticDiscord
                 ? "Korone's Discord Shell (Environment Probe)"
                 : "Korone's Discord Shell (Prototype)";
@@ -49,12 +54,14 @@ public sealed class MainForm : Form
                     ? "RuntimeBaselineUserData"
                     : diagnosticUserAgent
                         ? "UserAgentProbeUserData"
+                        : diagnosticWindowBridge
+                            ? "WindowBridgeProbeUserData"
                         : diagnosticDiscord
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : 9225;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : 9226;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -67,6 +74,21 @@ public sealed class MainForm : Form
             if (diagnosticUserAgent)
             {
                 webView.CoreWebView2.Settings.UserAgent = DiagnosticOfficialUserAgent;
+            }
+            if (diagnosticWindowBridge)
+            {
+                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+                await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
+(() => {
+  const actions = new Set(['minimize', 'maximize', 'restore', 'close', 'focus']);
+  const send = (action) => {
+    if (actions.has(action)) chrome.webview.postMessage(JSON.stringify({ source: 'track-b-window', action }));
+  };
+  const windowApi = Object.freeze(Object.fromEntries([...actions].map((action) => [action, () => send(action)])));
+  if (!globalThis.DiscordNative) {
+    Object.defineProperty(globalThis, 'DiscordNative', { configurable: false, enumerable: false, value: Object.freeze({ window: windowApi }) });
+  }
+})();");
             }
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             webView.Source = new Uri(diagnosticBlank ? "about:blank" : DiscordWebApp);
@@ -91,12 +113,65 @@ public sealed class MainForm : Form
         else
         {
             Text = diagnosticBlank
-                ? "Korone's Discord Shell (Runtime Baseline)"
-                : diagnosticUserAgent
-                    ? "Korone's Discord Shell (User-Agent Probe)"
+                    ? "Korone's Discord Shell (Runtime Baseline)"
+                    : diagnosticUserAgent
+                        ? "Korone's Discord Shell (User-Agent Probe)"
+                        : diagnosticWindowBridge
+                            ? "Korone's Discord Shell (Window Bridge Probe)"
                     : diagnosticDiscord
                     ? "Korone's Discord Shell (Environment Probe)"
                     : "Korone's Discord Shell (Prototype)";
+        }
+    }
+
+    private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        string message;
+        try
+        {
+            message = e.TryGetWebMessageAsString();
+        }
+        catch
+        {
+            return;
+        }
+
+        string? action;
+        try
+        {
+            using var document = JsonDocument.Parse(message);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("source", out var source)
+                || !string.Equals(source.GetString(), "track-b-window", StringComparison.Ordinal)
+                || !root.TryGetProperty("action", out var actionElement))
+            {
+                return;
+            }
+
+            action = actionElement.GetString();
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        switch (action)
+        {
+            case "minimize":
+                WindowState = FormWindowState.Minimized;
+                break;
+            case "maximize":
+                WindowState = FormWindowState.Maximized;
+                break;
+            case "restore":
+                WindowState = FormWindowState.Normal;
+                break;
+            case "close":
+                Close();
+                break;
+            case "focus":
+                Activate();
+                break;
         }
     }
 }

@@ -21,6 +21,8 @@ For a separate unauthenticated environment probe against the actual Discord rout
 
 For a diagnostic-only UA experiment, use `KoroneDiscordShell.exe --diagnostic-official-ua`. It uses a separate `UserAgentProbeUserData` profile, reports the observed official Discord UA, and exposes loopback CDP port 9225. This does not add `DiscordNative` or any native capability and is not accepted as a desktop compatibility implementation.
 
+For the first native capability test, use `KoroneDiscordShell.exe --diagnostic-window-bridge`. It uses a separate `WindowBridgeProbeUserData` profile and loopback CDP port 9226. Only native window actions are exposed, and every message is restricted to the five implemented actions. This mode is diagnostic until behavior and resource cost are accepted.
+
 ## Scope of this milestone
 
 The shell is only a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. It is not an optimized client, an official Discord build, or a feature-complete replacement.

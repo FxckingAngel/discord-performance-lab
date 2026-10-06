@@ -12,6 +12,7 @@ internal static class Program
         var diagnosticBlank = args.Length == 1 && string.Equals(args[0], "--diagnostic-blank", StringComparison.Ordinal);
         var diagnosticDiscord = args.Length == 1 && string.Equals(args[0], "--diagnostic-discord", StringComparison.Ordinal);
         var diagnosticUserAgent = args.Length == 1 && string.Equals(args[0], "--diagnostic-official-ua", StringComparison.Ordinal);
-        Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent));
+        var diagnosticWindowBridge = args.Length == 1 && string.Equals(args[0], "--diagnostic-window-bridge", StringComparison.Ordinal);
+        Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge));
     }
 }

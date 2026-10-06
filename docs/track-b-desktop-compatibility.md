@@ -22,7 +22,7 @@ The official Electron environment must be observed locally with read-only diagno
 | --- | --- | --- | --- | --- |
 | Runtime and platform identification | Electron 42.11.10 with Chromium and Electron runtime signals | Native WebView2 runtime plus an explicitly documented, minimal environment surface | No | Not measured |
 | Preload-exposed globals | Must be enumerated from the stock client under a disposable diagnostic launch | No preload bridge in the prototype | No | Not measured |
-| Window controls and state | Electron BrowserWindow and native window state | WinForms window state and native controls | Prototype only | Host-only, to measure |
+| Window controls and state | Electron BrowserWindow and native window state | Diagnostic-only WebView2 message bridge to WinForms state/actions | Diagnostic proof only; not enabled in normal mode | Not measured |
 | Custom titlebar and drag region | Electron frame/titlebar configuration | Native WinForms titlebar or documented custom frame | No | Not measured |
 | Desktop notifications | Electron/OS notification integration | WebView2 permission and Windows notification integration, subject to supported behavior | No | Not measured |
 | Media devices and permissions | Chromium media APIs with Electron permission handling | WebView2 media permissions and native device selection | No | Not measured |
@@ -66,6 +66,12 @@ On 2026-10-06, official Discord PTB was restarted once with a localhost-only CDP
 | Electron globals | `electron`, `require`, `process`, and `module` absent at page scope | Same absent | Do not add these globals blindly |
 
 The `DiscordNative` property names are capability labels only. Their values, IPC methods, account data, and native object contents were not read. The next implementation step is to determine which named groups the Discord frontend actually calls in each failed or visually different scenario, then provide one narrow native equivalent at a time.
+
+## First native bridge probe
+
+The diagnostic-only `--diagnostic-window-bridge` mode now exposes exactly five window actions through a document-created script: `minimize`, `maximize`, `restore`, `close`, and `focus`. The shell receives only messages with the `track-b-window` source, parses them as JSON, and dispatches the requested action to the WinForms window. It does not expose Electron globals, authentication state, API permissions, or a general IPC channel.
+
+On 2026-10-06, the bridge was exercised over loopback CDP with `minimize` and `restore`. Both calls returned `called`; the root process remained responsive with its diagnostic window handle intact after the sequence. This verifies message delivery and native dispatch, not Discord feature compatibility. The bridge remains disabled in normal mode, and no window action has been marked as supported by the Discord frontend yet.
 
 ## Measured Electron API shape
 
