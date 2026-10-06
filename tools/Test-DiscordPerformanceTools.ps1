@@ -81,7 +81,7 @@ try {
     if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
         throw 'Phase 2 attribution must enumerate all processes before walking the rooted tree.'
     }
-    foreach ($treeTool in @('Measure-DiscordProcessTree.ps1', 'Measure-DiscordPhase2Attribution.ps1', 'Measure-TrackBVirtualMemoryTypes.ps1')) {
+    foreach ($treeTool in @('Measure-DiscordProcessTree.ps1', 'Measure-DiscordPhase2Attribution.ps1', 'Measure-TrackBVirtualMemoryTypes.ps1', 'Measure-DiscordWorkingSetPages.ps1')) {
         $treeSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath $treeTool) -Raw
         if ($treeSource -notmatch 'ManagementDateTimeConverter') {
             throw "$treeTool does not guard PID reuse with process creation times."

@@ -109,11 +109,26 @@ function Get-RootedProcesses {
     if (-not $byPid.ContainsKey($RootPid)) { throw "Root PID $RootPid was not found." }
     $pids = [System.Collections.Generic.HashSet[int]]::new()
     $queue = [System.Collections.Generic.Queue[int]]::new()
+    function Test-CurrentParentProcess {
+        param([object] $Parent, [object] $Child)
+
+        if ([int] $Child.ParentProcessId -ne [int] $Parent.ProcessId) { return $false }
+        try {
+            $parentStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Parent.CreationDate).ToUniversalTime()
+            $childStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Child.CreationDate).ToUniversalTime()
+            return $childStart -ge $parentStart
+        }
+        catch {
+            return $true
+        }
+    }
     [void] $pids.Add($RootPid)
     $queue.Enqueue($RootPid)
     while ($queue.Count -gt 0) {
         $parent = $queue.Dequeue()
+        $parentRow = $byPid[$parent]
         foreach ($row in $all | Where-Object { [int] $_.ParentProcessId -eq $parent }) {
+            if ($parentRow -and -not (Test-CurrentParentProcess -Parent $parentRow -Child $row)) { continue }
             $child = [int] $row.ProcessId
             if ($pids.Add($child)) { $queue.Enqueue($child) }
         }
