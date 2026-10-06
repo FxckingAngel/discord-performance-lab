@@ -41,6 +41,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Adaptive profile scope decision](docs/decisions/0003-adaptive-profile-scope.md)
 - [Memory-priority experiment](docs/experiments/007-memory-priority.md)
+- [Background memory-priority profile](docs/experiments/008-memory-background-profile.md)
 - [Current active voice-session baseline](docs/benchmarks/stock-active-voice-current-2026-10-06.md)
 - [Current stock restart baseline](docs/benchmarks/stock-restart-current-2026-10-06.md)
 - [Security and safety boundary](SECURITY.md)
@@ -83,6 +84,14 @@ The adaptive profile keeps foreground use system-managed and applies EcoQoS only
 ```
 
 The confirmation is required because a minimized Discord window can still have an active call or media session.
+
+The opt-in `memory-low` profile uses the same visible-versus-background boundary, applying low memory priority only after the main window has appeared and then been minimized or hidden. It restores normal priority when the window is visible:
+
+```powershell
+.\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile memory-low -BackgroundIdleConfirmed
+```
+
+This profile is experimental. It is not the default and has not passed the full voice, video, messaging, media, notification, accessibility, settings, and cleanup checklist.
 
 The stock profile remains the rollback path:
 

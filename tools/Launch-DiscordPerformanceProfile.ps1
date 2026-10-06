@@ -4,7 +4,7 @@ param(
     [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })]
     [string] $ExecutablePath,
 
-    [ValidateSet('stock', 'ecoqos', 'adaptive')]
+    [ValidateSet('stock', 'ecoqos', 'adaptive', 'memory-low')]
     [string] $Profile = 'stock',
 
     [ValidateNotNullOrEmpty()]
@@ -13,8 +13,8 @@ param(
     [switch] $BackgroundIdleConfirmed
 )
 
-if ($Profile -eq 'adaptive' -and -not $BackgroundIdleConfirmed) {
-    throw 'Adaptive mode requires -BackgroundIdleConfirmed after active voice, video, and media work has ended.'
+if ($Profile -in @('adaptive', 'memory-low') -and -not $BackgroundIdleConfirmed) {
+    throw "$Profile mode requires -BackgroundIdleConfirmed after active voice, video, and media work has ended."
 }
 
 $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath).Path
@@ -29,16 +29,22 @@ $arguments = switch ($Profile) {
     'stock' { @() }
     'ecoqos' { @('--enable-features=UseEcoQoSForBackgroundProcess') }
     'adaptive' { @() }
+    'memory-low' { @() }
 }
 
 $process = Start-Process -FilePath $resolvedExecutable -ArgumentList $arguments -PassThru
 $watcher = $null
-if ($Profile -eq 'adaptive') {
-    $watcherScript = Join-Path $PSScriptRoot 'Watch-DiscordBackgroundQoS.ps1'
-    if (-not (Test-Path -LiteralPath $watcherScript -PathType Leaf)) {
-        throw "Adaptive watcher not found: $watcherScript"
+if ($Profile -in @('adaptive', 'memory-low')) {
+    $watcherScript = if ($Profile -eq 'adaptive') {
+        Join-Path $PSScriptRoot 'Watch-DiscordBackgroundQoS.ps1'
     }
-    $watcher = Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @(
+    else {
+        Join-Path $PSScriptRoot 'Watch-DiscordBackgroundMemoryPriority.ps1'
+    }
+    if (-not (Test-Path -LiteralPath $watcherScript -PathType Leaf)) {
+        throw "$Profile watcher not found: $watcherScript"
+    }
+    $watcherArguments = @(
         '-NoProfile',
         '-ExecutionPolicy', 'Bypass',
         '-File', $watcherScript,
@@ -46,7 +52,11 @@ if ($Profile -eq 'adaptive') {
         '-ProcessName', $ProcessName,
         '-BackgroundIdleConfirmed',
         '-PollIntervalSeconds', '2'
-    ) -PassThru
+    )
+    if ($Profile -eq 'memory-low') {
+        $watcherArguments += @('-Priority', 'low')
+    }
+    $watcher = Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList $watcherArguments -PassThru
 }
 [pscustomobject] @{
     profile = $Profile
