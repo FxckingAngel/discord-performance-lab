@@ -95,6 +95,10 @@ The property-name-only probe also recorded these nested names from the stock cli
 
 These names do not authorize exposing an object with matching methods. Each row requires a behavior-level test, a narrow native implementation, a rollback path, and a full-tree resource measurement before it can be reported to Discord as supported.
 
+`tools/Probe-DiscordFeatureSupport.mjs` is the next sanitized diagnostic. It calls only the official client's local `features.supports` function with a fixed list of capability names and records boolean/error results. It does not invoke window actions, dialogs, clipboard operations, capture, settings, or account/network APIs. The resulting feature names are evidence for prioritization, not permission to expose unsupported methods in Track B.
+
+The 2026-10-06 probe returned `false` for every human-readable candidate tested, including the observed `window`, `hardware`, `desktopCapture`, `fileManager`, `clipboard`, `powerMonitor`, and `safeStorage` method names. This is inconclusive because the feature registry likely uses internal identifiers. It must not be read as proof that the corresponding desktop capabilities are unused or unsupported, and no feature flag was changed.
+
 ## UA-only experiment
 
 A diagnostic-only WebView2 run reported the observed official Discord user-agent string, including `discord/1.0.1223` and `Electron/42.11.10`, while leaving the rest of the shell unchanged. The page still had no `DiscordNative` object, retained the WebView2 1264x761 DPR 1 viewport, and exposed the same normal web capabilities. UA identification alone therefore does not satisfy desktop compatibility and is rejected as a Track B implementation. It may only be used in future experiments when paired with genuine native capabilities and a documented reason.
