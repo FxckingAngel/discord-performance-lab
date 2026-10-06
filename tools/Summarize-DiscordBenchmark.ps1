@@ -40,6 +40,14 @@ $processCounts = @($samples | ForEach-Object { [double] $_.processCount })
 $cpuDeltas = @($runs | ForEach-Object {
     [double] $_.samples[-1].cpuSeconds - [double] $_.samples[0].cpuSeconds
 })
+$logicalProcessors = [int] (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+$cpuPercent = @($runs | ForEach-Object {
+    $start = [datetime]::Parse($_.samples[0].timestamp)
+    $end = [datetime]::Parse($_.samples[-1].timestamp)
+    $wallSeconds = ($end - $start).TotalSeconds
+    if ($wallSeconds -le 0 -or $logicalProcessors -le 0) { return }
+    (([double] $_.samples[-1].cpuSeconds - [double] $_.samples[0].cpuSeconds) / $wallSeconds / $logicalProcessors) * 100
+})
 
 $summary = [pscustomobject] @{
     schemaVersion = 1
@@ -47,6 +55,7 @@ $summary = [pscustomobject] @{
     samples = $samples.Count
     builds = @($runs | ForEach-Object build | Sort-Object -Unique)
     scenarios = @($runs | ForEach-Object scenario | Sort-Object -Unique)
+    logicalProcessorCount = $logicalProcessors
     workingSetMiB = [pscustomobject] @{
         median = [math]::Round((Get-Quantile $workingSet 0.50), 2)
         p95 = [math]::Round((Get-Quantile $workingSet 0.95), 2)
@@ -66,6 +75,10 @@ $summary = [pscustomobject] @{
     cpuSeconds = [pscustomobject] @{
         medianRunDelta = [math]::Round((Get-Quantile $cpuDeltas 0.50), 3)
         maximumRunDelta = [math]::Round(($cpuDeltas | Measure-Object -Maximum).Maximum, 3)
+    }
+    cpuPercentOfTotal = [pscustomobject] @{
+        medianRun = [math]::Round((Get-Quantile $cpuPercent 0.50), 3)
+        p95Run = [math]::Round((Get-Quantile $cpuPercent 0.95), 3)
     }
 }
 
