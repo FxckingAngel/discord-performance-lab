@@ -19,3 +19,8 @@
 ## Notes
 
 The process tree remained at six processes during the read-only check. The accessibility tree exposed the server sidebar, direct-message list, Friends, User Settings, voice controls, camera, screen sharing, soundboard, and media controls. User Settings was opened to the Voice & Video page and then closed; no setting control was activated. The client remained on the stock profile. No messages, permissions, or account data were changed.
+
+## Follow-up evidence
+
+- A fresh active-use measurement on the same stock client recorded six processes, 1,256 MiB median working set, 1,081 MiB median private memory, and 7.32% CPU over 5.04 seconds. This is a live snapshot, not a replacement for the repeatable baseline.
+- The user reported independently verifying messaging and voice/video functionality. This remains user-reported evidence because this run did not send a message or transmit audio/video.
