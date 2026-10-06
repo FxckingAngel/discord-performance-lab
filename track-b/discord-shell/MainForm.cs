@@ -25,6 +25,7 @@ public sealed class MainForm : Form
     private readonly bool diagnosticBridgePair;
     private readonly bool diagnosticAuthenticated;
     private readonly bool diagnosticCapabilityEvents;
+    private readonly bool diagnosticAuthenticatedNoBridges;
     private string? capabilityEventLogPath;
     private readonly Panel titleBar = new() { Dock = DockStyle.Top, Height = 32 };
     private readonly Label titleLabel = new() { AutoEllipsis = true, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
@@ -33,7 +34,7 @@ public sealed class MainForm : Form
     private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
     private readonly NotifyIcon trayIcon = new() { Icon = SystemIcons.Application, Visible = true, Text = "Discord" };
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
@@ -43,6 +44,7 @@ public sealed class MainForm : Form
         this.diagnosticBridgePair = diagnosticBridgePair;
         this.diagnosticAuthenticated = diagnosticAuthenticated;
         this.diagnosticCapabilityEvents = diagnosticCapabilityEvents;
+        this.diagnosticAuthenticatedNoBridges = diagnosticAuthenticatedNoBridges;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
             : diagnosticUserAgent
@@ -55,6 +57,8 @@ public sealed class MainForm : Form
                     ? "Korone's Discord Shell (Bridge Pair Probe)"
                 : diagnosticAuthenticated
                     ? "Korone's Discord Shell (Authenticated Profile Probe)"
+                : diagnosticAuthenticatedNoBridges
+                    ? "Korone's Discord Shell (Authenticated No-Bridge Probe)"
                 : diagnosticCapabilityEvents
                     ? "Korone's Discord Shell (Capability Events Probe)"
                 : diagnosticDiscord
@@ -153,14 +157,16 @@ public sealed class MainForm : Form
                             ? "BridgePairProbeUserData"
                         : diagnosticAuthenticated
                             ? "WebView2UserData"
+                        : diagnosticAuthenticatedNoBridges
+                            ? "WebView2UserData"
                         : diagnosticCapabilityEvents
                             ? "CapabilityEventsProbeUserData"
                         : diagnosticDiscord
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticCapabilityEvents ? 9231 : 9228;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticCapabilityEvents
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticAuthenticatedNoBridges ? 9230 : diagnosticCapabilityEvents ? 9231 : 9228;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticAuthenticatedNoBridges || diagnosticCapabilityEvents
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -182,9 +188,9 @@ public sealed class MainForm : Form
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
             var enableWindowBridge = diagnosticWindowBridge || diagnosticBridgePair
-                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticHardwareBridge);
+                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticHardwareBridge && !diagnosticAuthenticatedNoBridges);
             var enableHardwareBridge = diagnosticHardwareBridge || diagnosticBridgePair
-                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticWindowBridge);
+                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticWindowBridge && !diagnosticAuthenticatedNoBridges);
             if (enableWindowBridge || enableHardwareBridge)
             {
                 webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
@@ -273,9 +279,11 @@ public sealed class MainForm : Form
                             ? "Korone's Discord Shell (Hardware Bridge Probe)"
                         : diagnosticBridgePair
                             ? "Korone's Discord Shell (Bridge Pair Probe)"
-                        : diagnosticAuthenticated
-                            ? "Korone's Discord Shell (Authenticated Profile Probe)"
-                        : diagnosticCapabilityEvents
+                    : diagnosticAuthenticated
+                        ? "Korone's Discord Shell (Authenticated Profile Probe)"
+                    : diagnosticAuthenticatedNoBridges
+                        ? "Korone's Discord Shell (Authenticated No-Bridge Probe)"
+                    : diagnosticCapabilityEvents
                             ? "Korone's Discord Shell (Capability Events Probe)"
                     : diagnosticDiscord
                     ? "Korone's Discord Shell (Environment Probe)"
