@@ -20,7 +20,11 @@ The design target is approximately **250 MiB of total settled idle private/uniqu
 
 **Authenticated Track B checkpoint: CAPTURED; official same-route A/B pairing and parity validation pending**
 
+The settled resource target has now repeated in the same prepared session: a second 600-second observation measured 241.61 MiB median private bytes, 151.24 MiB median private working set, and 0.00635% CPU p95 across seven processes. This validates the resource target for that session, but it does not close the functional or visual-parity gates.
+
 The authenticated benchmark is a manual UI checkpoint, not a blocked project goal. Use `tools/Invoke-TrackBManualCheckpoint.ps1` to launch or reuse Track B, then manually log in, navigate to the requested channel or DM, leave the state ready, and type `READY`. The script then measures the existing Track B process tree without UI automation. Official Discord does not need to be closed for this workflow.
+
+Use `tools/Invoke-TrackBFunctionalCheckpoint.ps1` for the feature gate after the shell is visibly ready. It requires exactly one responsive Track B process before prompting for sanitized PASS, FAIL, or UNTESTED results, and records the root PID and window state. It cannot produce a functional report for a missing or unresponsive shell.
 
 A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.95 MiB median private working set and 0.072% median total CPU, but its private-bytes median was 331.29 MiB and its p95 private working set was 266.93 MiB. This is encouraging runtime-floor evidence only; it does not satisfy the authenticated same-channel acceptance gate.
 
