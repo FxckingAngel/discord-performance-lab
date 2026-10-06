@@ -22,6 +22,8 @@ const nodeEdgeCountIndex = nodeFields.indexOf('edge_count');
 const nodeDetachednessIndex = nodeFields.indexOf('detachedness');
 const edgeTypeIndex = edgeFields.indexOf('type');
 const edgeToNodeIndex = edgeFields.indexOf('to_node');
+const edgeNameIndex = edgeFields.indexOf('name_or_index');
+const strings = snapshot.strings ?? [];
 if (nodeWidth <= 0 || edgeWidth <= 0 || nodeTypeIndex < 0 || nodeSelfSizeIndex < 0 || nodeEdgeCountIndex < 0 || edgeTypeIndex < 0 || edgeToNodeIndex < 0) {
   throw new Error('Unsupported heap snapshot schema.');
 }
@@ -52,6 +54,7 @@ for (let nodeIndex = 0; nodeIndex < nodeCount; nodeIndex += 1) {
 const incomingByEdgeType = new Map();
 const incomingBySourceType = new Map();
 const incomingByPair = new Map();
+const incomingByNameCategory = new Map();
 const incomingCountByNode = new Map();
 let edgeOffset = 0;
 let totalEdges = 0;
@@ -65,11 +68,27 @@ for (let sourceIndex = 0; sourceIndex < nodeCount; sourceIndex += 1) {
     totalEdges += 1;
     if (!detached.has(targetIndex)) continue;
     const edgeType = String(edgeTypes[edges[current + edgeTypeIndex]] ?? 'unknown');
+    const nameValue = edgeNameIndex >= 0 ? strings[edges[current + edgeNameIndex]] : null;
+    const nameText = typeof nameValue === 'string' ? nameValue.toLowerCase() : '';
+    const nameCategory = edgeType === 'element'
+      ? 'element-index'
+      : /event|listener|handler|callback/.test(nameText)
+        ? 'event-listener-like'
+        : /parent|child|owner|node|document|element/.test(nameText)
+          ? 'dom-relationship-like'
+          : /cache|map|set|store|state|message|channel|guild/.test(nameText)
+            ? 'application-state-like'
+            : /context|scope|weak/.test(nameText)
+              ? 'runtime-context-like'
+              : nameText
+                ? 'other-named-property'
+                : 'unnamed-edge';
     incomingCountByNode.set(targetIndex, (incomingCountByNode.get(targetIndex) ?? 0) + 1);
     incomingByEdgeType.set(edgeType, (incomingByEdgeType.get(edgeType) ?? 0) + 1);
     incomingBySourceType.set(sourceType, (incomingBySourceType.get(sourceType) ?? 0) + 1);
     const pair = `${sourceType}|${edgeType}`;
     incomingByPair.set(pair, (incomingByPair.get(pair) ?? 0) + 1);
+    incomingByNameCategory.set(nameCategory, (incomingByNameCategory.get(nameCategory) ?? 0) + 1);
   }
   edgeOffset += count * edgeWidth;
 }
@@ -96,6 +115,7 @@ const summary = {
   incomingByEdgeType: rankedMap(incomingByEdgeType, 'edgeType'),
   incomingBySourceType: rankedMap(incomingBySourceType, 'sourceType'),
   incomingBySourceAndEdgeType: rankedMap(incomingByPair, 'sourceTypeAndEdgeType'),
+  incomingBySanitizedNameCategory: rankedMap(incomingByNameCategory, 'nameCategory'),
 };
 await fs.writeFile(outputPath, JSON.stringify(summary, null, 2), 'utf8');
 console.log(JSON.stringify({ outputPath, detachedNodeCount: summary.detachedNodeCount, detachedNodesWithIncomingEdges: summary.detachedNodesWithIncomingEdges }));

@@ -27,3 +27,16 @@ This is a sanitized graph pass over the private heap snapshot from `track-b-cdp-
 | Closure | 1,542 |
 
 The result says the detached nodes are still referenced in the snapshot graph, but it does not establish that they are Discord-owned leaks or that releasing them would be safe. Retaining-path work must continue locally before any frontend change.
+
+## Sanitized edge-name categories
+
+The same graph pass classified edge names without emitting them:
+
+| Category | Count |
+| --- | ---: |
+| Element index | 47,568 |
+| Other named property | 7,310 |
+| DOM-relationship-like | 5,256 |
+| Application-state-like | 536 |
+
+These are pattern categories, not semantic proof. The application-state-like group is a lead for deeper local retaining-path inspection, not evidence that message or channel state can be discarded.
