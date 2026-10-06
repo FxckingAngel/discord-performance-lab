@@ -76,7 +76,7 @@ try {
         throw 'Feature-support probe does not distinguish an unavailable registry from a reported capability.'
     }
     $acceptanceGateSource = Get-Content -LiteralPath $acceptanceGateTool -Raw
-    foreach ($requiredField in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal', 'functionalPassed', 'visualPassed', 'visualComparisonValid', 'measurementEvidence')) {
+    foreach ($requiredField in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal', 'functionalCoverageComplete', 'functionalPassed', 'visualPassed', 'visualComparisonValid', 'measurementEvidence')) {
         if ($acceptanceGateSource -notmatch [regex]::Escape($requiredField)) {
             throw "Track B acceptance gate does not evaluate $requiredField."
         }
@@ -291,6 +291,9 @@ try {
     $acceptanceFunctionalPath = Join-Path $tempRoot 'acceptance-functional.json'
     $acceptanceVisualPath = Join-Path $tempRoot 'acceptance-visual.json'
     $acceptanceOutputPath = Join-Path $tempRoot 'acceptance-output.json'
+    $functionalFixtureResults = @('login-session', 'servers-channels', 'messaging', 'images-media', 'notifications', 'voice', 'video', 'screen-share', 'file-dialogs', 'clipboard-drag-drop', 'window-shell', 'accessibility') | ForEach-Object {
+        [pscustomobject]@{ id = $_; status = 'PASS' }
+    }
     [pscustomobject]@{
         workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
@@ -298,7 +301,7 @@ try {
         processCount = [pscustomobject]@{ median = 8; maximum = 8 }
         cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
-    [pscustomobject]@{ passed = $true; results = @([pscustomobject]@{ status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    [pscustomobject]@{ passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ width = 1920; height = 1080; differingPixelPercent = 0; meanAbsoluteChannelError = 0; p95PixelError = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $acceptanceResultText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath -OutputPath $acceptanceOutputPath
     $acceptanceResult = $acceptanceResultText | ConvertFrom-Json
@@ -329,6 +332,13 @@ try {
     if ($highPrivateBytesP95Result.passed) {
         throw 'Acceptance gate must reject private-bytes p95 over the target even when the median passes.'
     }
+    [pscustomobject]@{ passed = $true; results = @([pscustomobject]@{ id = 'messaging'; status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    $incompleteFunctionalText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $incompleteFunctionalResult = $incompleteFunctionalText | ConvertFrom-Json
+    if ($incompleteFunctionalResult.passed -or $incompleteFunctionalResult.functionalCoverageComplete) {
+        throw 'Acceptance gate must reject an incomplete functional checklist.'
+    }
+    [pscustomobject]@{ passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $malformedVisualText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $malformedVisualResult = $malformedVisualText | ConvertFrom-Json

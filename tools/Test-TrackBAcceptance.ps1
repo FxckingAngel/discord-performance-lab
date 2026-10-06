@@ -53,8 +53,17 @@ $resourceFields = @(
 )
 $resourcePassed = @($resourceFields | Where-Object { $_.value -gt $_.limit }).Count -eq 0
 
+$functionalRequiredIds = @(
+    'login-session', 'servers-channels', 'messaging', 'images-media',
+    'notifications', 'voice', 'video', 'screen-share', 'file-dialogs',
+    'clipboard-drag-drop', 'window-shell', 'accessibility'
+)
 $functionalResults = @($functional.results)
-$functionalPassed = ($functional.passed -eq $true) -and $functionalResults.Count -gt 0 -and @($functionalResults | Where-Object { $_.status -ne 'PASS' }).Count -eq 0
+$functionalResultIds = @($functionalResults | ForEach-Object id)
+$functionalMissingIds = @($functionalRequiredIds | Where-Object { $_ -notin $functionalResultIds })
+$functionalUnexpectedFailures = @($functionalResults | Where-Object { $_.status -ne 'PASS' })
+$functionalCoverageComplete = $functionalMissingIds.Count -eq 0 -and $functionalResults.Count -eq $functionalRequiredIds.Count
+$functionalPassed = ($functional.passed -eq $true) -and $functionalCoverageComplete -and $functionalUnexpectedFailures.Count -eq 0
 $visualComparisonFields = @('width', 'height', 'differingPixelPercent', 'meanAbsoluteChannelError', 'p95PixelError')
 $visualComparisonValid = $null -ne $visual.screenshotComparison -and @($visualComparisonFields | Where-Object { $null -eq $visual.screenshotComparison.$_ }).Count -eq 0 -and [double] $visual.screenshotComparison.width -gt 0 -and [double] $visual.screenshotComparison.height -gt 0
 $visualPassed = ($visual.parityReady -eq $true) -and ($visual.visualReviewPassed -eq $true) -and $visualComparisonValid
@@ -66,6 +75,7 @@ $report = [pscustomobject] @{
     functionalReport = (Resolve-Path -LiteralPath $FunctionalReport).Path
     visualReport = (Resolve-Path -LiteralPath $VisualReport).Path
     resourcePassed = $resourcePassed
+    functionalCoverageComplete = $functionalCoverageComplete
     functionalPassed = $functionalPassed
     visualComparisonValid = $visualComparisonValid
     visualPassed = $visualPassed
