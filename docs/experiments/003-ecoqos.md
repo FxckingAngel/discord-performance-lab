@@ -41,3 +41,16 @@ A later window-aware run recorded process-tree stabilization at 12.135 s, the fi
 The quantitative gate passed. Runtime smoke checks passed twice: the root process was responsive, exposed a main window titled `Friends - Discord`, and carried the EcoQoS switch. A stock restore was then verified by launching without the candidate switch. Normal navigation, messaging, notifications, voice, media, settings persistence, and cleanup remain unverified and are still required before final acceptance.
 
 An additional paired idle run on 2026-10-06 did not pass the regression gate. Stock measured 1,375.48 MiB working-set median, 1,153.23 MiB private-memory median, and 0.889% CPU. EcoQoS measured 1,366.95 MiB, 1,125.86 MiB, and 1.012% CPU. Memory improved by 0.6% and 2.4%, while CPU regressed by 13.8%; process count stayed at six. The latest pair is therefore not sufficient to accept EcoQoS as a default profile, despite the earlier favorable pair.
+
+## Background-idle result
+
+A separate paired run closed the main window and measured the remaining process tree for 20 seconds. The gate passed:
+
+| Metric | Stock | EcoQoS | Change |
+| --- | ---: | ---: | ---: |
+| Working set median/p95 | 1,349.85 / 1,371.15 MiB | 1,340.30 / 1,341.45 MiB | p95 -2.2% |
+| Private memory median/p95 | 1,157.45 / 1,181.99 MiB | 1,135.38 / 1,137.15 MiB | p95 -3.8% |
+| CPU median/p95 | 0.560% / 0.560% | 0.171% / 0.171% | -69.5% |
+| Process count median/maximum | 6 / 6 | 6 / 6 | unchanged |
+
+This supports EcoQoS as a background-idle profile, not as a universal foreground default. The close-window action was used to create the background workload; it is not equivalent to Discord's in-app Quit action, and full functional acceptance remains pending.
