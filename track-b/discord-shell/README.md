@@ -15,6 +15,8 @@ From the repository root, with the local SDK installed:
 
 The machine must have the WebView2 Runtime installed. The first run uses the normal Discord web login flow. It does not import Discord desktop cookies or tokens.
 
+For runtime attribution only, `KoroneDiscordShell.exe --diagnostic-blank` opens `about:blank` in a separate WebView2 user-data folder. This mode does not load Discord and must not be used as an application performance result. It estimates the shell and WebView2 runtime floor against the normal Discord URL.
+
 ## Scope of this milestone
 
 The shell is only a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. It is not an optimized client, an official Discord build, or a feature-complete replacement.

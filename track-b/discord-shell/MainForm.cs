@@ -11,10 +11,14 @@ public sealed class MainForm : Form
 {
     private const string DiscordWebApp = "https://discord.com/app";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
+    private readonly bool diagnosticBlank;
 
-    public MainForm()
+    public MainForm(bool diagnosticBlank)
     {
-        Text = "Korone's Discord Shell (Prototype)";
+        this.diagnosticBlank = diagnosticBlank;
+        Text = diagnosticBlank
+            ? "Korone's Discord Shell (Runtime Baseline)"
+            : "Korone's Discord Shell (Prototype)";
         StartPosition = FormStartPosition.CenterScreen;
         Width = 1280;
         Height = 800;
@@ -32,7 +36,7 @@ public sealed class MainForm : Form
             var userDataFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "KoroneDiscordShell",
-                "WebView2UserData");
+                diagnosticBlank ? "RuntimeBaselineUserData" : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
             var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
             await webView.EnsureCoreWebView2Async(environment);
@@ -40,7 +44,7 @@ public sealed class MainForm : Form
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
-            webView.Source = new Uri(DiscordWebApp);
+            webView.Source = new Uri(diagnosticBlank ? "about:blank" : DiscordWebApp);
         }
         catch (Exception error)
         {
@@ -61,7 +65,9 @@ public sealed class MainForm : Form
         }
         else
         {
-            Text = "Korone's Discord Shell (Prototype)";
+            Text = diagnosticBlank
+                ? "Korone's Discord Shell (Runtime Baseline)"
+                : "Korone's Discord Shell (Prototype)";
         }
     }
 }

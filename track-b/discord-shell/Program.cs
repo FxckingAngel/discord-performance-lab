@@ -6,9 +6,10 @@ namespace KoroneDiscordShell;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainForm());
+        var diagnosticBlank = args.Length == 1 && string.Equals(args[0], "--diagnostic-blank", StringComparison.Ordinal);
+        Application.Run(new MainForm(diagnosticBlank));
     }
 }

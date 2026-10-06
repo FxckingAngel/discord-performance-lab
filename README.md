@@ -28,6 +28,7 @@ The project starts with measurement, not patches. Each proposed change must be c
 - [Track B visual parity requirement](docs/track-b-visual-parity.md)
 - [Track B shell prototype](track-b/discord-shell/README.md)
 - [Track B unauthenticated shell baseline](docs/benchmarks/track-b-unauthenticated-shell-2026-10-06.md)
+- [Track B WebView2 runtime floor](docs/benchmarks/track-b-runtime-floor-2026-10-06.md)
 
 ## Project status
 
