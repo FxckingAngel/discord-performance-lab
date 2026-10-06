@@ -55,6 +55,12 @@ $workingSetShareable = @($samples | ForEach-Object { if ($null -ne $_.workingSet
 $privateBytes = @($samples | ForEach-Object { [double] $_.privateBytes / 1MB })
 $commitBytes = @($samples | ForEach-Object { if ($null -ne $_.commitBytes) { [double] $_.commitBytes / 1MB } })
 $processCounts = @($samples | ForEach-Object { [double] $_.processCount })
+$handleTotals = @($samples | ForEach-Object {
+    [double] (@($_.processes | ForEach-Object { [double] $_.handles } | Measure-Object -Sum).Sum)
+})
+$threadTotals = @($samples | ForEach-Object {
+    [double] (@($_.processes | ForEach-Object { [double] $_.threads } | Measure-Object -Sum).Sum)
+})
 $cpuDeltas = @($runs | ForEach-Object {
     [double] $_.samples[-1].cpuSeconds - [double] $_.samples[0].cpuSeconds
 })
@@ -92,6 +98,16 @@ $summary = [pscustomobject] @{
     processCount = [pscustomobject] @{
         median = [math]::Round((Get-Quantile $processCounts 0.50), 2)
         maximum = [math]::Round(($processCounts | Measure-Object -Maximum).Maximum, 2)
+    }
+    handles = [pscustomobject] @{
+        median = [math]::Round((Get-Quantile $handleTotals 0.50), 2)
+        p95 = [math]::Round((Get-Quantile $handleTotals 0.95), 2)
+        maximum = [math]::Round(($handleTotals | Measure-Object -Maximum).Maximum, 2)
+    }
+    threads = [pscustomobject] @{
+        median = [math]::Round((Get-Quantile $threadTotals 0.50), 2)
+        p95 = [math]::Round((Get-Quantile $threadTotals 0.95), 2)
+        maximum = [math]::Round(($threadTotals | Measure-Object -Maximum).Maximum, 2)
     }
     cpuSeconds = [pscustomobject] @{
         medianRunDelta = [math]::Round((Get-Quantile $cpuDeltas 0.50), 3)
