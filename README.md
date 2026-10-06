@@ -34,6 +34,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Experiment 002](docs/experiments/002-disable-breakpad.md)
 - [Experiment 003](docs/experiments/003-ecoqos.md)
 - [Supported switch review](docs/experiments/004-supported-switch-review.md)
+- [Rooted process QoS experiment](docs/experiments/005-process-qos-control.md)
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Security and safety boundary](SECURITY.md)
@@ -73,6 +74,13 @@ The stock profile remains the rollback path:
 
 ```powershell
 .\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile stock
+```
+
+For a live process-tree QoS experiment, use an observed root PID and keep the rollback command ready:
+
+```powershell
+.\tools\Set-DiscordProcessQoS.ps1 -RootPid 12345 -Mode ecoqos
+.\tools\Set-DiscordProcessQoS.ps1 -RootPid 12345 -Mode system-managed
 ```
 
 ## Evidence standard
