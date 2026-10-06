@@ -79,6 +79,8 @@ The read-only attribution sampler remains usable without that privilege and is n
 
 On 2026-10-06, the non-ETW Windows counter sampler completed against the running verified Track B shell. It collected seven samples over 146 seconds across all seven rooted processes. Median process-tree totals were approximately 163.3 MiB private working set and 256.0 MiB private bytes. The median page-fault rate was 3.94 faults/sec, read and write I/O were both 0 bytes/sec, GPU engine utilization was 0%, and GPU dedicated memory was 17.5 MiB. These counters confirm a quiet settled state but do not provide ETW stacks, context-switch attribution, or wakeup ownership.
 
+The sampler was then corrected to batch process/GPU counter queries and compensate for query time when scheduling samples. A 20-second timing test produced three samples at 10-second timestamps and completed in 23.7 seconds, rather than accumulating a full sleep interval after each slow counter query. Future scenario captures use this corrected timing path.
+
 ## Remaining Phase 2 work
 
 1. Capture the full scenario matrix: foreground idle, background idle, text scrolling, voice, video, screen sharing, media-heavy channel, notification, startup, and settled state.

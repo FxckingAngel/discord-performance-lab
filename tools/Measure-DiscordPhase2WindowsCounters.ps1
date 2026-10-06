@@ -58,34 +58,45 @@ function Get-RootedPids {
     return @($rooted)
 }
 
-function Get-CounterMap {
-    param([string] $Path)
+function Get-ProcessCounterMaps {
+    $maps = @{}
+    foreach ($name in $counterPaths.Keys) {
+        $maps[$name] = @{}
+    }
 
-    $map = @{}
+    $metricToName = @{
+        '% Processor Time' = 'cpuPercentOfTotal'
+        'ID Process' = 'processId'
+        'Working Set - Private' = 'workingSetPrivateBytes'
+        'Private Bytes' = 'privateBytes'
+        'Page Faults/sec' = 'pageFaultsPerSecond'
+        'IO Read Bytes/sec' = 'ioReadBytesPerSecond'
+        'IO Write Bytes/sec' = 'ioWriteBytesPerSecond'
+        'Thread Count' = 'threads'
+    }
     try {
-        $result = Get-Counter -Counter $Path -MaxSamples 1 -ErrorAction Stop
+        $result = Get-Counter -Counter @($counterPaths.Values) -MaxSamples 1 -ErrorAction Stop
         foreach ($sample in @($result.CounterSamples)) {
-            $key = $sample.InstanceName.ToLowerInvariant()
-            if ($sample.Path -match '\\Process\(([^)]+)\)\\') {
-                $key = $Matches[1].ToLowerInvariant()
+            if ($sample.Path -notmatch '\\Process\(([^)]+)\)\\(.+)$') { continue }
+            $instance = $Matches[1].ToLowerInvariant()
+            $metricName = $Matches[2]
+            $mapName = $metricToName[$metricName]
+            if ($mapName) {
+                $maps[$mapName][$instance] = [double] $sample.CookedValue
             }
-            $map[$key] = [double] $sample.CookedValue
         }
     }
     catch {
         # Counter availability varies by Windows edition and performance policy.
     }
-    return $map
+    return $maps
 }
 
 function Get-ProcessCounterRows {
     param([int[]] $RootedPids)
 
-    $idMap = Get-CounterMap -Path $counterPaths.processId
-    $maps = @{}
-    foreach ($name in @($counterPaths.Keys | Where-Object { $_ -ne 'processId' })) {
-        $maps[$name] = Get-CounterMap -Path $counterPaths[$name]
-    }
+    $maps = Get-ProcessCounterMaps
+    $idMap = $maps.processId
     $rows = [System.Collections.Generic.List[object]]::new()
     foreach ($pair in $idMap.GetEnumerator()) {
         $processId = [int] $pair.Value
@@ -110,28 +121,20 @@ function Get-GpuRows {
     param([int[]] $RootedPids)
 
     $engineByPid = @{}
+    $memoryByPid = @{}
     try {
-        $engines = Get-Counter -Counter '\GPU Engine(*)\Utilization Percentage' -MaxSamples 1 -ErrorAction Stop
-        foreach ($sample in @($engines.CounterSamples)) {
+        $counters = Get-Counter -Counter @(
+            '\GPU Engine(*)\Utilization Percentage',
+            '\GPU Process Memory(*)\Dedicated Usage'
+        ) -MaxSamples 1 -ErrorAction Stop
+        foreach ($sample in @($counters.CounterSamples)) {
             if ($sample.InstanceName -match '(?i)^pid_(\d+)_') {
                 $processId = [int] $Matches[1]
-                if ($RootedPids -contains $processId) {
+                if ($RootedPids -contains $processId -and $sample.Path -match '\\GPU Engine\(') {
                     if (-not $engineByPid.ContainsKey($processId)) { $engineByPid[$processId] = 0.0 }
                     $engineByPid[$processId] += [double] $sample.CookedValue
                 }
-            }
-        }
-    }
-    catch {
-        # GPU engine counters can be unavailable on older drivers or remote sessions.
-    }
-    $memoryByPid = @{}
-    try {
-        $memory = Get-Counter -Counter '\GPU Process Memory(*)\Dedicated Usage' -MaxSamples 1 -ErrorAction Stop
-        foreach ($sample in @($memory.CounterSamples)) {
-            if ($sample.InstanceName -match '(?i)^pid_(\d+)_') {
-                $processId = [int] $Matches[1]
-                if ($RootedPids -contains $processId) {
+                elseif ($RootedPids -contains $processId -and $sample.Path -match '\\GPU Process Memory\(') {
                     $memoryByPid[$processId] = [double] $sample.CookedValue
                 }
             }
@@ -168,7 +171,11 @@ for ($index = 0; $index -le $sampleCount; $index++) {
         gpu = @(Get-GpuRows -RootedPids $rootedPids)
     })
     if ($index -lt $sampleCount) {
-        Start-Sleep -Seconds $IntervalSeconds
+        $nextSampleAt = $startedAt.AddSeconds(($index + 1) * $IntervalSeconds)
+        $remainingMilliseconds = [math]::Floor(($nextSampleAt - [DateTime]::UtcNow).TotalMilliseconds)
+        if ($remainingMilliseconds -gt 0) {
+            Start-Sleep -Milliseconds $remainingMilliseconds
+        }
     }
 }
 
