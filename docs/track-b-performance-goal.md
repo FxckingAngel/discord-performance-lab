@@ -12,7 +12,7 @@ The shell must also meet the separate [visual parity requirement](track-b-visual
 
 It must also provide a minimal, audited [desktop compatibility layer](track-b-desktop-compatibility.md). Discord's frontend must recognize only desktop capabilities that Track B genuinely implements underneath it. Capability reporting cannot be used to spoof unsupported Electron APIs or security state.
 
-The design target is approximately **250 MiB total settled idle working set and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable.
+The design target is approximately **250 MiB of total settled idle private/unique resident RAM and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable. The ordinary summed working set remains a required secondary metric, but shared resident pages must not be counted repeatedly when judging the primary physical-RAM target.
 
 ## Current workflow status
 
@@ -26,14 +26,14 @@ A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.
 
 ## Target levels
 
-| Level | Settled idle working set, full tree | Total idle CPU | Required behavior |
+| Level | Settled idle private/unique resident RAM, full tree | Total idle CPU | Required behavior |
 | --- | ---: | ---: | --- |
 | Minimum acceptable | under 500 MiB | under 1% | Responsive UI and no major feature loss |
 | Strong goal | 250–350 MiB | about 0.1–0.5% | Fast startup and normal responsiveness |
 | Stretch goal | 150–250 MiB | effectively 0% | No noticeable difference from official Discord during normal use |
 | Design target | about 250 MiB | about 0.2% | Preserve normal functionality and avoid artificial trimming |
 
-These levels are judged after the same account is logged in, the same static channel is visible, the window has settled for the same duration, and the same background conditions are present. A login page or unauthenticated web profile cannot pass the gate.
+These levels are judged after the same account is logged in, the same static channel is visible, the window has settled for the same duration, and the same background conditions are present. Record total working set, private working set, shareable working set where Windows exposes it, and private bytes/commit separately. A login page or unauthenticated web profile cannot pass the gate.
 
 ## Measurement and comparison contract
 

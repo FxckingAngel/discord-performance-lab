@@ -24,7 +24,7 @@ The first proof of concept is intentionally small:
 
 The prototype is in `track-b/discord-shell`. It does not copy the official Discord profile or attempt to migrate credentials. A separate profile is a deliberate rollback and privacy boundary.
 
-Track B's explicit design target is approximately 250 MiB total settled idle working set and 0.2% total idle CPU for the complete process tree. The minimum acceptable gate is under 500 MiB and under 1% CPU with a responsive UI and no major feature loss. The full acceptance contract and feature requirements are in [Track B performance goal](track-b-performance-goal.md). Visual parity is a separate gate documented in [Track B visual parity requirement](track-b-visual-parity.md), and the native capability boundary is documented in [Track B desktop compatibility layer](track-b-desktop-compatibility.md).
+Track B's explicit design target is approximately 250 MiB total settled idle private/unique resident RAM and 0.2% total idle CPU for the complete process tree. Summed working set remains a secondary metric, with shared resident pages kept separate where Windows exposes them. The minimum acceptable gate is under 500 MiB private/unique resident RAM and under 1% CPU with a responsive UI and no major feature loss. The full acceptance contract and feature requirements are in [Track B performance goal](track-b-performance-goal.md). Visual parity is a separate gate documented in [Track B visual parity requirement](track-b-visual-parity.md), and the native capability boundary is documented in [Track B desktop compatibility layer](track-b-desktop-compatibility.md).
 
 ## Comparison contract
 
