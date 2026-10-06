@@ -36,4 +36,4 @@ The startup observer measures process-tree stabilization, not UI readiness. EcoQ
 
 ## Acceptance state
 
-The quantitative gate passed. Keep this profile private and reversible until normal Discord navigation, messaging, notifications, voice, media, settings persistence, and cleanup are checked against the stock profile.
+The quantitative gate passed. A runtime smoke check also passed: the root process was responsive, exposed a main window titled `Friends - Discord`, and carried the EcoQoS switch. Normal navigation, messaging, notifications, voice, media, settings persistence, and cleanup remain unverified and are still required before final acceptance.

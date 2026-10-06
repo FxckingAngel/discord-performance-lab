@@ -21,7 +21,7 @@ if ($existing.Count -gt 0) {
 
 $arguments = switch ($Profile) {
     'stock' { @() }
-    'ecoqs' { @('--enable-features=UseEcoQoSForBackgroundProcess') }
+    'ecoqos' { @('--enable-features=UseEcoQoSForBackgroundProcess') }
 }
 
 $process = Start-Process -FilePath $resolvedExecutable -ArgumentList $arguments -PassThru

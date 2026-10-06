@@ -48,7 +48,7 @@ For process-tree startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Me
 
 Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to apply the regression gate to two generated summaries.
 
-The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqs` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`.
+The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqos` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`.
 
 ## Evidence standard
 
