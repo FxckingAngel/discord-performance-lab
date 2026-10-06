@@ -125,7 +125,7 @@ try {
         }
     }
     $scenarioCompareSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Compare-TrackBScenarioAttribution.ps1') -Raw
-    foreach ($requiredField in @('renderer.privateWorkingSetMedianMiB', 'v8.usedMiB', 'media.imageNaturalPixelCount')) {
+    foreach ($requiredField in @('renderer.privateWorkingSetMedianMiB', 'v8.usedMiB', 'media.imageNaturalPixelCount', 'native.image-media.sampledMiB', 'native.gpu-graphics.sampledMiB', 'dom.nodes')) {
         if ($scenarioCompareSource -notmatch [regex]::Escape($requiredField)) {
             throw "Scenario attribution comparison does not report $requiredField."
         }

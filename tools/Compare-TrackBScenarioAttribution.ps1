@@ -35,6 +35,19 @@ function Get-NullableDouble {
     return [double] $Value
 }
 
+function Get-NativeCategoryMiB {
+    param([object] $Cdp, [string] $Category)
+    $rows = @($Cdp.nativeMemorySamplingWindow.nativeAllocationCategories | Where-Object category -eq $Category | Select-Object -First 1)
+    if ($rows.Count -eq 0 -or $null -eq $rows[0].sampledBytes) { return $null }
+    return [math]::Round([double] $rows[0].sampledBytes / 1MB, 3)
+}
+
+function Get-DomCounter {
+    param([object] $Cdp, [string] $Name)
+    if ($null -eq $Cdp.domCounters -or $null -eq $Cdp.domCounters.$Name) { return $null }
+    return [double] $Cdp.domCounters.$Name
+}
+
 function Get-MetricValue {
     param([object] $Cdp, [object] $Summary, [string] $Metric)
     switch ($Metric) {
@@ -49,6 +62,14 @@ function Get-MetricValue {
         'media.imageNaturalPixelCount' { return Get-NullableDouble -Value $Cdp.documentAggregates.imageNaturalPixelCount }
         'media.videoPixelCount' { return Get-NullableDouble -Value $Cdp.documentAggregates.videoPixelCount }
         'media.canvasPixelCount' { return Get-NullableDouble -Value $Cdp.documentAggregates.canvasPixelCount }
+        'native.image-media.sampledMiB' { return Get-NativeCategoryMiB -Cdp $Cdp -Category 'image-media' }
+        'native.gpu-graphics.sampledMiB' { return Get-NativeCategoryMiB -Cdp $Cdp -Category 'gpu-graphics' }
+        'native.media-webrtc.sampledMiB' { return Get-NativeCategoryMiB -Cdp $Cdp -Category 'media-webrtc' }
+        'native.blink.sampledMiB' { return Get-NativeCategoryMiB -Cdp $Cdp -Category 'blink' }
+        'native.network-cache.sampledMiB' { return Get-NativeCategoryMiB -Cdp $Cdp -Category 'network-cache' }
+        'dom.documents' { return Get-DomCounter -Cdp $Cdp -Name 'documents' }
+        'dom.nodes' { return Get-DomCounter -Cdp $Cdp -Name 'nodes' }
+        'dom.jsEventListeners' { return Get-DomCounter -Cdp $Cdp -Name 'jsEventListeners' }
         default { throw "Unknown attribution metric: $Metric" }
     }
 }
@@ -68,7 +89,15 @@ $metricNames = @(
     'v8.capacityMiB',
     'media.imageNaturalPixelCount',
     'media.videoPixelCount',
-    'media.canvasPixelCount'
+    'media.canvasPixelCount',
+    'native.image-media.sampledMiB',
+    'native.gpu-graphics.sampledMiB',
+    'native.media-webrtc.sampledMiB',
+    'native.blink.sampledMiB',
+    'native.network-cache.sampledMiB',
+    'dom.documents',
+    'dom.nodes',
+    'dom.jsEventListeners'
 )
 $metrics = foreach ($name in $metricNames) {
     $baseline = Get-MetricValue -Cdp $baselineCdp -Summary $baselineSummary -Metric $name
