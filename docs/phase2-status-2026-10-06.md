@@ -25,6 +25,19 @@ The six-sample `phase2-startup-settled-smoke-fixed` sample followed stock Discor
 
 This sample identifies renderer retention and GPU/private allocation as the first Phase 2 research targets. It does not identify which JavaScript object, cache, texture, or WebRTC buffer owns those bytes.
 
+A longer foreground-idle stock sample followed the same root for 13 samples over 70.093 seconds. Its role ranking was:
+
+| Role | Working-set median | Private-memory median | CPU median |
+| --- | ---: | ---: | ---: |
+| renderer, combined | 1,207.96 MiB | 1,056.77 MiB | 4.85% |
+| gpu-process | 265.80 MiB | 452.37 MiB | 2.25% |
+| browser | 189.22 MiB | 121.85 MiB | 0.10% |
+| audio service | 94.32 MiB | 10.78 MiB | 0.07% |
+| network service | 69.58 MiB | 21.00 MiB | 0.00% |
+| crashpad-handler | 39.05 MiB | 9.45 MiB | 0.00% |
+
+This confirms the renderer and GPU as the first attribution targets in a settled foreground-idle workload. The raw sample is local at `benchmarks/raw/phase2/foreground-idle-60s-stock/`.
+
 ## ETW status
 
 `wpr.exe` is installed, but the local run was denied with Windows error `0xc5585011`, “Failed to enable the policy to profile system performance.” WPA, xperf, and tracelog are not installed. No ETL trace is claimed from this run. The Phase 2 wrappers remain ready for a session with the Windows performance-recording privilege or an installed equivalent ETL reader.
