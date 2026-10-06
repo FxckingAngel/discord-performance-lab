@@ -38,3 +38,7 @@ On 2026-10-06, the visible Discord PTB window was minimized without restarting t
 ## Minimized active-use probe
 
 The same session was then measured while minimized with EcoQoS selected. Over 16.195 seconds, the rooted tree remained at six processes and recorded 1,127.63 MiB median working set, 1,133.00 MiB median private memory, and 0.999% CPU. Voice and media remained active during the probe. Because this was a single active-use sample without a paired stock run, it is transition evidence only and is not treated as a new performance improvement. Restoring the window and running the watcher again returned all six processes to system-managed QoS.
+
+## Continuous loop check
+
+The watcher was also run continuously with a one-second poll interval. It emitted `system-managed` while the window was visible, `ecoqos` after the window was minimized, and `system-managed` after the window was restored. The watcher was then stopped cleanly. A final profile check showed the stock command line, six processes, and a responsive main window.
