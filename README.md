@@ -47,6 +47,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Security and safety boundary](SECURITY.md)
 - [Current project status](docs/status-2026-10-06.md)
 - [Phase 2 resource attribution plan](docs/phase2-resource-attribution.md)
+- [Phase 2.1 stock isolation pass](docs/phase2-1-isolation.md)
 - [Phase 2 status](docs/phase2-status-2026-10-06.md)
 - [WebView2 shell architecture research](docs/research/webview2-shell-architecture.md)
 

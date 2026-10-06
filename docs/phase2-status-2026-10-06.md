@@ -8,6 +8,7 @@ Date: 2026-10-06
 - Added per-process attribution sampling for working set, private memory, paged memory, CPU, page faults, I/O, handles, threads, and lifetime.
 - Added role-level aggregation and ranking across multiple renderer or utility instances.
 - Added a Windows performance-counter sampler for process CPU, memory, page faults, I/O, threads, GPU engine utilization, and dedicated GPU memory by rooted PID.
+- Added the Phase 2.1 repeatable isolation runner, local-only role/PID command-line map, window-state and display-refresh capture, and localhost-only CDP diagnostics.
 - Added WPR start/stop wrappers for CPU, Disk I/O, GPU, Handle, and Resident Set profiles.
 - Added a WebView2 shell architecture research document without implementing or endorsing that architecture.
 
@@ -44,6 +45,22 @@ This confirms the renderer and GPU as the first attribution targets in a settled
 A short read-only counter capture against the still-running stock root PID 36604 found seven rooted processes. The renderer PID 33552 was the dominant process in both samples at about 1,450 MiB private working set and about 1,581 MiB private bytes. Its CPU samples were 6.24% and 4.80% of total system capacity, with page-fault rates of 9,602.69 and 8,338.47 per second. The GPU process PID 6024 reported 2.62% to 8.56% aggregate engine utilization and about 313 to 388 MiB dedicated GPU memory across the two samples.
 
 The counter capture is stored at `benchmarks/raw/phase2/current-foreground-counters-2026-10-06/windows-counters-fixed.json`. It is a short current-state observation, not the required 10-minute scenario result. The process and GPU mappings are now available for longer scenario captures without changing Discord state.
+
+## Phase 2.1 diagnostic evidence
+
+The ordinary stock launch had no `--remote-debugging-port` or `--inspect` flag, and ports 9222, 9229, and 8315 were closed. A controlled diagnostic-only restart with `--remote-debugging-port=9222` exposed one local page target for the first probe. The aggregate CDP capture reported:
+
+- V8 heap used: 153.64 MiB;
+- V8 heap capacity: 167.23 MiB;
+- 5,797 performance nodes and 13 documents/frames;
+- 2,044 JavaScript event listeners;
+- 120 image elements, 3 video elements, and 4 canvas elements in the aggregate DOM query;
+- zero active RTCPeerConnections at capture time;
+- 25 allocation samples over 10 seconds, summarized locally without writing the profile.
+
+The same diagnostic-only session had a single renderer at about 610 MiB median working set and 522 MiB median private memory over a 30-second sampler run. That is not directly comparable to the earlier 1 GiB renderer result because the channel/media state was not operator-labeled and the renderer tree changed across restarts. The diagnostic port was then removed, the ordinary stock launch was restored, and the restored process was responsive with six processes and no listening port.
+
+This is useful separation evidence, not an optimization result. The Phase 2.1 seven-scenario matrix still requires three operator-labeled repetitions per scenario, and no renderer or GPU change has been made.
 
 ## ETW status
 
