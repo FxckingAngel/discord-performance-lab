@@ -95,6 +95,12 @@ try {
             throw "Phase 2 attribution does not preserve per-PID $requiredField."
         }
     }
+    $phase2SummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-DiscordPhase2Attribution.ps1') -Raw
+    foreach ($requiredField in @('privateWorkingSetMedianMiB', 'workingSetShareableMedianMiB')) {
+        if ($phase2SummarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "Phase 2 summary does not report $requiredField."
+        }
+    }
     if ($shellSource -notmatch 'Uri\.TryCreate') {
         throw 'Normal bridge origin validation does not parse the message source as a URI.'
     }

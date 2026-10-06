@@ -10,12 +10,20 @@ param(
 )
 
 function Get-Percentile {
-    param([double[]] $Values, [double] $Percentile)
+    param([object[]] $Values, [double] $Percentile)
 
-    $valid = @($Values | Where-Object { $_ -ne $null } | Sort-Object)
+    $valid = @($Values | Where-Object { $_ -ne $null } | ForEach-Object { [double] $_ } | Sort-Object)
     if ($valid.Count -eq 0) { return $null }
     $index = [math]::Min($valid.Count - 1, [math]::Max(0, [math]::Ceiling($Percentile * $valid.Count) - 1))
     return [math]::Round([double] $valid[$index], 3)
+}
+
+function Get-OptionalSum {
+    param([object[]] $Rows, [string] $Property)
+
+    $values = @($Rows | ForEach-Object { $_.$Property } | Where-Object { $_ -ne $null })
+    if ($values.Count -eq 0) { return $null }
+    return [math]::Round((@($values | Measure-Object -Sum).Sum), 3)
 }
 
 $input = Get-Content -Raw -LiteralPath $InputPath | ConvertFrom-Json
@@ -28,6 +36,8 @@ $roleSamples = foreach ($sample in @($input.samples)) {
             timestamp = $sample.timestamp
             processCount = $valid.Count
             workingSetMiB = [math]::Round((@($valid | Measure-Object workingSetMiB -Sum).Sum), 3)
+            privateWorkingSetMiB = Get-OptionalSum -Rows $valid -Property 'privateWorkingSetMiB'
+            workingSetShareableMiB = Get-OptionalSum -Rows $valid -Property 'workingSetShareableMiB'
             privateMemoryMiB = [math]::Round((@($valid | Measure-Object privateMemoryMiB -Sum).Sum), 3)
             cpuPercentOfTotal = [math]::Round((@($valid | Where-Object cpuPercentOfTotal -ne $null | Measure-Object cpuPercentOfTotal -Sum).Sum), 3)
             pageFaultsPerSecond = [math]::Round((@($valid | Where-Object pageFaultsPerSecond -ne $null | Measure-Object pageFaultsPerSecond -Sum).Sum), 3)
@@ -46,6 +56,10 @@ $roles = foreach ($group in @($roleSamples | Group-Object role)) {
         samples = $rows.Count
         workingSetMedianMiB = Get-Percentile @($rows.workingSetMiB) 0.50
         workingSetP95MiB = Get-Percentile @($rows.workingSetMiB) 0.95
+        privateWorkingSetMedianMiB = Get-Percentile @($rows.privateWorkingSetMiB) 0.50
+        privateWorkingSetP95MiB = Get-Percentile @($rows.privateWorkingSetMiB) 0.95
+        workingSetShareableMedianMiB = Get-Percentile @($rows.workingSetShareableMiB) 0.50
+        workingSetShareableP95MiB = Get-Percentile @($rows.workingSetShareableMiB) 0.95
         privateMemoryMedianMiB = Get-Percentile @($rows.privateMemoryMiB) 0.50
         privateMemoryP95MiB = Get-Percentile @($rows.privateMemoryMiB) 0.95
         cpuMedianPercentOfTotal = Get-Percentile @($rows.cpuPercentOfTotal) 0.50
@@ -76,4 +90,4 @@ if ($parent) {
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
 }
 $summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $OutputPath -Encoding utf8
-$ranked | Select-Object workingSetRank,role,workingSetMedianMiB,privateMemoryMedianMiB,cpuMedianPercentOfTotal,pageFaultsMedianPerSecond,handlesMedian,threadsMedian | Format-Table -AutoSize
+$ranked | Select-Object workingSetRank,role,workingSetMedianMiB,privateWorkingSetMedianMiB,workingSetShareableMedianMiB,privateMemoryMedianMiB,cpuMedianPercentOfTotal,pageFaultsMedianPerSecond,handlesMedian,threadsMedian | Format-Table -AutoSize
