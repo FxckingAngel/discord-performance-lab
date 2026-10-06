@@ -183,6 +183,8 @@ public sealed class MainForm : Form
                 capabilityEventLogPath = Path.Combine(diagnosticsDirectory, "capability-events.jsonl");
                 webView.CoreWebView2.PermissionRequested += OnPermissionRequested;
                 webView.CoreWebView2.NotificationReceived += OnNotificationReceived;
+                webView.CoreWebView2.DownloadStarting += OnDownloadStarting;
+                webView.CoreWebView2.ScreenCaptureStarting += OnScreenCaptureStarting;
             }
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
@@ -310,6 +312,26 @@ public sealed class MainForm : Form
         {
             eventType = "notification-received",
             origin = e.SenderOrigin,
+        });
+    }
+
+    private void OnDownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
+    {
+        WriteCapabilityEvent(new
+        {
+            eventType = "download-starting",
+            handled = e.Handled,
+            cancel = e.Cancel,
+        });
+    }
+
+    private void OnScreenCaptureStarting(object? sender, CoreWebView2ScreenCaptureStartingEventArgs e)
+    {
+        WriteCapabilityEvent(new
+        {
+            eventType = "screen-capture-starting",
+            handled = e.Handled,
+            cancel = e.Cancel,
         });
     }
 
