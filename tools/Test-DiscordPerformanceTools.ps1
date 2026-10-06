@@ -47,6 +47,10 @@ try {
             privateBytes = (1000 - ($index * 5)) * 1MB
             commitBytes = (1000 - ($index * 5)) * 1MB
             cpuSeconds = 10 + $index
+            processes = @(
+                [pscustomobject]@{ pid = 101; role = 'browser'; workingSetBytes = 600 * 1MB; workingSetPrivateBytes = 200 * 1MB; privateBytes = 250 * 1MB; handles = 100; threads = 20; cpuSeconds = 5 + $index }
+                [pscustomobject]@{ pid = 102; role = 'renderer'; workingSetBytes = 600 * 1MB; workingSetPrivateBytes = 200 * 1MB; privateBytes = 250 * 1MB; handles = 200; threads = 30; cpuSeconds = 5 + $index }
+            )
         }
     }
     $candidateSamples = for ($index = 0; $index -lt $timestamps.Count; $index++) {
@@ -59,6 +63,10 @@ try {
             privateBytes = (900 - ($index * 5)) * 1MB
             commitBytes = (900 - ($index * 5)) * 1MB
             cpuSeconds = 10 + ($index * 0.5)
+            processes = @(
+                [pscustomobject]@{ pid = 201; role = 'browser'; workingSetBytes = 550 * 1MB; workingSetPrivateBytes = 180 * 1MB; privateBytes = 225 * 1MB; handles = 90; threads = 18; cpuSeconds = 5 + ($index * 0.25) }
+                [pscustomobject]@{ pid = 202; role = 'renderer'; workingSetBytes = 550 * 1MB; workingSetPrivateBytes = 180 * 1MB; privateBytes = 225 * 1MB; handles = 180; threads = 27; cpuSeconds = 5 + ($index * 0.25) }
+            )
         }
     }
     $baselinePath = Join-Path $tempRoot 'baseline.json'
@@ -78,6 +86,12 @@ try {
     }
     if ($summaryObject.commitMiB.median -ne 895) {
         throw "Commit summary was not calculated as expected."
+    }
+    if ($summaryObject.handles.median -ne 270 -or $summaryObject.threads.median -ne 45) {
+        throw "Full-tree handle/thread summary was not calculated as expected."
+    }
+    if ($null -eq $summaryObject.roleBreakdown.renderer -or $summaryObject.roleBreakdown.renderer.cpuPercentOfTotal.median -le 0) {
+        throw "Role-level CPU attribution was not calculated as expected."
     }
     $comparison = & $compareTool -BaselineSummary $baselineSummary -CandidateSummary $candidateSummary -OutputPath $comparisonPath | ConvertFrom-Json
     if (-not $comparison.passed) {
