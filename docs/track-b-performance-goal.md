@@ -28,6 +28,8 @@ Use `tools/Invoke-TrackBFunctionalCheckpoint.ps1` for the feature gate after the
 
 The final gate is `tools/Test-TrackBAcceptance.ps1`. It requires a complete Track B summary, an all-PASS functional report, and a visual report with every comparison condition confirmed, screenshots present, and an explicit visual-review PASS. Missing evidence produces a failed gate rather than being interpreted as success.
 
+The minimized-WebView visibility candidate is documented separately in [Experiment 012](experiments/012-webview-visibility-candidate.md). It passed executable smoke tests but did not materially change settled foreground resource use, and its authenticated functional matrix is still unverified. The current `Verified` production binary remains the comparison baseline.
+
 A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.95 MiB median private working set and 0.072% median total CPU, but its private-bytes median was 331.29 MiB and its p95 private working set was 266.93 MiB. This is encouraging runtime-floor evidence only; it does not satisfy the authenticated same-channel acceptance gate.
 
 ## Target levels
