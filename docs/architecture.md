@@ -1,0 +1,61 @@
+# Architecture direction
+
+## Principle
+
+The safest path is to work at a supported application boundary and keep the stock Discord installation intact. The first implementation phase is therefore an evidence and harness phase. It does not assume that rebuilding or modifying Discord is permitted, practical, or necessary.
+
+## Candidate layers
+
+### 1. Measurement harness
+
+The harness launches a selected Discord build, records its process tree, collects resource samples, timestamps readiness milestones, and exports raw data plus metadata. It must identify processes by PID and creation time rather than by process name alone.
+
+Measurements should use Windows process APIs or the `Process V2` performance counter set where available. Working set is useful for resident RAM, but it is a momentary view and must not be treated as the application's complete memory cost. Private bytes, process count, and the process tree should be reported alongside it.
+
+### 2. Workload driver
+
+The driver defines repeatable scenarios without automating account behavior or sending messages as a bot. Initial scenarios are:
+
+- launch and idle on the normal home view;
+- browse a text channel and scroll history;
+- play and stop a short media item;
+- join and leave a voice call;
+- use screen share only when the test machine and account support it;
+- receive a notification and return to the app.
+
+Each scenario has a fixed duration, a readiness condition, and a cleanup step. Manual checkpoints are acceptable for flows that cannot be safely automated.
+
+### 3. Candidate build boundary
+
+Candidate changes must have a clear distribution and rollback story. Prefer supported configuration, packaging, or an independently buildable client layer over modifying a live installed copy. Do not add code that intercepts credentials, tokens, private messages, or encrypted transport. Do not weaken update or signature checks as a way to make a prototype run.
+
+Before implementation, the project will verify the current Discord client distribution terms and any applicable API or developer requirements. The result belongs in a project decision record.
+
+### 4. Functional verification
+
+Performance tests are not sufficient. A candidate is rejected when it loses or degrades ordinary Discord behavior, including authentication, server and channel navigation, messaging, notifications, voice, video, screen sharing, media, accessibility, settings, updates, and clean uninstall or rollback.
+
+## Proposed repository layout
+
+```text
+docs/
+  architecture.md
+  benchmark-plan.md
+  decisions/
+benchmarks/
+  raw/
+  summaries/
+src/
+tests/
+tools/
+```
+
+The initial repository intentionally contains no client-modification code. The benchmark harness should land before optimization changes so that every later change has a baseline.
+
+## Decision gates
+
+1. Baseline data is repeatable across at least three runs per scenario.
+2. A candidate has a documented boundary and rollback path.
+3. Performance changes are statistically and practically meaningful, not noise from startup or memory trimming.
+4. Functional verification passes for the supported scope.
+5. Packaging, update behavior, and recovery are tested before wider use.

@@ -1,0 +1,12 @@
+benchmarks/raw/*
+!benchmarks/raw/.gitkeep
+benchmarks/summaries/*
+!benchmarks/summaries/.gitkeep
+*.etl
+*.blg
+*.dmp
+*.log
+.env
+.venv/
+__pycache__/
+node_modules/
