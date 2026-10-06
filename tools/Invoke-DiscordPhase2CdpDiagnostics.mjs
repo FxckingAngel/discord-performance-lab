@@ -69,7 +69,7 @@ function summarizeNativeMemoryProfile(profile) {
     sampleCount: samples.length,
     sampledBytes: sizes.reduce((sum, size) => sum + size, 0),
     largestSampleBytes: sizes.length > 0 ? Math.max(...sizes) : 0,
-    stackFrameCount: Array.isArray(profile?.stackFrames) ? profile.stackFrames.length : null,
+    moduleCount: Array.isArray(profile?.modules) ? profile.modules.length : null,
   };
 }
 
@@ -92,6 +92,10 @@ try {
   result.nativeMemorySampling = nativeMemory.available
     ? summarizeNativeMemoryProfile(nativeMemory.result.profile)
     : { error: nativeMemory.error };
+  const browserNativeMemory = await optionalCommand('Memory.getBrowserSamplingProfile');
+  result.browserNativeMemorySampling = browserNativeMemory.available
+    ? summarizeNativeMemoryProfile(browserNativeMemory.result.profile)
+    : { error: browserNativeMemory.error };
   const aggregate = await optionalCommand('Runtime.evaluate', {
     expression: `(() => ({
       domNodeCount: document.getElementsByTagName('*').length,

@@ -38,6 +38,8 @@ The probe collected 12 samples at five-second intervals using the `threadTicks` 
 
 The result provides no evidence of an idle JavaScript, layout, or style-recalculation loop. The remaining renderer allocation is therefore still primarily unclassified Blink/native/runtime state, and the next optimization must use a measured allocation owner or a controlled architecture comparison. No renderer-isolation change, forced collection, memory trimming, or unmeasured Chromium switch was added.
 
+The diagnostic also queried Chromium's optional `Memory.getBrowserSamplingProfile` method. The method was accepted, but it returned zero samples and zero sampled bytes on this WebView2 build. That is an unsupported/empty diagnostic result, not evidence that the browser process has no native allocations. The renderer `Memory.getAllTimeSamplingProfile` call continued to return one aggregate sample. The sanitized follow-up artifact is local at `artifacts/diagnostic-authenticated-browser-memory-20261006.json`.
+
 Raw artifacts remain private at:
 
 - `artifacts/diagnostic-authenticated-cdp-followup-20261006.json`
