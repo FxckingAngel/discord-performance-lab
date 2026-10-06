@@ -70,11 +70,16 @@ function Get-DiscordProcessSnapshot {
             $workingSetBytes = [double] $current.WorkingSet64
             $workingSetPrivateBytes = if ($perf) { [double] $perf.WorkingSetPrivate } else { $null }
             $privateBytes = if ($perf) { [double] $perf.PrivateBytes } else { [double] $current.PrivateMemorySize64 }
-            $role = 'browser'
-            if ($process.CommandLine -match '--type=([^\s]+)') {
+            $role = if ($TreeRootPid -gt 0 -and [int] $process.ProcessId -eq $TreeRootPid) {
+                'native-shell'
+            }
+            else {
+                'browser'
+            }
+            if ($role -ne 'native-shell' -and $process.CommandLine -match '--type=([^\s]+)') {
                 $role = $Matches[1]
             }
-            if ($process.CommandLine -match '--utility-sub-type=([^\s]+)') {
+            if ($role -ne 'native-shell' -and $process.CommandLine -match '--utility-sub-type=([^\s]+)') {
                 $role = "$role/$($Matches[1])"
             }
             [pscustomobject] @{

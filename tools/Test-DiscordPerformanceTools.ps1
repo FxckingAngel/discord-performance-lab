@@ -29,10 +29,18 @@ if ($failures.Count -gt 0) {
 
 $summaryTool = Join-Path $resolvedToolsPath 'Summarize-DiscordBenchmark.ps1'
 $compareTool = Join-Path $resolvedToolsPath 'Compare-DiscordBenchmark.ps1'
+$measureTool = Join-Path $resolvedToolsPath 'Measure-DiscordProcessTree.ps1'
 $joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 try {
+    $measureSource = Get-Content -LiteralPath $measureTool -Raw
+    if ($measureSource -notmatch 'TreeRootPid -gt 0.*ProcessId -eq \$TreeRootPid') {
+        throw 'Rooted process measurements no longer identify the native shell root.'
+    }
+    if ($measureSource -notmatch "'native-shell'") {
+        throw 'Rooted process measurements do not expose the native-shell role.'
+    }
     $timestamps = @(
         '2026-01-01T00:00:00Z',
         '2026-01-01T00:00:05Z',

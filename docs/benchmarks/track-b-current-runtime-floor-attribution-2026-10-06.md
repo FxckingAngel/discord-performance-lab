@@ -26,6 +26,8 @@ Role-level private-bytes medians:
 | Storage service | 7.27 MiB | 7.55 MiB | +0.28 MiB |
 | Crashpad | 3.12 MiB | 2.89 MiB | -0.23 MiB |
 
+The attribution sampler now labels the rooted native host as `native-shell` instead of folding it into `browser`. A live post-change sample of the authenticated shell reported approximately 12.05 MiB private bytes for `native-shell` and 41.77 MiB for the WebView2 `browser` process. The renderer was approximately 120.31 MiB, GPU 58.18 MiB, network 13.12 MiB, storage 7.52 MiB, and crashpad 2.89 MiB in that spot sample. The long-run totals above remain the authoritative medians; this spot sample verifies the new role boundary and is not substituted for a settled statistic.
+
 This narrows the next optimization question: the remaining private-bytes near miss is primarily in the Discord-loaded renderer, not in the GPU, network, storage, or crashpad services. The evidence still does not justify changing renderer isolation, disabling hardware acceleration, trimming memory, or adding unmeasured Chromium switches.
 
 Raw inputs remain local and private:
