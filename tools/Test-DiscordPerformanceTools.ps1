@@ -114,9 +114,14 @@ try {
         }
     }
     $cdpDiagnosticsSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase2CdpDiagnostics.mjs') -Raw
-    foreach ($requiredField in @('imageNaturalPixelCount', 'videoPixelCount', 'canvasPixelCount')) {
+    foreach ($requiredField in @('imageNaturalPixelCount', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP diagnostics do not report $requiredField."
+        }
+    }
+    foreach ($requiredField in @('selfBytes', 'topFunctions')) {
+        if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
+            throw "CDP heap sampling does not report $requiredField."
         }
     }
     $scenarioCompareSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Compare-TrackBScenarioAttribution.ps1') -Raw

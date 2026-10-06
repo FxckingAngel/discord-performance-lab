@@ -54,12 +54,40 @@ function summarizeProfile(profile) {
     for (const child of node.children ?? []) walk(child);
   };
   walk(profile?.head);
+  const functionBytes = new Map();
+  let selfBytes = 0;
+  for (const node of nodes) {
+    const bytes = Number(node.selfSize ?? 0);
+    if (!Number.isFinite(bytes) || bytes <= 0) continue;
+    selfBytes += bytes;
+    const frame = node.callFrame ?? {};
+    const name = String(frame.functionName || frame.url || '(anonymous)');
+    functionBytes.set(name, (functionBytes.get(name) ?? 0) + bytes);
+  }
+  const topFunctions = [...functionBytes.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 20)
+    .map(([name, bytes]) => ({ name, bytes }));
   return {
     sampleCount: Array.isArray(profile?.samples) ? profile.samples.length : null,
     nodeCount: nodes.length,
-    sampledBytes: nodes.reduce((sum, node) => sum + Number(node.total ?? node.selfSize ?? 0), 0),
+    selfBytes,
+    sampledBytes: selfBytes,
     samplingIntervalBytes: profile?.samplingInterval ?? null,
+    topFunctions,
   };
+}
+
+function nativeCategory(stack) {
+  const text = (Array.isArray(stack) ? stack.join(' ') : String(stack ?? '')).toLowerCase();
+  if (/v8|javascript|blink::v8|heap/.test(text)) return 'v8';
+  if (/blink|dom|layout|style|paint|compositor/.test(text)) return 'blink';
+  if (/skia|gpu|gl|d3d|texture|raster/.test(text)) return 'gpu-graphics';
+  if (/webrtc|audio|video|media|mojo::/.test(text)) return 'media-webrtc';
+  if (/image|png|jpeg|webp|gif|bitmap/.test(text)) return 'image-media';
+  if (/net|http|url|cache|disk_cache/.test(text)) return 'network-cache';
+  if (/partitionalloc|malloc|calloc|allocator|base::/.test(text)) return 'chromium-native';
+  return 'other';
 }
 
 function summarizeNativeMemoryProfile(profile) {
@@ -67,6 +95,16 @@ function summarizeNativeMemoryProfile(profile) {
   const sizes = samples.map((sample) => Number(sample.size ?? 0)).filter(Number.isFinite);
   const totals = samples.map((sample) => Number(sample.total ?? sample.size ?? 0)).filter(Number.isFinite);
   const stackDepths = samples.map((sample) => Array.isArray(sample.stack) ? sample.stack.length : 0);
+  const categories = new Map();
+  for (const sample of samples) {
+    const bytes = Number(sample.size ?? 0);
+    if (!Number.isFinite(bytes) || bytes <= 0) continue;
+    const category = nativeCategory(sample.stack);
+    const current = categories.get(category) ?? { category, sampledBytes: 0, sampleCount: 0 };
+    current.sampledBytes += bytes;
+    current.sampleCount += 1;
+    categories.set(category, current);
+  }
   return {
     sampleCount: samples.length,
     sampledBytes: sizes.reduce((sum, size) => sum + size, 0),
@@ -74,6 +112,7 @@ function summarizeNativeMemoryProfile(profile) {
     largestSampleBytes: sizes.length > 0 ? Math.max(...sizes) : 0,
     maximumStackDepth: stackDepths.length > 0 ? Math.max(...stackDepths) : 0,
     moduleCount: Array.isArray(profile?.modules) ? profile.modules.length : null,
+    nativeAllocationCategories: [...categories.values()].sort((left, right) => right.sampledBytes - left.sampledBytes),
   };
 }
 
@@ -115,6 +154,8 @@ try {
     awaitPromise: false,
   });
   result.documentAggregates = aggregate.result?.result?.value ?? { error: aggregate.error };
+  const domCounters = await optionalCommand('Memory.getDOMCounters');
+  result.domCounters = domCounters.available ? domCounters.result : { error: domCounters.error };
 
   const nativeWindow = await optionalCommand('Memory.startSampling', { samplingInterval: 32768, suppressRandomness: true });
   const started = await optionalCommand('HeapProfiler.startSampling', { samplingInterval: 32768 });
