@@ -1,0 +1,36 @@
+# Experiment 006: adaptive background QoS
+
+## Status
+
+Prototype utility; transition and functional acceptance pending.
+
+## Change
+
+`tools/Watch-DiscordBackgroundQoS.ps1` watches one observed Discord root PID. It applies the existing EcoQoS control only while the main window is minimized or has no window handle, and returns the process tree to system-managed QoS when the window is restored.
+
+Run once to evaluate the current state:
+
+```powershell
+.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -Once
+```
+
+Run continuously with a two-second poll interval:
+
+```powershell
+.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -PollIntervalSeconds 2
+```
+
+## Boundary
+
+The watcher changes only Windows process QoS for the selected Discord tree. It does not inject code, patch Discord files, alter network behavior, access credentials, or terminate processes. It deliberately treats a visible foreground window as system-managed so the previously observed foreground CPU regression is not promoted to normal active use.
+
+## Acceptance plan
+
+1. Validate foreground-to-background and background-to-foreground transitions with the rooted benchmark.
+2. Repeat idle, text, media, voice, video, notifications, accessibility, and cleanup checks.
+3. Confirm the watcher exits cleanly when the root process ends.
+4. Keep the profile private until transition behavior and functional checks pass.
+
+## Live transition check
+
+On 2026-10-06, the visible Discord PTB window was minimized without restarting the client. A one-shot watcher run detected `minimizedOrHidden: true` and applied EcoQoS to all six descendants. The window was then restored; after the UI returned, the accessibility tree still exposed the active voice connection, camera control, and message composer. A second one-shot watcher run detected `minimizedOrHidden: false` and restored system-managed QoS. The client remained stock, responsive, and at six processes. This validates the transition mechanics, not yet the long-running resource or full functional gates.
