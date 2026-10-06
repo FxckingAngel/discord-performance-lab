@@ -23,4 +23,6 @@ The diagnostic profile was launched while the normal authenticated shell remaine
 
 Raw local result: `benchmarks/raw/track-b-bridge-pair-current-20261006.json`
 
-This verifies the narrow native bridge implementation and its local source boundary. It does not prove that Discord's frontend uses these capabilities, that the UI selects desktop-only paths, or that voice, video, screen sharing, notifications, dialogs, clipboard, and other desktop features have parity. Those remain separate functional checkpoints.
+An additional isolated `--diagnostic-window-bridge` run exercised the native behavior through CDP. The window was not iconic before the call, became iconic after `DiscordNative.window.minimize`, and was non-iconic again after `DiscordNative.window.restore`. The process remained responsive and exited through the normal close path afterward.
+
+This verifies the narrow native bridge implementation and its local source boundary, including two behavior-level window actions. It does not prove that Discord's frontend uses these capabilities, that the UI selects desktop-only paths, or that voice, video, screen sharing, notifications, dialogs, clipboard, and other desktop features have parity. Those remain separate functional checkpoints.
