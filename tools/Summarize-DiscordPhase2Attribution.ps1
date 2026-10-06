@@ -27,6 +27,7 @@ function Get-OptionalSum {
 }
 
 $input = Get-Content -Raw -LiteralPath $InputPath | ConvertFrom-Json
+$windowStates = @($input.samples | ForEach-Object { $_.windowState } | Where-Object { $_ -ne $null })
 $roleSamples = foreach ($sample in @($input.samples)) {
     foreach ($group in @($sample.processes | Where-Object role | Group-Object role)) {
         $valid = @($group.Group | Where-Object { $_.status -ne 'unavailable' })
@@ -111,6 +112,10 @@ $summary = [pscustomobject]@{
     scenario = $input.scenario
     rootPid = $input.rootPid
     sampleCount = @($input.samples).Count
+    displayRefreshRate = $input.environment.displayRefreshRate
+    displayWidth = $input.environment.displayWidth
+    displayHeight = $input.environment.displayHeight
+    windowStates = $windowStates
     processTree = $treeSummary
     roles = $ranked
 }

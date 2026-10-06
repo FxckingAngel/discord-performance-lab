@@ -20,6 +20,54 @@ param(
     [string] $ProcessName = 'DiscordPTB'
 )
 
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class TrackBPhase2Window {
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+}
+'@
+
+function Get-WindowState {
+    param([int] $TreeRootPid)
+
+    $process = Get-Process -Id $TreeRootPid -ErrorAction SilentlyContinue
+    if (-not $process) {
+        return [pscustomobject]@{ available = $false; reason = 'root-exited' }
+    }
+    $handle = [IntPtr] $process.MainWindowHandle
+    [pscustomobject]@{
+        available = $handle -ne [IntPtr]::Zero
+        handle = if ($handle -ne [IntPtr]::Zero) { $handle.ToInt64() } else { $null }
+        visible = if ($handle -ne [IntPtr]::Zero) { [TrackBPhase2Window]::IsWindowVisible($handle) } else { $false }
+        minimized = if ($handle -ne [IntPtr]::Zero) { [TrackBPhase2Window]::IsIconic($handle) } else { $false }
+        title = [string] $process.MainWindowTitle
+        responding = [bool] $process.Responding
+    }
+}
+
+function Get-DisplayState {
+    $controllers = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | ForEach-Object {
+        [pscustomobject]@{
+            name = [string] $_.Name
+            currentRefreshRate = if ($null -ne $_.CurrentRefreshRate) { [int] $_.CurrentRefreshRate } else { $null }
+            currentHorizontalResolution = if ($null -ne $_.CurrentHorizontalResolution) { [int] $_.CurrentHorizontalResolution } else { $null }
+            currentVerticalResolution = if ($null -ne $_.CurrentVerticalResolution) { [int] $_.CurrentVerticalResolution } else { $null }
+        }
+    })
+    $active = @($controllers | Where-Object { $_.currentRefreshRate -gt 0 } | Select-Object -First 1)[0]
+    [pscustomobject]@{
+        displayRefreshRate = if ($active) { $active.currentRefreshRate } else { $null }
+        displayWidth = if ($active) { $active.currentHorizontalResolution } else { $null }
+        displayHeight = if ($active) { $active.currentVerticalResolution } else { $null }
+        adapters = $controllers
+    }
+}
+
 $logicalProcessorCount = [Environment]::ProcessorCount
 $processes = @(Get-CimInstance Win32_Process)
 if (-not @($processes | Where-Object { [int] $_.ProcessId -eq $RootPid })) {
@@ -96,6 +144,7 @@ function Get-PerfByPid {
 
 $previousCpu = @{}
 $samples = [System.Collections.Generic.List[object]]::new()
+$displayState = Get-DisplayState
 $startedAt = [DateTime]::UtcNow
 $sampleCount = [math]::Max(1, [math]::Floor($DurationSeconds / $IntervalSeconds))
 for ($index = 0; $index -le $sampleCount; $index++) {
@@ -153,6 +202,7 @@ for ($index = 0; $index -le $sampleCount; $index++) {
     $samples.Add([pscustomobject]@{
         timestamp = $timestamp
         processCount = @($sampleProcesses).Count
+        windowState = Get-WindowState -TreeRootPid $RootPid
         processes = @($sampleProcesses)
     })
     if ($index -lt $sampleCount) {
@@ -166,6 +216,12 @@ $result = [pscustomobject]@{
     scenario = $Scenario
     rootPid = $RootPid
     logicalProcessorCount = $logicalProcessorCount
+    environment = [pscustomobject]@{
+        displayRefreshRate = $displayState.displayRefreshRate
+        displayWidth = $displayState.displayWidth
+        displayHeight = $displayState.displayHeight
+        adapters = $displayState.adapters
+    }
     startedAt = $startedAt
     endedAt = [DateTime]::UtcNow
     durationSeconds = ([DateTime]::UtcNow - $startedAt).TotalSeconds
