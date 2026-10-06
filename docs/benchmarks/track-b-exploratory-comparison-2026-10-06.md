@@ -18,6 +18,8 @@ This compares the current same-machine observations from [official visible Frien
 
 The current evidence supports the architecture's resource-reduction hypothesis, especially for private resident memory and idle CPU. It does not establish that Track B preserves normal Discord functionality or that it reaches the target on the same authenticated channel.
 
+The repository comparison tool independently calculated the same result. Its target sub-gate passed at 185.06 MiB private working set and 0.008% CPU, but the overall comparison failed because the process counts were 7 versus 6 and the controlled workload contract was not met. This is the expected safe outcome for an exploratory, state-mismatched pair.
+
 ## Next acceptance use
 
 The next valid comparison must replace the Track B profile row with a manually authenticated Track B capture using the same account, route, window size, display, call state, and settled duration. The formulas and metric definitions remain fixed. No result should be called a Track B improvement until that controlled pair exists.
