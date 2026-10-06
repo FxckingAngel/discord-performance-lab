@@ -16,6 +16,8 @@ The authenticated diagnostic reported five Chromium process entries:
 
 The CDP identifier is retained only in the local artifact because the browser endpoint did not expose a separate `osProcessId` field in this WebView2 build. The Windows rooted process sampler remains the authority for local PID, private memory, working set, handles, threads, and parentage.
 
+A same-run correlation on the next diagnostic showed that the CDP `id` values matched the Windows process IDs for the browser, renderer, GPU, network-service, and storage-service entries. The rooted Windows tree also contained a separate crashpad process, which was not returned by `SystemInfo.getProcessInfo`. This makes it safe to join CDP cumulative CPU time to the Windows memory rows for those five roles, while retaining the Windows sampler as the authority for the complete tree.
+
 ## Interpretation
 
 This gives a protocol-level role inventory that can be paired with the Windows process-tree sample without recording command lines or account data. It confirms that the authenticated diagnostic profile had one renderer at the time of the CDP probe. The earlier four-renderer capture therefore represents a different authenticated shell state and must not be generalized to every route or profile state.
