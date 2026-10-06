@@ -27,6 +27,24 @@ $residualMiB = [math]::Round([math]::Max(0, $rendererPrivateWorkingMiB - $v8Used
 $gpu = @($roles.roles | Where-Object role -eq 'gpu-process' | Select-Object -First 1)
 $gpuPrivateWorkingMiB = if ($gpu.Count -gt 0) { [math]::Round([double] $gpu.privateWorkingSetMedianMiB, 3) } else { $null }
 $gpuPrivateBytesMiB = if ($gpu.Count -gt 0) { [math]::Round([double] $gpu.privateMemoryMedianMiB, 3) } else { $null }
+$nativeCategories = if ($cdp.nativeMemorySamplingWindow -and $cdp.nativeMemorySamplingWindow.nativeAllocationCategories) {
+    @($cdp.nativeMemorySamplingWindow.nativeAllocationCategories | ForEach-Object {
+        [pscustomobject]@{
+            category = [string] $_.category
+            sampledMiB = [math]::Round([double] $_.sampledBytes / 1MB, 3)
+            sampleCount = [int] $_.sampleCount
+        }
+    })
+} else {
+    $null
+}
+$domCounters = if ($cdp.domCounters -and -not $cdp.domCounters.error) {
+    [pscustomobject]@{
+        documents = $cdp.domCounters.documents
+        nodes = $cdp.domCounters.nodes
+        jsEventListeners = $cdp.domCounters.jsEventListeners
+    }
+} else { $null }
 $buckets = @(
     [pscustomobject]@{ bucket = 'V8 JavaScript heap'; measuredMiB = $v8UsedMiB; evidence = 'Runtime.getHeapUsage.usedSize'; interpretation = 'Measured live V8 heap only.' }
     [pscustomobject]@{ bucket = 'Renderer private working set'; measuredMiB = [math]::Round($rendererPrivateWorkingMiB, 3); evidence = 'Rooted process attribution median'; interpretation = 'Primary renderer resident-memory KPI; not equivalent to JavaScript heap.' }
@@ -44,6 +62,8 @@ $result = [pscustomobject]@{
     cdpCapturedAt = $cdp.capturedAt
     v8HeapCapacityMiB = $v8TotalMiB
     buckets = $buckets
+    nativeAllocationCategories = $nativeCategories
+    domCounters = $domCounters
     privacy = 'Sanitized aggregate only. No heap objects, function names, URLs, message contents, tokens, or snapshots are included.'
 }
 $parent = Split-Path -Parent $OutputPath

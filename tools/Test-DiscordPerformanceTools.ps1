@@ -108,7 +108,7 @@ try {
         throw 'Phase 2 summary does not retain complete process-tree totals.'
     }
     $bucketSummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-DiscordPhase21MemoryBuckets.ps1') -Raw
-    foreach ($requiredField in @('privateWorkingSetMedianMiB', 'Renderer private working set', 'Renderer private bytes')) {
+    foreach ($requiredField in @('privateWorkingSetMedianMiB', 'Renderer private working set', 'Renderer private bytes', 'nativeAllocationCategories', 'domCounters')) {
         if ($bucketSummarySource -notmatch [regex]::Escape($requiredField)) {
             throw "Phase 2 bucket summary does not preserve $requiredField."
         }
