@@ -120,12 +120,16 @@ for ($index = 0; $index -le $sampleCount; $index++) {
             }
             $previousCpu[$processId] = [pscustomobject]@{ timestamp = $timestamp; cpuSeconds = $cpuSeconds }
             $perf = $perfByPid[$processId]
+            $workingSetPrivateBytes = if ($perf) { [double] $perf.WorkingSetPrivate } else { $null }
+            $workingSetBytes = [double] $process.WorkingSet64
             [pscustomobject]@{
                 pid = $processId
                 parentPid = [int] $cimProcess.ParentProcessId
                 role = Get-Role -Process $cimProcess -TreeRootPid $RootPid
                 lifetimeSeconds = [math]::Round(($timestamp - $process.StartTime.ToUniversalTime()).TotalSeconds, 3)
-                workingSetMiB = [math]::Round($process.WorkingSet64 / 1MB, 2)
+                workingSetMiB = [math]::Round($workingSetBytes / 1MB, 2)
+                privateWorkingSetMiB = if ($null -ne $workingSetPrivateBytes) { [math]::Round($workingSetPrivateBytes / 1MB, 2) } else { $null }
+                workingSetShareableMiB = if ($null -ne $workingSetPrivateBytes) { [math]::Round([math]::Max(0, $workingSetBytes - $workingSetPrivateBytes) / 1MB, 2) } else { $null }
                 privateMemoryMiB = [math]::Round($process.PrivateMemorySize64 / 1MB, 2)
                 pagedMemoryMiB = [math]::Round($process.PagedMemorySize64 / 1MB, 2)
                 handles = $process.HandleCount
