@@ -9,7 +9,7 @@ jobs:
   powershell-parse:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Parse PowerShell tools
         shell: pwsh
         run: ./tools/Test-DiscordPerformanceTools.ps1
