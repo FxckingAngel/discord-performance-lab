@@ -31,6 +31,7 @@ $summaryTool = Join-Path $resolvedToolsPath 'Summarize-DiscordBenchmark.ps1'
 $compareTool = Join-Path $resolvedToolsPath 'Compare-DiscordBenchmark.ps1'
 $measureTool = Join-Path $resolvedToolsPath 'Measure-DiscordProcessTree.ps1'
 $joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
+$traceCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBCdpTrace.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 try {
@@ -137,6 +138,21 @@ try {
     $joinFixture = Get-Content -LiteralPath $joinFixturePath -Raw | ConvertFrom-Json
     if ($joinFixture.matchedCount -ne 1 -or $joinFixture.joinedProcesses[0].cdpType -ne 'renderer') {
         throw 'CDP-to-Windows attribution join fixture did not preserve the expected match boundary.'
+    }
+
+    $traceBaselinePath = Join-Path $tempRoot 'trace-baseline.json'
+    $traceCandidatePath = Join-Path $tempRoot 'trace-candidate.json'
+    $traceComparisonPath = Join-Path $tempRoot 'trace-comparison.json'
+    $traceEvents = [pscustomobject]@{
+        selectedCounts = [pscustomobject]@{ RunTask = 10; EvaluateScript = 0; FunctionCall = 0; UpdateLayoutTree = 0; Layout = 0; Paint = 0; CompositeLayers = 0; DrawFrame = 0; memory_dump = 0; periodic_interval = 2 }
+        eventDurationsMicroseconds = @([pscustomobject]@{ key = 'RunTask'; count = 1000 })
+    }
+    [pscustomobject]@{ durationSeconds = 5; dataLossOccurred = $false; summary = $traceEvents } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $traceBaselinePath -Encoding utf8
+    [pscustomobject]@{ durationSeconds = 10; dataLossOccurred = $false; summary = $traceEvents } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $traceCandidatePath -Encoding utf8
+    $traceComparison = & $traceCompareTool -BaselinePath $traceBaselinePath -CandidatePath $traceCandidatePath -OutputPath $traceComparisonPath | ConvertFrom-Json
+    $runTaskMetric = @($traceComparison.metrics | Where-Object event -eq 'RunTask')
+    if ($runTaskMetric.Count -ne 1 -or $runTaskMetric[0].baselinePerSecond -ne 2 -or $runTaskMetric[0].candidatePerSecond -ne 1) {
+        throw 'CDP trace comparison did not normalize event counts per second.'
     }
 }
 finally {
