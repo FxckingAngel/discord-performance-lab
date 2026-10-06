@@ -103,6 +103,12 @@ These names do not authorize exposing an object with matching methods. Each row 
 
 The 2026-10-06 probe returned `false` for every human-readable candidate tested, including the observed `window`, `hardware`, `desktopCapture`, `fileManager`, `clipboard`, `powerMonitor`, and `safeStorage` method names. This is inconclusive because the feature registry likely uses internal identifiers. It must not be read as proof that the corresponding desktop capabilities are unused or unsupported, and no feature flag was changed.
 
+## WebView2 capture finding
+
+Microsoft documents a `CoreWebView2.ScreenCaptureStarting` event for page calls to `navigator.mediaDevices.getDisplayMedia()`. The event can be canceled or deferred by the host; if Track B leaves it unhandled, WebView2 retains its own capture flow rather than receiving a fabricated Discord-native source list. This gives Track B a safe path to test screen/window sharing without changing Discord's protocol or exposing an unimplemented `DiscordNative.desktopCapture` object. The capability remains unmarked until an authenticated end-to-end screen-share test confirms the selected source, permission flow, audio behavior, and cleanup.
+
+Source: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.screencapturestarting
+
 ## Launch-flag boundary
 
 A read-only inspection of the live PTB process tree on 2026-10-06 showed Electron-specific renderer flags for device scale, media capture, H.264 handling, raster threads, and autoplay. It also showed `--no-sandbox` and `--enable-node-leakage-in-renderers`. These are observations about the official client, not Track B requirements. Track B does not copy the unsafe flags, disable WebView2 security protections, or enable renderer node leakage. Any media or display behavior needed for parity must be provided through a genuine, separately tested WebView2/native capability.
