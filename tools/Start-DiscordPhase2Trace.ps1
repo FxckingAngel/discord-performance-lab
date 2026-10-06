@@ -20,7 +20,7 @@ $process = Get-Process -Id $RootPid -ErrorAction Stop
 $resolvedOutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $resolvedOutputDirectory -Force | Out-Null
 $manifestPath = Join-Path $resolvedOutputDirectory "$SessionName.manifest.json"
-$profiles = @('CPU.verbose', 'DiskIO.verbose', 'GPU.verbose', 'Handle.verbose', 'ResidentSet.verbose', 'Heap.verbose')
+$profiles = @('CPU', 'DiskIO', 'GPU', 'Handle', 'ResidentSet', 'Heap')
 $arguments = @('-start')
 foreach ($profile in $profiles) {
     if ($arguments.Count -gt 1) { $arguments += '-start' }

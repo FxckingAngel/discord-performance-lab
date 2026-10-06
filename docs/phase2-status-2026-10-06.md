@@ -71,7 +71,7 @@ The sanitized memory-bucket report for the diagnostic run separates 153.641 MiB 
 
 ## ETW status
 
-`wpr.exe` is installed, but the local run was denied with Windows error `0xc5585011`, “Failed to enable the policy to profile system performance.” WPA, xperf, and tracelog are not installed. No ETL trace is claimed from this run. The Phase 2 wrappers remain ready for a session with the Windows performance-recording privilege or an installed equivalent ETL reader.
+`wpr.exe` is installed, but the local run was denied with Windows error `0xc5585011`, “Failed to enable the policy to profile system performance.” WPA, xperf, and tracelog are not installed. No ETL trace is claimed from this run. The wrapper now requests the built-in profile names exposed by this Windows build: `CPU`, `DiskIO`, `GPU`, `Handle`, `ResidentSet`, and `Heap`. A session with the Windows performance-recording privilege or an installed equivalent ETL reader is still required to produce the trace.
 
 The read-only attribution sampler remains usable without that privilege and is not a substitute for stack-level ETW evidence. It must be run separately for each required scenario.
 
