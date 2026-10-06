@@ -18,6 +18,10 @@ Track B must preserve normal official web-client behavior and must not recreate 
 
 The first shell has no native bridge, injected scripts, protocol interception, or account-data migration. It uses a separate WebView2 user-data folder. Desktop integrations are added only after their requirement, safety boundary, measured resource cost, rollback path, and functional result are documented.
 
+## Runtime-floor evidence
+
+The first WebView2 runtime-floor capture used `about:blank` in a separate diagnostic profile and measured 380.7 MiB working set across the complete tree. The Discord-loaded unauthenticated shell measured 836.2 MiB in the latest rooted sample. These results do not replace the required authenticated A/B benchmark, but they show that the approximately 250 MiB design target cannot be assumed from replacing Electron with WebView2. The full evidence is in `docs/benchmarks/track-b-runtime-floor-2026-10-06.md`.
+
 ## Evidence so far
 
 The first native shell built and opened a responsive window. Its corrected full process tree reached nine processes during startup. A short unauthenticated settled run measured about 1,058 MiB median working set and 839 MiB median private memory. This does not beat stock yet and cannot be compared fairly until both applications use the same logged-in account and channel state.
@@ -27,3 +31,5 @@ Track A remains authoritative for stock baselines. Its existing benchmark, rollb
 ## Next gate
 
 Run the same logged-in controlled workload against stock Discord and the shell, count every child process, and compare startup, settled working set, private memory, CPU median and p95, GPU activity, process count, handles, threads, responsiveness, and functional pass/fail. Track B must first clear the under-500 MiB minimum before substantial compatibility-layer work is justified. Only a result that also preserves the required functionality moves Track B beyond the prototype.
+
+If the authenticated WebView2 result cannot clear the minimum, stop adding compatibility features to that prototype and evaluate a different safe runtime architecture. If it clears the minimum but remains materially above the design target, keep the result provisional and measure another runtime before calling the architecture validated.

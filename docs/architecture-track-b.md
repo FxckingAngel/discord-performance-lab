@@ -42,6 +42,12 @@ Every comparison counts the full process tree:
 
 The first milestone is architectural evidence, not feature completeness. The shell must first beat the under-500 MiB minimum on the same logged-in static-channel workload. If it cannot, the project must investigate the process/runtime ownership before investing heavily in native compatibility work.
 
+## Runtime-floor gate
+
+The diagnostic-only blank-page capture on 2026-10-06 measured 380.7 MiB working set and 147.5 MiB private memory across seven WebView2-shell processes. This is not a Discord benchmark, but it is a lower-bound warning: the WebView2 runtime and native host consume most of the 250 MiB design budget before Discord loads. The current Discord-loaded unauthenticated shell measured 836.2 MiB working set and 557.7 MiB private memory.
+
+WebView2 remains eligible for the under-500 MiB minimum only if the authenticated same-channel workload clears that gate without feature loss. The approximately 250 MiB design target requires either a measured reduction in runtime overhead that preserves normal behavior or a different safe shell architecture with a lower full-tree floor. Do not hide this gap with working-set trimming, disabled hardware acceleration, removed media, or security changes.
+
 ## Compatibility layer policy
 
 Desktop features are evaluated one at a time after the core web shell has a baseline. For each feature, record what Discord expects, what WebView2 already provides, the smallest native bridge needed if any, the process and memory cost, and the functional result. Candidate areas include notifications, tray behavior, permissions, file dialogs, downloads, drag and drop, screen capture, audio devices, accessibility, deep links, and session persistence.
