@@ -39,10 +39,11 @@ Two short rooted-tree probes were run on the installed stock Discord PTB process
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | 1 | 2.186% to 1.773% (-18.893%) | 1,341.77 to 1,348.52 MiB (+0.503%) | 1,349.50 to 1,352.80 MiB (+0.245%) | 1,118.41 to 1,060.92 MiB (-5.140%) | 6 to 6 | passed |
 | 2 | 2.682% to 2.276% (-15.138%) | 1,369.54 to 1,368.70 MiB (-0.061%) | 1,372.88 to 1,380.73 MiB (+0.572%) | 1,118.33 to 1,109.51 MiB (-0.789%) | 6 to 6 | passed |
+| 3 (45-second run) | 1.030% to 1.039% (+0.874%) | 1,236.68 to 1,210.59 MiB (-2.110%) | 1,249.60 to 1,215.01 MiB (-2.768%) | 971.77 to 934.07 MiB (-3.880%) | 6 to 6 | passed |
 
-The CPU reduction repeated, but the memory signal was small and inconsistent. These were five-sample, roughly fifteen-second measurements rather than an acceptance run. The user reports that stock messaging and voice/video have worked throughout the existing tests. During the low-priority probes, the user observed no breakage but was not in an active conversation, so low-priority voice behavior remains unverified. No candidate-window test covered video, messaging, media, notification, accessibility, or settings behavior, and voice reconnection after the preceding restart was not independently observed. The low-priority hint is therefore not an accepted default.
+The first two short probes showed lower CPU but inconsistent memory results. The longer third run showed a modest RAM reduction and near-neutral CPU. These are still five-sample measurements rather than a full acceptance run. The user reports that stock messaging and voice/video have worked throughout the existing tests. During the low-priority probes, the user observed no breakage but was not in an active conversation, so low-priority voice behavior remains unverified. No candidate-window test covered video, messaging, media, notification, accessibility, or settings behavior, and voice reconnection after the preceding restart was not independently observed. The low-priority hint is therefore not an accepted default.
 
-Raw evidence is retained locally under `benchmarks/raw/memory-priority-live/` and `benchmarks/raw/memory-priority-live-run2/`; those raw files are intentionally ignored by the repository.
+Raw evidence is retained locally under `benchmarks/raw/memory-priority-live/`, `benchmarks/raw/memory-priority-live-run2/`, and `benchmarks/raw/memory-priority-long/`; those raw files are intentionally ignored by the repository.
 
 ## Source
 
