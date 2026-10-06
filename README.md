@@ -134,6 +134,10 @@ For a paired, reversible background-idle experiment, use [tools/Invoke-DiscordMe
 .\tools\Invoke-DiscordMemoryPriorityExperiment.ps1 -RootPid 12345 -Priority low -BackgroundIdleConfirmed -OutputDirectory .\benchmarks\raw
 ```
 
+## Building Track B
+
+Use `tools/Build-TrackBShell.ps1` to build from a clean temporary source copy. By default it uses the portable SDK under `.tools/dotnet` and writes verified output under the ignored `track-b/discord-shell/bin/Verified` directory. The clean copy avoids stale generated files and does not need to stop a running shell instance.
+
 ## Evidence standard
 
 Every performance claim should include the stock and candidate build identifiers, workload, machine state, sample count, raw data location, summary statistics, and any functional regressions observed. The benchmark plan defines the first comparison.
