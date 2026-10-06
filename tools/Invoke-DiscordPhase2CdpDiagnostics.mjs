@@ -108,6 +108,12 @@ function nativeCategory(stack, moduleNames = []) {
   return 'other';
 }
 
+function sanitizedModuleName(name) {
+  const baseName = String(name ?? '').split(/[\\/]/).pop() ?? '';
+  const sanitized = baseName.replace(/[^A-Za-z0-9._-]/g, '').slice(0, 80);
+  return sanitized || 'unknown-module';
+}
+
 function summarizeNativeMemoryProfile(profile) {
   const samples = Array.isArray(profile?.samples) ? profile.samples : [];
   const modules = (Array.isArray(profile?.modules) ? profile.modules : []).map((module) => ({
@@ -119,6 +125,7 @@ function summarizeNativeMemoryProfile(profile) {
   const totals = samples.map((sample) => Number(sample.total ?? sample.size ?? 0)).filter(Number.isFinite);
   const stackDepths = samples.map((sample) => Array.isArray(sample.stack) ? sample.stack.length : 0);
   const categories = new Map();
+  const moduleTotals = new Map();
   let mappedFrames = 0;
   let totalFrames = 0;
   for (const sample of samples) {
@@ -133,6 +140,15 @@ function summarizeNativeMemoryProfile(profile) {
     current.sampledBytes += bytes;
     current.sampleCount += 1;
     categories.set(category, current);
+    const primaryModule = sanitizedModuleName(moduleNames[0]);
+    const moduleCurrent = moduleTotals.get(primaryModule) ?? {
+      module: primaryModule,
+      sampledBytes: 0,
+      sampleCount: 0,
+    };
+    moduleCurrent.sampledBytes += bytes;
+    moduleCurrent.sampleCount += 1;
+    moduleTotals.set(primaryModule, moduleCurrent);
   }
   return {
     available: true,
@@ -146,6 +162,9 @@ function summarizeNativeMemoryProfile(profile) {
     moduleMappedFrameCount: mappedFrames,
     moduleFrameCount: totalFrames,
     nativeAllocationCategories: [...categories.values()].sort((left, right) => right.sampledBytes - left.sampledBytes),
+    nativeAllocationModules: [...moduleTotals.values()]
+      .sort((left, right) => right.sampledBytes - left.sampledBytes)
+      .slice(0, 20),
   };
 }
 
@@ -156,6 +175,7 @@ function unavailableNativeMemory(error) {
     sampleCount: null,
     error,
     nativeAllocationCategories: [],
+    nativeAllocationModules: [],
   };
 }
 
