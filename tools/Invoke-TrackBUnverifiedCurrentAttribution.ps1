@@ -6,6 +6,9 @@ param(
     [ValidateRange(5, 600)]
     [int] $DurationSeconds = 30,
 
+    [ValidateRange(0, 600)]
+    [int] $SettleSeconds = 60,
+
     [ValidateRange(1, 60)]
     [int] $IntervalSeconds = 5,
 
@@ -83,6 +86,10 @@ try {
     } while ([DateTime]::UtcNow -lt $deadline)
     if (-not $ready) { throw 'The authenticated diagnostic CDP endpoint did not open.' }
 
+    if ($SettleSeconds -gt 0) {
+        Start-Sleep -Seconds $SettleSeconds
+    }
+
     $measureProcess = Start-Process -FilePath $powershell.Source -WindowStyle Hidden -PassThru -ArgumentList @(
         '-NoProfile', '-File', $measureScript,
         '-RootPid', "$($diagnosticProcess.Id)",
@@ -105,6 +112,7 @@ try {
         result = 'CAPTURED'
         verification = 'unverified-route-and-workload'
         durationSeconds = $DurationSeconds
+        settleSeconds = $SettleSeconds
         processTreePath = (Resolve-Path $processTreePath).Path
         cdpPath = (Resolve-Path $cdpPath).Path
         heapSummaryPath = if ($CaptureHeapSnapshot) { (Resolve-Path $heapSummaryPath).Path } else { $null }
