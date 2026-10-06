@@ -35,4 +35,6 @@ The shell is still a feasibility prototype. It should establish whether the offi
 
 Track B measurements must count the complete WebView2 process tree, not only `KoroneDiscordShell.exe`. Use the existing benchmark tools with a separate process name and record startup, settled working set, private memory, CPU, GPU activity, process count, handles, threads, and responsiveness.
 
+For the manual authenticated checkpoint, run `tools/Invoke-TrackBManualCheckpoint.ps1 -ExecutablePath <path-to-KoroneDiscordShell.exe>`. It launches or reuses Track B, waits for the user to log in and navigate manually, and starts a rooted process-tree capture only after the user types `READY`. The workflow does not require the automation connector and does not require official Discord to be closed.
+
 For a controlled official-client CDP session, use `tools/Launch-DiscordOfficialDiagnostic.ps1` with the exact official executable path. It refuses to start while a matching official process is already running, preserves the existing profile, and exposes only a loopback debugging port. It does not automate login or write credentials. Close the diagnostic client manually after the read-only probe is complete.

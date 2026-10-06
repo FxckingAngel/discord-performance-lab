@@ -14,6 +14,14 @@ It must also provide a minimal, audited [desktop compatibility layer](track-b-de
 
 The design target is approximately **250 MiB total settled idle working set and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable.
 
+## Current workflow status
+
+**Track B goal: ACTIVE**
+
+**Authenticated same-route A/B benchmark: WAITING FOR MANUAL CHECKPOINT**
+
+The authenticated benchmark is a manual UI checkpoint, not a blocked project goal. Use `tools/Invoke-TrackBManualCheckpoint.ps1` to launch or reuse Track B, then manually log in, navigate to the requested channel or DM, leave the state ready, and type `READY`. The script then measures the existing Track B process tree without UI automation. Official Discord does not need to be closed for this workflow.
+
 A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.95 MiB median private working set and 0.072% median total CPU, but its private-bytes median was 331.29 MiB and its p95 private working set was 266.93 MiB. This is encouraging runtime-floor evidence only; it does not satisfy the authenticated same-channel acceptance gate.
 
 ## Target levels
