@@ -18,4 +18,4 @@
 
 ## Notes
 
-The process tree remained at six processes during the read-only check. The client remained on the stock profile. No messages, settings, permissions, or account data were changed.
+The process tree remained at six processes during the read-only check. The accessibility tree exposed the server sidebar, direct-message list, Friends, User Settings, voice controls, camera, screen sharing, soundboard, and media controls. Those controls were observed but not activated. The client remained on the stock profile. No messages, settings, permissions, or account data were changed.
