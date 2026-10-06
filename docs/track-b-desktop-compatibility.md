@@ -47,6 +47,8 @@ The official Electron environment must be observed locally with read-only diagno
 
 The read-only probe is `tools/Invoke-DiscordEnvironmentProbe.mjs`. It requires a loopback CDP endpoint created for a controlled diagnostic launch. It records only sanitized aggregate environment facts and global-name presence; it does not serialize native object values or page data.
 
+For a controlled official-client capability-use trace, use `tools/Probe-DiscordNativeMethodCalls.mjs <port> <seconds> <output>`. It reloads the diagnostic page, wraps only callable properties under `DiscordNative`, and records unique method names plus counts. It never records arguments, return values, page content, URLs, cookies, tokens, or native object values. Run it only against a disposable controlled diagnostic session, not the ordinary live client.
+
 ## Measured Track B environment
 
 The isolated `--diagnostic-discord` profile was measured on 2026-10-06 using WebView2 Runtime 154.0.4258.53. The Discord route reported Edge/WebView2 user-agent data, `Win32`, a 1264x761 viewport at device-pixel ratio 1, and normal web capabilities for notifications, media devices, microphone/camera capture, display capture, clipboard, file pickers, downloads, drag/drop, and visual viewport APIs. It did not expose `DiscordNative`, `electron`, `require`, `process`, or `module` globals.
