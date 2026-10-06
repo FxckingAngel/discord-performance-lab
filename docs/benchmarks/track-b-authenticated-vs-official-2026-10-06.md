@@ -34,6 +34,8 @@ The Track B numerical target sub-gate passes:
 
 The automated comparison remains marked provisional rather than accepted because process count differs and the exact same route/workload has not been independently captured. The extra Track B process must not be removed without checking normal notifications, media, voice, video, and screen-sharing behavior.
 
+The role lists also differ. The Track B checkpoint contained a WebView2 storage service and no separately identified audio service. The official sample contained an audio service and no separately identified storage service. This is a process-model difference, not evidence of an unnecessary Track B process. Voice and media tests must identify the Track B audio path before any process-count optimization is considered.
+
 This result does not declare Track B complete. The remaining gates are authenticated functional checks, visual A/B parity, desktop capability behavior, and repeated workload-specific measurements.
 
 Raw samples and generated summaries remain under `benchmarks/raw/` and are not published.
