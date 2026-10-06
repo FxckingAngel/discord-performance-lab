@@ -4,6 +4,8 @@ Date: 2026-10-06
 
 Desktop compatibility is a hard Track B requirement. The same Discord account, route, call state, window size, display, and workload must render like official Discord Desktop rather than like Discord in a generic embedded browser.
 
+This is an acceptance gate, not a naming or user-agent exercise. Track B must provide the desktop capability signals Discord's frontend actually relies on, and each reported capability must have a working native implementation underneath it. A UA string or an Electron-shaped object without working behavior does not satisfy this requirement.
+
 Discord's frontend remains responsible for rendering Discord UI. The shell provides only the desktop environment and native capabilities that have been observed, implemented, and tested. This layer must not change authentication, authorization, entitlements, API responses, the network protocol, or security state.
 
 ## Design rule
@@ -107,4 +109,11 @@ Raw environment dumps, heap snapshots, screenshots, message contents, account id
 
 ## Acceptance
 
-Track B does not pass desktop compatibility until the authenticated A/B comparison is visually and functionally close to official Discord Desktop for Friends, server/channel, DM, Settings, voice, video, screen sharing, and media-heavy scenarios. Every implemented bridge must preserve the main performance target of approximately 250 MiB total settled idle RAM and 0.2% total idle CPU across the complete process tree.
+Track B does not pass desktop compatibility until all of the following are true:
+
+1. The authenticated A/B comparison is visually and functionally close to official Discord Desktop for Friends, server/channel, DM, Settings, voice, video, screen sharing, and media-heavy scenarios.
+2. The frontend is using genuine desktop-capability paths where those paths differ from the web fallback. This must be shown by behavior-level tests, not only by matching strings or global names.
+3. Every exposed bridge has a documented native implementation, source boundary, rollback path, and full-tree resource measurement. Unsupported capabilities remain unavailable.
+4. Native compatibility does not move the complete process tree away from approximately 250 MiB total settled idle RAM and 0.2% total idle CPU, or introduce responsiveness, paging, notification, or media regressions.
+
+The compatibility matrix is the source of truth for implementation status. The next comparison must capture the same sanitized signals from the official Electron client and Track B after each capability change, then repeat the relevant screenshot and functional scenario. Discord's server list, channel UI, message UI, call UI, and settings UI must continue to be rendered by Discord's frontend rather than manually recreated by the shell.

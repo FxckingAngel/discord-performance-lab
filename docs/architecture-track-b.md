@@ -7,6 +7,8 @@ The project now has two tracks:
 
 The long-term architectural boundary is: replace the Electron desktop shell, not Discord itself.
 
+Track B has two co-equal hard gates: the full-tree performance target and desktop-environment parity. The shell must make Discord's frontend see only desktop capabilities that are genuinely implemented underneath it. It must not rely on a generic browser fallback, blanket Electron spoofing, protocol changes, or manually recreated Discord UI.
+
 ## First candidate
 
 The first candidate is a native Windows WinForms host using the installed Microsoft Edge WebView2 Runtime. WebView2 is a testable starting point because it can use a system-serviced Chromium runtime instead of shipping a second complete Electron/Chromium bundle. That is a hypothesis, not a conclusion. WebView2 still creates browser, renderer, GPU, and utility processes, so the entire process tree must be measured.

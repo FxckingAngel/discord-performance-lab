@@ -95,44 +95,46 @@ public sealed class MainForm : Form
             {
                 webView.CoreWebView2.Settings.UserAgent = DiagnosticOfficialUserAgent;
             }
-            if (enableWindowBridge)
+            if (enableWindowBridge || enableHardwareBridge)
             {
-                await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
+                var bridgeScript = @"
 (() => {
-  const actions = new Set(['minimize', 'maximize', 'restore', 'close', 'focus']);
-  const send = (action) => {
-    if (actions.has(action)) chrome.webview.postMessage(JSON.stringify({ source: 'track-b-window', action }));
-  };
-  const windowApi = Object.freeze(Object.fromEntries([...actions].map((action) => [action, () => send(action)])));
-  if (!globalThis.DiscordNative) {
-    Object.defineProperty(globalThis, 'DiscordNative', { configurable: false, enumerable: false, value: Object.freeze({ window: windowApi }) });
-  }
-})();");
-            }
-            if (enableHardwareBridge)
-            {
-                await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
-(() => {
-  const pending = new Map();
-  let nextId = 1;
-  chrome.webview.addEventListener('message', (event) => {
-    const message = event.data;
-    if (message?.source !== 'track-b-hardware-result' || !pending.has(message.id)) return;
-    const request = pending.get(message.id);
-    pending.delete(message.id);
-    if (message.error) request.reject(new Error(message.error));
-    else request.resolve(message.value);
-  });
-  const getDisplayCount = () => new Promise((resolve, reject) => {
-    const id = nextId++;
-    pending.set(id, { resolve, reject });
-    chrome.webview.postMessage(JSON.stringify({ source: 'track-b-hardware', action: 'getDisplayCount', id }));
-  });
-  const hardware = Object.freeze({ getDisplayCount });
-  if (!globalThis.DiscordNative) {
-    Object.defineProperty(globalThis, 'DiscordNative', { configurable: false, enumerable: false, value: Object.freeze({ hardware }) });
-  }
-})();");
+  const native = globalThis.DiscordNative;
+  if (native && (typeof native !== 'object' && typeof native !== 'function')) return;
+  const target = native ?? {};
+  if (native && !Object.isExtensible(target)) return;
+  if (!native) Object.defineProperty(globalThis, 'DiscordNative', { configurable: false, enumerable: false, value: target });
+@@WINDOW@@
+@@HARDWARE@@
+})();";
+                bridgeScript = bridgeScript.Replace("@@WINDOW@@", enableWindowBridge ? @"
+  if (!target.window) {
+    const actions = new Set(['minimize', 'maximize', 'restore', 'close', 'focus']);
+    const send = (action) => {
+      if (actions.has(action)) chrome.webview.postMessage(JSON.stringify({ source: 'track-b-window', action }));
+    };
+    Object.defineProperty(target, 'window', { configurable: false, enumerable: true, value: Object.freeze(Object.fromEntries([...actions].map((action) => [action, () => send(action)]))) });
+  }" : string.Empty);
+                bridgeScript = bridgeScript.Replace("@@HARDWARE@@", enableHardwareBridge ? @"
+  if (!target.hardware) {
+    const pending = new Map();
+    let nextId = 1;
+    chrome.webview.addEventListener('message', (event) => {
+      const message = event.data;
+      if (message?.source !== 'track-b-hardware-result' || !pending.has(message.id)) return;
+      const request = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) request.reject(new Error(message.error));
+      else request.resolve(message.value);
+    });
+    const getDisplayCount = () => new Promise((resolve, reject) => {
+      const id = nextId++;
+      pending.set(id, { resolve, reject });
+      chrome.webview.postMessage(JSON.stringify({ source: 'track-b-hardware', action: 'getDisplayCount', id }));
+    });
+    Object.defineProperty(target, 'hardware', { configurable: false, enumerable: true, value: Object.freeze({ getDisplayCount }) });
+  }" : string.Empty);
+                await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(bridgeScript);
             }
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             if (diagnosticHardwareBridge)
