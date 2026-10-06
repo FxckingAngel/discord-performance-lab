@@ -65,6 +65,8 @@ This is useful separation evidence, not an optimization result. The Phase 2.1 se
 
 A paired Track B diagnostic launch on the same date ended with an eight-process tree at about 661.9 MiB working set and 364.1 MiB private bytes. Its renderer held 187.5 MiB private bytes while CDP reported 54.68 MiB V8 heap used, leaving at least roughly 133 MiB of renderer private residual outside measured V8 heap. The paired state had 1,174 DOM nodes, 695 JavaScript listeners, three image elements, no video elements, and no active RTCPeerConnections. This is unauthenticated evidence and narrows the next attribution work to Blink/native Chromium/resource allocations, but it is not sufficient to select an optimization.
 
+A diagnostic-only CDP garbage-collection probe repeated three times released 39.2–40.6 MiB of renderer private bytes while V8 used heap fell by about 6.9 MiB each time. This is a lead for allocator/retention research, not permission to force collection in the normal shell. No GC or working-set trimming has been added to Track B.
+
 The sanitized memory-bucket report for the diagnostic run separates 153.641 MiB of measured V8 heap from 521.73 MiB renderer private memory. The arithmetic leaves a 368.0 MiB non-V8 renderer residual lower bound. It is intentionally labeled unresolved and may include Blink, native Chromium, decoded media, shared buffers, or other allocations.
 
 ## ETW status
