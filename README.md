@@ -40,6 +40,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Adaptive profile scope decision](docs/decisions/0003-adaptive-profile-scope.md)
+- [Memory-priority experiment](docs/experiments/007-memory-priority.md)
 - [Security and safety boundary](SECURITY.md)
 - [Current project status](docs/status-2026-10-06.md)
 
