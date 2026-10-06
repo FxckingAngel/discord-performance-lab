@@ -64,12 +64,18 @@ For a read-only view of the current launch profile, process count, root command 
 
 Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to apply the regression gate to two generated summaries.
 
-The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqos` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`.
+The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqos` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`; the opt-in `adaptive` profile launches stock Discord and attaches the background QoS watcher.
 
 EcoQoS is currently supported only as an experimental background-idle profile. Two paired background runs passed the resource regression gate, but a foreground run showed higher CPU use and full Discord functionality has not been accepted. Do not treat it as a universal replacement for the stock launch. Example:
 
 ```powershell
 .\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile ecoqos
+```
+
+The adaptive profile keeps foreground use system-managed and applies EcoQoS only while the window is minimized or hidden:
+
+```powershell
+.\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile adaptive
 ```
 
 The stock profile remains the rollback path:

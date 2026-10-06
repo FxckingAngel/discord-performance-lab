@@ -8,6 +8,8 @@ Prototype utility; transition and functional acceptance pending.
 
 `tools/Watch-DiscordBackgroundQoS.ps1` watches one observed Discord root PID. It applies the existing EcoQoS control only while the main window is minimized or has no window handle, and returns the process tree to system-managed QoS when the window is restored.
 
+`tools/Launch-DiscordPerformanceProfile.ps1 -Profile adaptive` starts stock Discord and attaches this watcher automatically. The launcher reports both the Discord PID and watcher PID so the private profile can be inspected and stopped cleanly.
+
 Run once to evaluate the current state:
 
 ```powershell

@@ -4,7 +4,7 @@ param(
     [ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })]
     [string] $ExecutablePath,
 
-    [ValidateSet('stock', 'ecoqos')]
+    [ValidateSet('stock', 'ecoqos', 'adaptive')]
     [string] $Profile = 'stock',
 
     [ValidateNotNullOrEmpty()]
@@ -22,13 +22,29 @@ if ($existing.Count -gt 0) {
 $arguments = switch ($Profile) {
     'stock' { @() }
     'ecoqos' { @('--enable-features=UseEcoQoSForBackgroundProcess') }
+    'adaptive' { @() }
 }
 
 $process = Start-Process -FilePath $resolvedExecutable -ArgumentList $arguments -PassThru
+$watcher = $null
+if ($Profile -eq 'adaptive') {
+    $watcherScript = Join-Path $PSScriptRoot 'Watch-DiscordBackgroundQoS.ps1'
+    if (-not (Test-Path -LiteralPath $watcherScript -PathType Leaf)) {
+        throw "Adaptive watcher not found: $watcherScript"
+    }
+    $watcher = Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @(
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-File', $watcherScript,
+        '-RootPid', $process.Id,
+        '-PollIntervalSeconds', '2'
+    ) -PassThru
+}
 [pscustomobject] @{
     profile = $Profile
     processName = $ProcessName
     pid = $process.Id
+    watcherPid = if ($watcher) { $watcher.Id } else { $null }
     executablePath = $resolvedExecutable
     arguments = @($arguments)
 }
