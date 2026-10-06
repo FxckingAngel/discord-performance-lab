@@ -44,13 +44,13 @@ An additional paired idle run on 2026-10-06 did not pass the regression gate. St
 
 ## Background-idle result
 
-A separate paired run closed the main window and measured the remaining process tree for 20 seconds. The gate passed:
+A two-run paired comparison closed the main window and measured the remaining process tree for 20 seconds per run. The gate passed:
 
 | Metric | Stock | EcoQoS | Change |
 | --- | ---: | ---: | ---: |
-| Working set median/p95 | 1,349.85 / 1,371.15 MiB | 1,340.30 / 1,341.45 MiB | p95 -2.2% |
-| Private memory median/p95 | 1,157.45 / 1,181.99 MiB | 1,135.38 / 1,137.15 MiB | p95 -3.8% |
-| CPU median/p95 | 0.560% / 0.560% | 0.171% / 0.171% | -69.5% |
+| Working set median/p95 | 1,348.93 / 1,373.80 MiB | 1,326.93 / 1,341.22 MiB | median -1.6%, p95 -2.4% |
+| Private memory median/p95 | 1,147.98 / 1,177.44 MiB | 1,128.32 / 1,136.82 MiB | median -1.7%, p95 -3.5% |
+| CPU median/p95 | 0.582% / 0.602% | 0.140% / 0.168% | median -75.9%, p95 -72.1% |
 | Process count median/maximum | 6 / 6 | 6 / 6 | unchanged |
 
 This supports EcoQoS as a background-idle profile, not as a universal foreground default. The close-window action was used to create the background workload; it is not equivalent to Discord's in-app Quit action, and full functional acceptance remains pending.
