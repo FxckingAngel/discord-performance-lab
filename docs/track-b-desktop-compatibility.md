@@ -73,7 +73,7 @@ The diagnostic-only `--diagnostic-window-bridge` mode now exposes exactly five w
 
 On 2026-10-06, the bridge was exercised over loopback CDP with `minimize` and `restore`. Both calls returned `called`; the root process remained responsive with its diagnostic window handle intact after the sequence. This verifies message delivery and native dispatch, not Discord feature compatibility. The bridge remains disabled in normal mode, and no window action has been marked as supported by the Discord frontend yet.
 
-The diagnostic-only `--diagnostic-hardware-bridge` mode exposes `DiscordNative.hardware.getDisplayCount` as a promise-backed call. The native response is the current `Screen.AllScreens.Length` value, with no display names, coordinates, or user data returned to the page. It is a read-only capability probe and remains disabled in normal mode until a Discord scenario demonstrates that the capability is needed.
+The diagnostic-only `--diagnostic-hardware-bridge` mode exposes `DiscordNative.hardware.getDisplayCount` as a promise-backed call. The native response is the current `Screen.AllScreens.Length` value, with no display names, coordinates, or user data returned to the page. Three local-blank runs measured 368.40 MiB median / 379.47 MiB p95 summed working set, 145.75 MiB median private bytes, and 0.020% median total CPU across seven processes. This was within the previously measured blank runtime floor, so no measurable aggregate cost is attributed to the bridge at this sample length. It remains disabled in normal mode until a Discord scenario demonstrates that the capability is needed.
 
 ## Measured Electron API shape
 

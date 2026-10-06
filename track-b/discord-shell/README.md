@@ -23,7 +23,7 @@ For a diagnostic-only UA experiment, use `KoroneDiscordShell.exe --diagnostic-of
 
 For the first native capability test, use `KoroneDiscordShell.exe --diagnostic-window-bridge`. It uses a separate `WindowBridgeProbeUserData` profile and loopback CDP port 9226. Only native window actions are exposed, and every message is restricted to the five implemented actions. This mode is diagnostic until behavior and resource cost are accepted.
 
-For the read-only display capability test, use `KoroneDiscordShell.exe --diagnostic-hardware-bridge`. It uses a separate `HardwareBridgeProbeUserData` profile and loopback CDP port 9227. It exposes only `DiscordNative.hardware.getDisplayCount`, backed by the actual Windows display inventory. This mode is diagnostic until Discord feature use and resource cost are accepted.
+For the read-only display capability test, use `KoroneDiscordShell.exe --diagnostic-hardware-bridge`. It uses a separate `HardwareBridgeProbeUserData` profile, loads a local in-memory blank document, and exposes loopback CDP port 9227. It exposes only `DiscordNative.hardware.getDisplayCount`, backed by the actual Windows display inventory. This mode is diagnostic until Discord feature use and resource cost are accepted.
 
 ## Scope of this milestone
 

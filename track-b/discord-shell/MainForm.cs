@@ -123,7 +123,14 @@ public sealed class MainForm : Form
 })();");
             }
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
-            webView.Source = new Uri(diagnosticBlank ? "about:blank" : DiscordWebApp);
+            if (diagnosticHardwareBridge)
+            {
+                webView.NavigateToString("<!doctype html><html><head><title>Hardware Bridge Probe</title></head><body></body></html>");
+            }
+            else
+            {
+                webView.Source = new Uri(diagnosticBlank ? "about:blank" : DiscordWebApp);
+            }
         }
         catch (Exception error)
         {
