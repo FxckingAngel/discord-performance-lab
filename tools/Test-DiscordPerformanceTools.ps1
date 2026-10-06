@@ -138,7 +138,7 @@ try {
         }
     }
     $cdpDiagnosticsSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase2CdpDiagnostics.mjs') -Raw
-    foreach ($requiredField in @('imageNaturalPixelCount', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters')) {
+    foreach ($requiredField in @('imageNaturalPixelCount', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters', 'sampleStatus', 'available')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP diagnostics do not report $requiredField."
         }

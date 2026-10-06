@@ -106,6 +106,8 @@ function summarizeNativeMemoryProfile(profile) {
     categories.set(category, current);
   }
   return {
+    available: true,
+    sampleStatus: samples.length > 0 ? 'samples-collected' : 'no-samples',
     sampleCount: samples.length,
     sampledBytes: sizes.reduce((sum, size) => sum + size, 0),
     attributedBytes: totals.reduce((sum, size) => sum + size, 0),
@@ -113,6 +115,16 @@ function summarizeNativeMemoryProfile(profile) {
     maximumStackDepth: stackDepths.length > 0 ? Math.max(...stackDepths) : 0,
     moduleCount: Array.isArray(profile?.modules) ? profile.modules.length : null,
     nativeAllocationCategories: [...categories.values()].sort((left, right) => right.sampledBytes - left.sampledBytes),
+  };
+}
+
+function unavailableNativeMemory(error) {
+  return {
+    available: false,
+    sampleStatus: 'unavailable',
+    sampleCount: null,
+    error,
+    nativeAllocationCategories: [],
   };
 }
 
@@ -134,11 +146,11 @@ try {
   const nativeMemory = await optionalCommand('Memory.getAllTimeSamplingProfile');
   result.nativeMemorySampling = nativeMemory.available
     ? summarizeNativeMemoryProfile(nativeMemory.result.profile)
-    : { error: nativeMemory.error };
+    : unavailableNativeMemory(nativeMemory.error);
   const browserNativeMemory = await optionalCommand('Memory.getBrowserSamplingProfile');
   result.browserNativeMemorySampling = browserNativeMemory.available
     ? summarizeNativeMemoryProfile(browserNativeMemory.result.profile)
-    : { error: browserNativeMemory.error };
+    : unavailableNativeMemory(browserNativeMemory.error);
   const aggregate = await optionalCommand('Runtime.evaluate', {
     expression: `(() => ({
       domNodeCount: document.getElementsByTagName('*').length,
@@ -165,7 +177,7 @@ try {
     : { available: false, error: nativeWindow.error };
   result.nativeMemorySamplingWindow = nativeStopped.available
     ? summarizeNativeMemoryProfile(nativeStopped.result.profile)
-    : { error: nativeStopped.error };
+    : unavailableNativeMemory(nativeStopped.error);
   if (started.available) {
     const stopped = await optionalCommand('HeapProfiler.stopSampling');
     result.heapSampling = stopped.available ? summarizeProfile(stopped.result.profile) : { error: stopped.error };
