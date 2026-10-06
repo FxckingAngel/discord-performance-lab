@@ -39,6 +39,16 @@ const expression = `(() => {
   const safeType = (name) => {
     try { return typeof globalThis[name]; } catch { return 'error'; }
   };
+  const ownNames = (name) => {
+    try {
+      const value = globalThis[name];
+      return value && (typeof value === 'object' || typeof value === 'function')
+        ? Object.getOwnPropertyNames(value).sort()
+        : [];
+    } catch {
+      return [];
+    }
+  };
   const native = navigator.userAgentData ?? null;
   const globalNames = [
     'DiscordNative', 'electron', 'require', 'process', 'module', 'chrome',
@@ -82,7 +92,11 @@ const expression = `(() => {
     globalPresence: Object.fromEntries(globalNames.map((name) => [name, {
       present: has(name),
       type: safeType(name)
-    }]))
+    }])),
+    globalOwnPropertyNames: {
+      DiscordNative: ownNames('DiscordNative'),
+      chrome: ownNames('chrome')
+    }
   };
 })()`;
 

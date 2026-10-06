@@ -49,7 +49,23 @@ The read-only probe is `tools/Invoke-DiscordEnvironmentProbe.mjs`. It requires a
 
 The isolated `--diagnostic-discord` profile was measured on 2026-10-06 using WebView2 Runtime 154.0.4258.53. The Discord route reported Edge/WebView2 user-agent data, `Win32`, a 1264x761 viewport at device-pixel ratio 1, and normal web capabilities for notifications, media devices, microphone/camera capture, display capture, clipboard, file pickers, downloads, drag/drop, and visual viewport APIs. It did not expose `DiscordNative`, `electron`, `require`, `process`, or `module` globals.
 
-This is evidence about the Track B web route, not proof that Discord Desktop accepts every capability as equivalent. The official Electron environment still requires a controlled CDP launch before the two sides can be compared. No Electron object is being spoofed based on this result.
+This is evidence about the Track B web route, not proof that Discord Desktop accepts every capability as equivalent. No Electron object is being spoofed based on this result.
+
+## Controlled Electron versus Track B probe
+
+On 2026-10-06, official Discord PTB was restarted once with a localhost-only CDP port, probed, and then restored to its ordinary launch. The probe recorded no page content or account data. The same sanitized probe was run against the isolated Track B Discord route.
+
+| Signal | Official Electron | Track B WebView2 | Consequence |
+| --- | --- | --- | --- |
+| User agent | Includes `discord/1.0.1223`, `Chrome/148.0.7778.280`, and `Electron/42.11.10` | Edge/WebView2 154 user agent | Environment detection can distinguish the clients |
+| Platform | `Win32` | `Win32` | Same base platform signal |
+| User-agent data | Chromium brands, Windows, desktop | Edge, WebView2, Chromium brands, Windows, desktop | Runtime brands differ |
+| Viewport | 1284x722, DPR 1.5 | 1264x761, DPR 1 | Window/client-area parity is not established |
+| Normal web capabilities | Notifications, media devices, user media, display capture, clipboard, file picker, downloads, drag/drop | Same observed availability | These do not explain the missing desktop bridge |
+| `DiscordNative` | Present; property names include `desktopCapture`, `fileManager`, `window`, `clipboard`, `features`, `hardware`, `powerMonitor`, `safeStorage`, `settings`, `tracing`, and others | Absent | Primary compatibility-layer investigation target |
+| Electron globals | `electron`, `require`, `process`, and `module` absent at page scope | Same absent | Do not add these globals blindly |
+
+The `DiscordNative` property names are capability labels only. Their values, IPC methods, account data, and native object contents were not read. The next implementation step is to determine which named groups the Discord frontend actually calls in each failed or visually different scenario, then provide one narrow native equivalent at a time.
 
 Raw environment dumps, heap snapshots, screenshots, message contents, account identifiers, tokens, and crash dumps remain local and private. Only sanitized capability names, aggregate measurements, and pass/fail outcomes belong in the repository.
 
