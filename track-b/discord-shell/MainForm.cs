@@ -18,15 +18,17 @@ public sealed class MainForm : Form
     private readonly bool diagnosticUserAgent;
     private readonly bool diagnosticWindowBridge;
     private readonly bool diagnosticHardwareBridge;
+    private readonly bool diagnosticBridgePair;
     private readonly bool diagnosticAuthenticated;
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticAuthenticated)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
         this.diagnosticUserAgent = diagnosticUserAgent;
         this.diagnosticWindowBridge = diagnosticWindowBridge;
         this.diagnosticHardwareBridge = diagnosticHardwareBridge;
+        this.diagnosticBridgePair = diagnosticBridgePair;
         this.diagnosticAuthenticated = diagnosticAuthenticated;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
@@ -36,6 +38,8 @@ public sealed class MainForm : Form
                     ? "Korone's Discord Shell (Window Bridge Probe)"
                 : diagnosticHardwareBridge
                     ? "Korone's Discord Shell (Hardware Bridge Probe)"
+                : diagnosticBridgePair
+                    ? "Korone's Discord Shell (Bridge Pair Probe)"
                 : diagnosticAuthenticated
                     ? "Korone's Discord Shell (Authenticated Profile Probe)"
                 : diagnosticDiscord
@@ -66,14 +70,16 @@ public sealed class MainForm : Form
                             ? "WindowBridgeProbeUserData"
                         : diagnosticHardwareBridge
                             ? "HardwareBridgeProbeUserData"
+                        : diagnosticBridgePair
+                            ? "BridgePairProbeUserData"
                         : diagnosticAuthenticated
                             ? "WebView2UserData"
                         : diagnosticDiscord
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : 9228;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticAuthenticated
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : 9228;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -83,9 +89,9 @@ public sealed class MainForm : Form
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
-            var enableWindowBridge = diagnosticWindowBridge
+            var enableWindowBridge = diagnosticWindowBridge || diagnosticBridgePair
                 || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticHardwareBridge);
-            var enableHardwareBridge = diagnosticHardwareBridge
+            var enableHardwareBridge = diagnosticHardwareBridge || diagnosticBridgePair
                 || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticWindowBridge);
             if (enableWindowBridge || enableHardwareBridge)
             {
@@ -137,7 +143,7 @@ public sealed class MainForm : Form
                 await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(bridgeScript);
             }
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
-            if (diagnosticHardwareBridge)
+            if (diagnosticHardwareBridge || diagnosticBridgePair)
             {
                 webView.NavigateToString("<!doctype html><html><head><title>Hardware Bridge Probe</title></head><body></body></html>");
             }
@@ -173,6 +179,8 @@ public sealed class MainForm : Form
                             ? "Korone's Discord Shell (Window Bridge Probe)"
                         : diagnosticHardwareBridge
                             ? "Korone's Discord Shell (Hardware Bridge Probe)"
+                        : diagnosticBridgePair
+                            ? "Korone's Discord Shell (Bridge Pair Probe)"
                         : diagnosticAuthenticated
                             ? "Korone's Discord Shell (Authenticated Profile Probe)"
                     : diagnosticDiscord
@@ -185,6 +193,7 @@ public sealed class MainForm : Form
     {
         if (!diagnosticWindowBridge
             && !diagnosticHardwareBridge
+            && !diagnosticBridgePair
             && !e.Source.StartsWith("https://discord.com/", StringComparison.OrdinalIgnoreCase))
         {
             return;
