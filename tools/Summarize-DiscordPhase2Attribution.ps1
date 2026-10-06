@@ -73,6 +73,55 @@ $roles = foreach ($group in @($roleSamples | Group-Object role)) {
         threadsMedian = Get-Percentile @($rows.threads) 0.50
     }
 }
+$processSamples = foreach ($sample in @($input.samples)) {
+    foreach ($process in @($sample.processes | Where-Object { $_.status -ne 'unavailable' -and $null -ne $_.pid })) {
+        [pscustomobject]@{
+            pid = [int] $process.pid
+            parentPid = if ($null -ne $process.parentPid) { [int] $process.parentPid } else { $null }
+            role = $process.role
+            lifetimeSeconds = $process.lifetimeSeconds
+            workingSetMiB = $process.workingSetMiB
+            privateWorkingSetMiB = $process.privateWorkingSetMiB
+            workingSetShareableMiB = $process.workingSetShareableMiB
+            privateMemoryMiB = $process.privateMemoryMiB
+            pagedMemoryMiB = $process.pagedMemoryMiB
+            cpuPercentOfTotal = $process.cpuPercentOfTotal
+            pageFaultsPerSecond = $process.pageFaultsPerSecond
+            ioReadBytesPerSecond = $process.ioReadBytesPerSecond
+            ioWriteBytesPerSecond = $process.ioWriteBytesPerSecond
+            handles = $process.handles
+            threads = $process.threads
+        }
+    }
+}
+$processes = foreach ($group in @($processSamples | Group-Object pid)) {
+    $rows = @($group.Group)
+    $first = $rows | Select-Object -First 1
+    [pscustomobject]@{
+        pid = [int] $group.Name
+        parentPid = $first.parentPid
+        role = $first.role
+        samples = $rows.Count
+        lifetimeSecondsMedian = Get-Percentile @($rows.lifetimeSeconds) 0.50
+        workingSetMedianMiB = Get-Percentile @($rows.workingSetMiB) 0.50
+        workingSetP95MiB = Get-Percentile @($rows.workingSetMiB) 0.95
+        privateWorkingSetMedianMiB = Get-Percentile @($rows.privateWorkingSetMiB) 0.50
+        privateWorkingSetP95MiB = Get-Percentile @($rows.privateWorkingSetMiB) 0.95
+        workingSetShareableMedianMiB = Get-Percentile @($rows.workingSetShareableMiB) 0.50
+        workingSetShareableP95MiB = Get-Percentile @($rows.workingSetShareableMiB) 0.95
+        privateMemoryMedianMiB = Get-Percentile @($rows.privateMemoryMiB) 0.50
+        privateMemoryP95MiB = Get-Percentile @($rows.privateMemoryMiB) 0.95
+        pagedMemoryMedianMiB = Get-Percentile @($rows.pagedMemoryMiB) 0.50
+        cpuMedianPercentOfTotal = Get-Percentile @($rows.cpuPercentOfTotal) 0.50
+        cpuP95PercentOfTotal = Get-Percentile @($rows.cpuPercentOfTotal) 0.95
+        pageFaultsMedianPerSecond = Get-Percentile @($rows.pageFaultsPerSecond) 0.50
+        pageFaultsP95PerSecond = Get-Percentile @($rows.pageFaultsPerSecond) 0.95
+        ioReadMedianBytesPerSecond = Get-Percentile @($rows.ioReadBytesPerSecond) 0.50
+        ioWriteMedianBytesPerSecond = Get-Percentile @($rows.ioWriteBytesPerSecond) 0.50
+        handlesMedian = Get-Percentile @($rows.handles) 0.50
+        threadsMedian = Get-Percentile @($rows.threads) 0.50
+    }
+}
 $treeSamples = foreach ($sample in @($input.samples)) {
     $valid = @($sample.processes | Where-Object { $_.status -ne 'unavailable' })
     if ($valid.Count -eq 0) { continue }
@@ -107,7 +156,7 @@ for ($index = 0; $index -lt $ranked.Count; $index++) {
 }
 
 $summary = [pscustomobject]@{
-    schemaVersion = 1
+    schemaVersion = 2
     source = $InputPath
     scenario = $input.scenario
     rootPid = $input.rootPid
@@ -118,6 +167,7 @@ $summary = [pscustomobject]@{
     windowStates = $windowStates
     processTree = $treeSummary
     roles = $ranked
+    processes = @($processes | Sort-Object privateWorkingSetMedianMiB -Descending)
 }
 $parent = Split-Path -Parent $OutputPath
 if ($parent) {

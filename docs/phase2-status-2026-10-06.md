@@ -89,6 +89,8 @@ A synchronized per-PID cross-check then matched WMI and `Get-Counter` exactly: 1
 
 ## Remaining Phase 2 work
 
+The Phase 2 summarizer now preserves per-PID median and p95 rows alongside role totals. This keeps renderer identity, process lifetime, and individual resource ownership available after summarization; renderer rows are not collapsed before comparison. The change was verified with the tool fixture and the local schema capture. It is measurement-only and does not change the known-good shell.
+
 1. Capture the full scenario matrix: foreground idle, background idle, text scrolling, voice, video, screen sharing, media-heavy channel, notification, startup, and settled state.
 2. Obtain ETW/WPA access or an equivalent trace reader and attribute wakeups, context switches, faults, disk I/O, GPU engines, and process lifetime.
 3. Inspect renderer/V8/Blink retention, media/GIF caches, React trees, timers, animation, WebRTC buffers, and GPU texture/cache behavior using safe diagnostic methods. Current Track B evidence ranks renderer allocation first; the sanitized heap snapshot and idle performance window are recorded in `docs/benchmarks/track-b-cdp-heap-snapshot-attribution-2026-10-06.md`.

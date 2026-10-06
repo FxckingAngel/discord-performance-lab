@@ -28,6 +28,7 @@ if ($failures.Count -gt 0) {
 }
 
 $summaryTool = Join-Path $resolvedToolsPath 'Summarize-DiscordBenchmark.ps1'
+$phase2SummaryTool = Join-Path $resolvedToolsPath 'Summarize-DiscordPhase2Attribution.ps1'
 $compareTool = Join-Path $resolvedToolsPath 'Compare-DiscordBenchmark.ps1'
 $measureTool = Join-Path $resolvedToolsPath 'Measure-DiscordProcessTree.ps1'
 $joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
@@ -248,6 +249,26 @@ try {
     }
     if ($null -eq $summaryObject.roleBreakdown.renderer -or $summaryObject.roleBreakdown.renderer.cpuPercentOfTotal.median -le 0) {
         throw "Role-level CPU attribution was not calculated as expected."
+    }
+    $phase2InputPath = Join-Path $tempRoot 'phase2.json'
+    $phase2OutputPath = Join-Path $tempRoot 'phase2-summary.json'
+    $phase2Samples = for ($index = 0; $index -lt $timestamps.Count; $index++) {
+        [pscustomobject]@{
+            timestamp = $timestamps[$index]
+            processCount = 2
+            windowState = [pscustomobject]@{ available = $true; visible = $true; minimized = $false; responding = $true }
+            processes = @(
+                [pscustomobject]@{ pid = 201; parentPid = 101; role = 'browser'; lifetimeSeconds = 20; workingSetMiB = 550; privateWorkingSetMiB = 180; workingSetShareableMiB = 370; privateMemoryMiB = 225; pagedMemoryMiB = 2; handles = 90; threads = 18; cpuPercentOfTotal = 0.1; pageFaultsPerSecond = 1; ioReadBytesPerSecond = 2; ioWriteBytesPerSecond = 3 }
+                [pscustomobject]@{ pid = 202; parentPid = 101; role = 'renderer'; lifetimeSeconds = 20; workingSetMiB = 550; privateWorkingSetMiB = 180; workingSetShareableMiB = 370; privateMemoryMiB = 225; pagedMemoryMiB = 2; handles = 180; threads = 27; cpuPercentOfTotal = 0.2; pageFaultsPerSecond = 1; ioReadBytesPerSecond = 2; ioWriteBytesPerSecond = 3 }
+            )
+        }
+    }
+    [pscustomobject]@{ schemaVersion = 1; scenario = 'fixture'; rootPid = 101; environment = [pscustomobject]@{ displayRefreshRate = 60; displayWidth = 1920; displayHeight = 1080 }; samples = $phase2Samples } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $phase2InputPath -Encoding utf8
+    & $phase2SummaryTool -InputPath $phase2InputPath -OutputPath $phase2OutputPath | Out-Null
+    $phase2Summary = Get-Content -LiteralPath $phase2OutputPath -Raw | ConvertFrom-Json
+    $rendererPidSummary = @($phase2Summary.processes | Where-Object { $_.pid -eq 202 })
+    if ($rendererPidSummary.Count -ne 1 -or $rendererPidSummary[0].role -ne 'renderer' -or $rendererPidSummary[0].privateWorkingSetMedianMiB -ne 180) {
+        throw "Per-PID renderer attribution was not preserved in the Phase 2 summary."
     }
     $comparison = & $compareTool -BaselineSummary $baselineSummary -CandidateSummary $candidateSummary -OutputPath $comparisonPath | ConvertFrom-Json
     if (-not $comparison.passed) {
