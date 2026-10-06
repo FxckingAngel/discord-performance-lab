@@ -72,6 +72,12 @@ try {
     if ($shellSource -notmatch '\.discord\.com') {
         throw 'Normal bridge origin validation does not enforce the Discord host boundary.'
     }
+    if ($shellSource -notmatch 'webView\.Visible') {
+        throw 'Normal shell does not apply an explicit WebView2 control visibility state.'
+    }
+    if ($shellSource -notmatch 'FormWindowState\.Minimized') {
+        throw 'Normal shell does not distinguish minimized window state for WebView2 visibility.'
+    }
     $measureSource = Get-Content -LiteralPath $measureTool -Raw
     if ($measureSource -notmatch 'TreeRootPid -gt 0.*ProcessId -eq \$TreeRootPid') {
         throw 'Rooted process measurements no longer identify the native shell root.'

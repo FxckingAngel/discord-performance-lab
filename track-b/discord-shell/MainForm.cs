@@ -91,7 +91,11 @@ public sealed class MainForm : Form
         minimizeButton.Click += (_, _) => WindowState = FormWindowState.Minimized;
         maximizeButton.Click += (_, _) => ToggleMaximize();
         closeButton.Click += (_, _) => Close();
-        Resize += (_, _) => UpdateMaximizeButton();
+        Resize += (_, _) =>
+        {
+            UpdateMaximizeButton();
+            UpdateWebViewVisibility();
+        };
         var trayMenu = new ContextMenuStrip();
         trayMenu.Items.Add("Show", null, (_, _) => ShowFromTray());
         trayMenu.Items.Add("Exit", null, (_, _) => Close());
@@ -173,6 +177,7 @@ public sealed class MainForm : Form
                 userDataFolder: userDataFolder,
                 options: options);
             await webView.EnsureCoreWebView2Async(environment);
+            UpdateWebViewVisibility();
             if (diagnosticCapabilityEvents)
             {
                 var diagnosticsDirectory = Path.Combine(
@@ -261,6 +266,11 @@ public sealed class MainForm : Form
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
+    }
+
+    private void UpdateWebViewVisibility()
+    {
+        webView.Visible = WindowState != FormWindowState.Minimized;
     }
 
     private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
