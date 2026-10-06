@@ -10,7 +10,7 @@ The probe evaluated only a fixed list of human-readable names through the page's
 
 ## Result
 
-The inspected profile did not expose a callable `DiscordNative.features.supports` function. Every fixed candidate therefore returned `supportedApi: false` with no value, including window, display, capture, file-dialog, clipboard, power-monitor, and safe-storage names.
+The inspected profile did not expose a callable `DiscordNative.features.supports` function. The result now records `registryAvailable: false` and marks every fixed candidate `registry-unavailable`, including window, display, capture, file-dialog, clipboard, power-monitor, and safe-storage names. No candidate is labeled unsupported by this run.
 
 Raw local result: `benchmarks/raw/track-b-feature-support-current-20261006.json`
 

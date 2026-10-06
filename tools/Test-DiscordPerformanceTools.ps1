@@ -35,6 +35,7 @@ $traceCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBCdpTrace.ps1'
 $functionalCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBFunctionalCheckpoint.ps1'
 $visualCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBVisualCheckpoint.ps1'
 $acceptanceGateTool = Join-Path $resolvedToolsPath 'Test-TrackBAcceptance.ps1'
+$featureProbeTool = Join-Path $resolvedToolsPath 'Probe-DiscordFeatureSupport.mjs'
 $shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
@@ -55,6 +56,10 @@ try {
     }
     if (-not (Test-Path -LiteralPath $acceptanceGateTool -PathType Leaf)) {
         throw 'Track B acceptance gate tool is missing.'
+    }
+    $featureProbeSource = Get-Content -LiteralPath $featureProbeTool -Raw
+    if ($featureProbeSource -notmatch 'registryAvailable' -or $featureProbeSource -notmatch 'registry-unavailable') {
+        throw 'Feature-support probe does not distinguish an unavailable registry from a reported capability.'
     }
     $acceptanceGateSource = Get-Content -LiteralPath $acceptanceGateTool -Raw
     foreach ($requiredField in @('privateWorkingSetMiB', 'privateMemoryMiB', 'cpuPercentOfTotal', 'functionalPassed', 'visualPassed')) {

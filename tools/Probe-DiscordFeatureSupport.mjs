@@ -52,11 +52,16 @@ const expression = `(() => {
     'safeStorage.isEncryptionAvailable'
   ])};
   const supports = globalThis.DiscordNative?.features?.supports;
-  return Object.fromEntries(candidates.map((name) => {
-    if (typeof supports !== 'function') return [name, { supportedApi: false, value: null }];
-    try { return [name, { supportedApi: true, value: Boolean(supports(name)) }]; }
-    catch (error) { return [name, { supportedApi: true, value: null, error: String(error?.message ?? error) }]; }
-  }));
+  if (typeof supports !== 'function') {
+    return { registryAvailable: false, features: Object.fromEntries(candidates.map((name) => [name, { status: 'registry-unavailable' }])) };
+  }
+  return {
+    registryAvailable: true,
+    features: Object.fromEntries(candidates.map((name) => {
+      try { return [name, { status: 'reported', value: Boolean(supports(name)) }]; }
+      catch (error) { return [name, { status: 'error', error: String(error?.message ?? error) }]; }
+    })),
+  };
 })()`;
 
 try {
@@ -74,7 +79,8 @@ try {
     endpoint: `127.0.0.1:${port}`,
     targetType: target.type,
     policy: 'Sanitized feature-support probe. Only fixed capability names and boolean/error results are written. No page data, URLs, cookies, tokens, or native values are written.',
-    features: value,
+    registryAvailable: value.registryAvailable,
+    features: value.features,
   };
   await fs.writeFile(outputPath, JSON.stringify(output, null, 2), 'utf8');
   console.log(JSON.stringify({ outputPath, targetType: target.type }));
