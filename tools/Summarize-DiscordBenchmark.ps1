@@ -24,6 +24,21 @@ function Get-Quantile {
     return [double] ($ordered[$lower] + (($ordered[$upper] - $ordered[$lower]) * $fraction))
 }
 
+function Get-MemorySummary {
+    param([double[]] $Values)
+
+    $valid = @($Values | Where-Object { $null -ne $_ })
+    if ($valid.Count -eq 0) {
+        return [pscustomobject]@{ median = $null; p95 = $null; minimum = $null; maximum = $null }
+    }
+    return [pscustomobject]@{
+        median = [math]::Round((Get-Quantile $valid 0.50), 2)
+        p95 = [math]::Round((Get-Quantile $valid 0.95), 2)
+        minimum = [math]::Round(($valid | Measure-Object -Minimum).Minimum, 2)
+        maximum = [math]::Round(($valid | Measure-Object -Maximum).Maximum, 2)
+    }
+}
+
 $runs = foreach ($path in $InputPath) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Benchmark file not found: $path"
@@ -35,7 +50,10 @@ $samples = @($runs | ForEach-Object { $_.samples })
 if ($samples.Count -eq 0) { throw 'No samples were found in the input files.' }
 
 $workingSet = @($samples | ForEach-Object { [double] $_.workingSetBytes / 1MB })
+$workingSetPrivate = @($samples | ForEach-Object { if ($null -ne $_.workingSetPrivateBytes) { [double] $_.workingSetPrivateBytes / 1MB } })
+$workingSetShareable = @($samples | ForEach-Object { if ($null -ne $_.workingSetShareableBytes) { [double] $_.workingSetShareableBytes / 1MB } })
 $privateBytes = @($samples | ForEach-Object { [double] $_.privateBytes / 1MB })
+$commitBytes = @($samples | ForEach-Object { if ($null -ne $_.commitBytes) { [double] $_.commitBytes / 1MB } })
 $processCounts = @($samples | ForEach-Object { [double] $_.processCount })
 $cpuDeltas = @($runs | ForEach-Object {
     [double] $_.samples[-1].cpuSeconds - [double] $_.samples[0].cpuSeconds
@@ -62,12 +80,15 @@ $summary = [pscustomobject] @{
         minimum = [math]::Round(($workingSet | Measure-Object -Minimum).Minimum, 2)
         maximum = [math]::Round(($workingSet | Measure-Object -Maximum).Maximum, 2)
     }
+    privateWorkingSetMiB = Get-MemorySummary $workingSetPrivate
+    shareableWorkingSetMiB = Get-MemorySummary $workingSetShareable
     privateMemoryMiB = [pscustomobject] @{
         median = [math]::Round((Get-Quantile $privateBytes 0.50), 2)
         p95 = [math]::Round((Get-Quantile $privateBytes 0.95), 2)
         minimum = [math]::Round(($privateBytes | Measure-Object -Minimum).Minimum, 2)
         maximum = [math]::Round(($privateBytes | Measure-Object -Maximum).Maximum, 2)
     }
+    commitMiB = Get-MemorySummary $commitBytes
     processCount = [pscustomobject] @{
         median = [math]::Round((Get-Quantile $processCounts 0.50), 2)
         maximum = [math]::Round(($processCounts | Measure-Object -Maximum).Maximum, 2)

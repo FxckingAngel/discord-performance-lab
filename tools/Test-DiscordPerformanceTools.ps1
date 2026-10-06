@@ -42,7 +42,10 @@ try {
             timestamp = $timestamps[$index]
             processCount = 6
             workingSetBytes = (1200 - ($index * 5)) * 1MB
+            workingSetPrivateBytes = (700 - ($index * 5)) * 1MB
+            workingSetShareableBytes = 500 * 1MB
             privateBytes = (1000 - ($index * 5)) * 1MB
+            commitBytes = (1000 - ($index * 5)) * 1MB
             cpuSeconds = 10 + $index
         }
     }
@@ -51,7 +54,10 @@ try {
             timestamp = $timestamps[$index]
             processCount = 6
             workingSetBytes = (1100 - ($index * 5)) * 1MB
+            workingSetPrivateBytes = (650 - ($index * 5)) * 1MB
+            workingSetShareableBytes = 450 * 1MB
             privateBytes = (900 - ($index * 5)) * 1MB
+            commitBytes = (900 - ($index * 5)) * 1MB
             cpuSeconds = 10 + ($index * 0.5)
         }
     }
@@ -66,6 +72,13 @@ try {
     $comparisonPath = Join-Path $tempRoot 'comparison.json'
     & $summaryTool -InputPath $baselinePath -OutputPath $baselineSummary | Out-Null
     & $summaryTool -InputPath $candidatePath -OutputPath $candidateSummary | Out-Null
+    $summaryObject = Get-Content -LiteralPath $candidateSummary -Raw | ConvertFrom-Json
+    if ($summaryObject.privateWorkingSetMiB.median -ne 645) {
+        throw "Private working-set summary was not calculated as expected."
+    }
+    if ($summaryObject.commitMiB.median -ne 895) {
+        throw "Commit summary was not calculated as expected."
+    }
     $comparison = & $compareTool -BaselineSummary $baselineSummary -CandidateSummary $candidateSummary -OutputPath $comparisonPath | ConvertFrom-Json
     if (-not $comparison.passed) {
         throw 'Synthetic benchmark comparison did not pass.'
