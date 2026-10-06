@@ -42,6 +42,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Adaptive profile scope decision](docs/decisions/0003-adaptive-profile-scope.md)
 - [Memory-priority experiment](docs/experiments/007-memory-priority.md)
 - [Current active voice-session baseline](docs/benchmarks/stock-active-voice-current-2026-10-06.md)
+- [Current stock restart baseline](docs/benchmarks/stock-restart-current-2026-10-06.md)
 - [Security and safety boundary](SECURITY.md)
 - [Current project status](docs/status-2026-10-06.md)
 
@@ -100,6 +101,12 @@ To inspect the current memory-priority hints without changing Discord, use [tool
 
 ```powershell
 .\tools\Get-DiscordProcessMemoryPriority.ps1 -RootPid 12345
+```
+
+For a paired, reversible background-idle experiment, use [tools/Invoke-DiscordMemoryPriorityExperiment.ps1](tools/Invoke-DiscordMemoryPriorityExperiment.ps1). It requires explicit idle confirmation and restores normal priority before returning:
+
+```powershell
+.\tools\Invoke-DiscordMemoryPriorityExperiment.ps1 -RootPid 12345 -Priority low -BackgroundIdleConfirmed -OutputDirectory .\benchmarks\raw
 ```
 
 ## Evidence standard

@@ -10,6 +10,8 @@ Prototype utility; low-priority performance and functional acceptance pending.
 
 `tools/Get-DiscordProcessMemoryPriority.ps1` reads the same rooted tree without changing process state. Use it to verify the effective hint before and after a test.
 
+`tools/Invoke-DiscordMemoryPriorityExperiment.ps1` runs a paired rooted-tree measurement, applies the requested hint only after `-BackgroundIdleConfirmed`, and restores normal priority in a `finally` path. It refuses to start if the tree is not initially normal or if the rollback cannot be verified.
+
 Memory priority is a hint to the Windows memory manager. It may cause lower-priority pages to be trimmed before normal pages, but it does not guarantee an immediate working-set reduction and may increase page faults when Discord becomes active again.
 
 Example rollback:
