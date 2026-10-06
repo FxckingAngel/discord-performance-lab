@@ -9,6 +9,8 @@ param(
     [string] $OutputPath
 )
 
+$ErrorActionPreference = 'Stop'
+
 if (-not $OutputPath) {
     $OutputPath = Join-Path (Get-Location) ('benchmarks/raw/track-b-virtual-memory-types-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
 }
@@ -47,26 +49,26 @@ public static class TrackBVirtualMemory {
     private static extern UIntPtr VirtualQueryEx(IntPtr process, IntPtr address, out MemoryBasicInformation information, UIntPtr length);
 
     public static Dictionary<string, ulong> Measure(int processId) {
-        var result = new Dictionary<string, ulong> {
-            ["privateCommittedBytes"] = 0,
-            ["mappedCommittedBytes"] = 0,
-            ["imageCommittedBytes"] = 0,
-            ["otherCommittedBytes"] = 0,
-            ["privateWritableCommittedBytes"] = 0,
-            ["privateExecutableCommittedBytes"] = 0,
-            ["privateOtherProtectionCommittedBytes"] = 0,
-            ["privateWritableRegionCount"] = 0,
-            ["privateWritableRegionsOver1MiB"] = 0,
-            ["largestPrivateWritableRegionBytes"] = 0,
-            ["regionCount"] = 0,
-        };
+        var result = new Dictionary<string, ulong>();
+        result["privateCommittedBytes"] = 0;
+        result["mappedCommittedBytes"] = 0;
+        result["imageCommittedBytes"] = 0;
+        result["otherCommittedBytes"] = 0;
+        result["privateWritableCommittedBytes"] = 0;
+        result["privateExecutableCommittedBytes"] = 0;
+        result["privateOtherProtectionCommittedBytes"] = 0;
+        result["privateWritableRegionCount"] = 0;
+        result["privateWritableRegionsOver1MiB"] = 0;
+        result["largestPrivateWritableRegionBytes"] = 0;
+        result["regionCount"] = 0;
         var process = OpenProcess(QueryInformation, false, processId);
         if (process == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
         try {
             var address = IntPtr.Zero;
             var informationSize = (UIntPtr)Marshal.SizeOf<MemoryBasicInformation>();
             while (true) {
-                var queried = VirtualQueryEx(process, address, out var information, informationSize);
+                MemoryBasicInformation information;
+                var queried = VirtualQueryEx(process, address, out information, informationSize);
                 if (queried == UIntPtr.Zero) break;
                 var regionSize = information.RegionSize.ToUInt64();
                 if (information.State == MemCommit && regionSize > 0) {
