@@ -99,8 +99,12 @@ function Get-DiscordProcessSnapshot {
                 threads         = $current.Threads.Count
             }
         }
-        catch [System.ArgumentException] {
-            # A child can exit between the process query and the sample.
+        catch {
+            if ($_.Exception.Message -match '(?i)cannot find a process|no process with the specified id|process.*(exited|terminated)|not found') {
+                # A child can exit between the process query and the sample.
+                continue
+            }
+            throw
         }
     }
 
