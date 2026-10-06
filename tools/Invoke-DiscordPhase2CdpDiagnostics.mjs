@@ -180,6 +180,34 @@ function unavailableNativeMemory(error) {
   };
 }
 
+function summarizeUserAgentSpecificMemory(value) {
+  if (!value || typeof value !== 'object') {
+    return { available: false, reason: 'no-result' };
+  }
+  const totals = new Map();
+  for (const row of Array.isArray(value.breakdown) ? value.breakdown : []) {
+    const bytes = Number(row.bytes ?? 0);
+    if (!Number.isFinite(bytes) || bytes < 0) continue;
+    const labels = Array.isArray(row.types) ? row.types.map((type) => String(type).toLowerCase()) : [];
+    const category = labels.some((type) => type.includes('javascript'))
+      ? 'javascript'
+      : labels.some((type) => type.includes('dom'))
+        ? 'dom'
+        : labels.some((type) => type.includes('shared'))
+          ? 'shared'
+          : 'other';
+    const current = totals.get(category) ?? { category, bytes: 0, entries: 0 };
+    current.bytes += bytes;
+    current.entries += 1;
+    totals.set(category, current);
+  }
+  return {
+    available: true,
+    totalBytes: Number(value.bytes ?? 0),
+    categories: [...totals.values()].sort((left, right) => right.bytes - left.bytes),
+  };
+}
+
 const result = {
   schemaVersion: 1,
   capturedAt: new Date().toISOString(),
@@ -235,6 +263,14 @@ try {
     awaitPromise: false,
   });
   result.documentAggregates = aggregate.result?.result?.value ?? { error: aggregate.error };
+  const userAgentMemory = await optionalCommand('Runtime.evaluate', {
+    expression: `performance.measureUserAgentSpecificMemory ? performance.measureUserAgentSpecificMemory() : null`,
+    returnByValue: true,
+    awaitPromise: true,
+  });
+  result.userAgentSpecificMemory = userAgentMemory.available
+    ? summarizeUserAgentSpecificMemory(userAgentMemory.result?.result?.value)
+    : { available: false, error: userAgentMemory.error };
   const domCounters = await optionalCommand('Memory.getDOMCounters');
   result.domCounters = domCounters.available ? domCounters.result : { error: domCounters.error };
 
