@@ -46,6 +46,9 @@ This repository contains the project charter, architecture direction, and benchm
 - [Current stock restart baseline](docs/benchmarks/stock-restart-current-2026-10-06.md)
 - [Security and safety boundary](SECURITY.md)
 - [Current project status](docs/status-2026-10-06.md)
+- [Phase 2 resource attribution plan](docs/phase2-resource-attribution.md)
+- [Phase 2 status](docs/phase2-status-2026-10-06.md)
+- [WebView2 shell architecture research](docs/research/webview2-shell-architecture.md)
 
 ## Baseline tooling
 
