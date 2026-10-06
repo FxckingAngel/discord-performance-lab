@@ -96,6 +96,12 @@ For a live process-tree QoS experiment, use an observed root PID and keep the ro
 .\tools\Set-DiscordProcessQoS.ps1 -RootPid 12345 -Mode system-managed
 ```
 
+To inspect the current memory-priority hints without changing Discord, use [tools/Get-DiscordProcessMemoryPriority.ps1](tools/Get-DiscordProcessMemoryPriority.ps1):
+
+```powershell
+.\tools\Get-DiscordProcessMemoryPriority.ps1 -RootPid 12345
+```
+
 ## Evidence standard
 
 Every performance claim should include the stock and candidate build identifiers, workload, machine state, sample count, raw data location, summary statistics, and any functional regressions observed. The benchmark plan defines the first comparison.

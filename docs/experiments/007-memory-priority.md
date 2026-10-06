@@ -8,6 +8,8 @@ Prototype utility; low-priority performance and functional acceptance pending.
 
 `tools/Set-DiscordProcessMemoryPriority.ps1` applies Windows process memory priority to one rooted Discord tree. It uses the supported `SetProcessInformation` `ProcessMemoryPriority` class. `normal` is the rollback/default value; `low` and `very-low` are experimental background hints.
 
+`tools/Get-DiscordProcessMemoryPriority.ps1` reads the same rooted tree without changing process state. Use it to verify the effective hint before and after a test.
+
 Memory priority is a hint to the Windows memory manager. It may cause lower-priority pages to be trimmed before normal pages, but it does not guarantee an immediate working-set reduction and may increase page faults when Discord becomes active again.
 
 Example rollback:
