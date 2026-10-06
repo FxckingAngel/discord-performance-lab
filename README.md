@@ -37,6 +37,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Security and safety boundary](SECURITY.md)
+- [Current project status](docs/status-2026-10-06.md)
 
 ## Baseline tooling
 
