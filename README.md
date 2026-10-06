@@ -35,6 +35,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Experiment 003](docs/experiments/003-ecoqos.md)
 - [Supported switch review](docs/experiments/004-supported-switch-review.md)
 - [Rooted process QoS experiment](docs/experiments/005-process-qos-control.md)
+- [Process-tree audit](docs/process-tree-2026-10-06.md)
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Security and safety boundary](SECURITY.md)

@@ -49,11 +49,19 @@ function Get-DiscordProcessSnapshot {
     $rows = foreach ($process in $processes) {
         try {
             $current = Get-Process -Id $process.ProcessId -ErrorAction Stop
+            $role = 'browser'
+            if ($process.CommandLine -match '--type=([^\s]+)') {
+                $role = $Matches[1]
+            }
+            if ($process.CommandLine -match '--utility-sub-type=([^\s]+)') {
+                $role = "$role/$($Matches[1])"
+            }
             [pscustomobject] @{
                 pid             = $current.Id
                 parentPid       = [int] $process.ParentProcessId
                 creationTime    = $current.StartTime.ToUniversalTime().ToString('o')
                 name            = $current.ProcessName
+                role            = $role
                 path            = $current.Path
                 cpuSeconds      = $current.CPU
                 workingSetBytes = $current.WorkingSet64
