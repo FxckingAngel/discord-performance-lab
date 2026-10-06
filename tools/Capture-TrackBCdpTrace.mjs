@@ -54,6 +54,32 @@ function summarize(events) {
   const nameCounts = new Map();
   const durations = new Map();
   const phases = new Map();
+  const memoryDumpScalars = new Map();
+  let memoryDumpEventCount = 0;
+
+  function addMemoryDumpScalars(value, path = [], depth = 0) {
+    if (depth > 8 || value === null || value === undefined) return;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const metricName = String(path.at(-1) ?? '').toLowerCase();
+      if (!/(size|bytes|resident|private|committed|allocated|used|count|objects)/.test(metricName)) return;
+      const safePath = path
+        .map((part) => String(part).replace(/[^a-zA-Z0-9_.-]/g, '_'))
+        .join('/');
+      if (safePath) {
+        const previous = memoryDumpScalars.get(safePath) ?? { count: 0, value: 0 };
+        memoryDumpScalars.set(safePath, {
+          count: previous.count + 1,
+          value: previous.value + value,
+        });
+      }
+      return;
+    }
+    if (typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+      addMemoryDumpScalars(child, [...path, key], depth + 1);
+    }
+  }
+
   for (const event of events) {
     const category = typeof event.cat === 'string' ? event.cat : 'unknown';
     const name = typeof event.name === 'string' ? event.name : 'unknown';
@@ -61,6 +87,13 @@ function summarize(events) {
     nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
     if (Number.isFinite(event.dur)) durations.set(name, (durations.get(name) ?? 0) + event.dur);
     if (typeof event.ph === 'string') phases.set(event.ph, (phases.get(event.ph) ?? 0) + 1);
+    if (name === 'memory_dump' || name === 'periodic_interval') {
+      const dumps = event.args?.dumps;
+      if (dumps && typeof dumps === 'object') {
+        memoryDumpEventCount++;
+        addMemoryDumpScalars(dumps);
+      }
+    }
   }
   const top = (map, limit = 40) => [...map.entries()]
     .sort((a, b) => b[1] - a[1])
@@ -72,6 +105,11 @@ function summarize(events) {
     topEventNames: top(nameCounts),
     eventDurationsMicroseconds: top(durations),
     phaseCounts: top(phases),
+    memoryDumpEventCount,
+    memoryDumpScalars: [...memoryDumpScalars.entries()]
+      .sort((a, b) => b[1].value - a[1].value)
+      .slice(0, 100)
+      .map(([path, stats]) => ({ path, count: stats.count, value: stats.value })),
     selectedCounts: Object.fromEntries(
       ['RunTask', 'EvaluateScript', 'FunctionCall', 'UpdateLayoutTree', 'Layout', 'Paint', 'CompositeLayers', 'DrawFrame', 'memory_dump', 'periodic_interval']
         .map((name) => [name, nameCounts.get(name) ?? 0]),
