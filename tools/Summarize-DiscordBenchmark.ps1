@@ -61,6 +61,28 @@ $handleTotals = @($samples | ForEach-Object {
 $threadTotals = @($samples | ForEach-Object {
     [double] (@($_.processes | ForEach-Object { [double] $_.threads } | Measure-Object -Sum).Sum)
 })
+$roleSamples = foreach ($sample in $samples) {
+    foreach ($roleGroup in @($sample.processes | Group-Object role)) {
+        [pscustomobject] @{
+            role = $roleGroup.Name
+            workingSetMiB = [double] (@($roleGroup.Group | ForEach-Object { [double] $_.workingSetBytes } | Measure-Object -Sum).Sum) / 1MB
+            privateWorkingSetMiB = [double] (@($roleGroup.Group | ForEach-Object { [double] $_.workingSetPrivateBytes } | Measure-Object -Sum).Sum) / 1MB
+            privateBytesMiB = [double] (@($roleGroup.Group | ForEach-Object { [double] $_.privateBytes } | Measure-Object -Sum).Sum) / 1MB
+            handles = [double] (@($roleGroup.Group | ForEach-Object { [double] $_.handles } | Measure-Object -Sum).Sum)
+            threads = [double] (@($roleGroup.Group | ForEach-Object { [double] $_.threads } | Measure-Object -Sum).Sum)
+        }
+    }
+}
+$roleBreakdown = [ordered]@{}
+foreach ($roleGroup in @($roleSamples | Group-Object role)) {
+    $roleBreakdown[$roleGroup.Name] = [pscustomobject]@{
+        workingSetMiB = Get-MemorySummary @($roleGroup.Group | ForEach-Object workingSetMiB)
+        privateWorkingSetMiB = Get-MemorySummary @($roleGroup.Group | ForEach-Object privateWorkingSetMiB)
+        privateBytesMiB = Get-MemorySummary @($roleGroup.Group | ForEach-Object privateBytesMiB)
+        handles = Get-MemorySummary @($roleGroup.Group | ForEach-Object handles)
+        threads = Get-MemorySummary @($roleGroup.Group | ForEach-Object threads)
+    }
+}
 $cpuDeltas = @($runs | ForEach-Object {
     [double] $_.samples[-1].cpuSeconds - [double] $_.samples[0].cpuSeconds
 })
@@ -109,6 +131,7 @@ $summary = [pscustomobject] @{
         p95 = [math]::Round((Get-Quantile $threadTotals 0.95), 2)
         maximum = [math]::Round(($threadTotals | Measure-Object -Maximum).Maximum, 2)
     }
+    roleBreakdown = [pscustomobject]$roleBreakdown
     cpuSeconds = [pscustomobject] @{
         medianRunDelta = [math]::Round((Get-Quantile $cpuDeltas 0.50), 3)
         maximumRunDelta = [math]::Round(($cpuDeltas | Measure-Object -Maximum).Maximum, 3)
