@@ -33,6 +33,7 @@ $measureTool = Join-Path $resolvedToolsPath 'Measure-DiscordProcessTree.ps1'
 $joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
 $traceCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBCdpTrace.ps1'
 $functionalCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBFunctionalCheckpoint.ps1'
+$shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 try {
@@ -45,6 +46,16 @@ try {
     }
     if ($functionalCheckpointSource -notmatch 'rootPid') {
         throw 'Functional checkpoint does not retain the measured root PID.'
+    }
+    $shellSource = Get-Content -LiteralPath $shellSourcePath -Raw
+    if ($shellSource -notmatch 'Uri\.TryCreate') {
+        throw 'Normal bridge origin validation does not parse the message source as a URI.'
+    }
+    if ($shellSource -notmatch 'UriSchemeHttps') {
+        throw 'Normal bridge origin validation does not require HTTPS.'
+    }
+    if ($shellSource -notmatch '\.discord\.com') {
+        throw 'Normal bridge origin validation does not enforce the Discord host boundary.'
     }
     $measureSource = Get-Content -LiteralPath $measureTool -Raw
     if ($measureSource -notmatch 'TreeRootPid -gt 0.*ProcessId -eq \$TreeRootPid') {

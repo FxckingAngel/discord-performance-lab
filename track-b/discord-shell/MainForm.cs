@@ -350,12 +350,24 @@ public sealed class MainForm : Form
         }
     }
 
+    private static bool IsAllowedDiscordOrigin(string source)
+    {
+        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri)
+            || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return string.Equals(uri.Host, "discord.com", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.EndsWith(".discord.com", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         if (!diagnosticWindowBridge
             && !diagnosticHardwareBridge
             && !diagnosticBridgePair
-            && !e.Source.StartsWith("https://discord.com/", StringComparison.OrdinalIgnoreCase))
+            && !IsAllowedDiscordOrigin(e.Source))
         {
             return;
         }
