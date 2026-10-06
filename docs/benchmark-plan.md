@@ -25,6 +25,10 @@ Use at least three cold-start runs and three warm-start runs for each build and 
 
 Start Discord, wait for the fixed ready condition, then observe for 10 minutes without interaction. Report the median and p95 of the steady-state window after excluding startup.
 
+### Background idle
+
+Start Discord, wait for the fixed ready condition, close only the main window, and observe the remaining process tree for the fixed interval. Treat this as a separate workload from foreground idle. It may evaluate scheduling profiles intended for background work, but it does not prove that Discord's in-app Quit action works or that foreground behavior is preserved.
+
 ### Active text use
 
 Navigate through a fixed set of text channels, scroll a fixed amount of history, and receive a controlled notification. Observe CPU, memory, process count, and responsiveness during the scenario.
@@ -81,6 +85,7 @@ A candidate can move beyond local experimentation only when:
 - no protected Discord function is missing or degraded;
 - startup and cleanup are repeatable;
 - resource changes are reproduced on a second run set;
+- a background-only improvement is not promoted to a foreground or universal profile;
 - rollback restores the stock behavior;
 - the result is documented with raw-data references and known limitations.
 
