@@ -14,6 +14,9 @@ param(
     [ValidateRange(1, [double]::MaxValue)]
     [double] $TargetPrivateWorkingSetMiB = 250,
 
+    [ValidateRange(1, [double]::MaxValue)]
+    [double] $TargetPrivateBytesMiB = 250,
+
     [ValidateRange(0, [double]::MaxValue)]
     [double] $TargetCpuPercent = 0.2,
 
@@ -61,7 +64,7 @@ $results = @($metrics | ForEach-Object {
 })
 
 $comparison = [pscustomobject] @{
-    schemaVersion = 1
+    schemaVersion = 2
     baselineSummary = (Resolve-Path -LiteralPath $BaselineSummary).Path
     candidateSummary = (Resolve-Path -LiteralPath $CandidateSummary).Path
     maxRegressionPercent = $MaxRegressionPercent
@@ -69,9 +72,13 @@ $comparison = [pscustomobject] @{
     target = [pscustomobject] @{
         privateWorkingSetMedianMiB = [math]::Round([double] $candidate.privateWorkingSetMiB.median, 3)
         privateWorkingSetLimitMiB = $TargetPrivateWorkingSetMiB
+        privateBytesMedianMiB = [math]::Round([double] $candidate.privateMemoryMiB.median, 3)
+        privateBytesLimitMiB = $TargetPrivateBytesMiB
         cpuMedianPercentOfTotal = [math]::Round([double] $candidate.cpuPercentOfTotal.medianRun, 3)
         cpuLimitPercentOfTotal = $TargetCpuPercent
-        passed = ([double] $candidate.privateWorkingSetMiB.median -le $TargetPrivateWorkingSetMiB) -and ([double] $candidate.cpuPercentOfTotal.medianRun -le $TargetCpuPercent)
+        physicalResidentPassed = ([double] $candidate.privateWorkingSetMiB.median -le $TargetPrivateWorkingSetMiB)
+        privateBytesPassed = ([double] $candidate.privateMemoryMiB.median -le $TargetPrivateBytesMiB)
+        passed = ([double] $candidate.privateWorkingSetMiB.median -le $TargetPrivateWorkingSetMiB) -and ([double] $candidate.privateMemoryMiB.median -le $TargetPrivateBytesMiB) -and ([double] $candidate.cpuPercentOfTotal.medianRun -le $TargetCpuPercent)
     }
     metrics = $results
 }
