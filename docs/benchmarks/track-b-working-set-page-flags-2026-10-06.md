@@ -14,6 +14,8 @@ Source: [PSAPI_WORKING_SET_EX_BLOCK](https://learn.microsoft.com/en-us/windows/w
 - Raw artifact: `benchmarks/raw/track-b-working-set-pages-flags-20261006.json`
 - No Discord state, shell setting, working set, priority, sandbox, or authentication state was changed.
 
+The probe was repeated three times at 15-second spacing against the same root PID. Resident totals were 528.99, 529.00, and 528.97 MiB. The corresponding PSAPI `Shared`-flag totals were 161.36 MiB in all three samples, `ShareCount > 1` totals were 2.18 MiB in all three, and single-owner totals were 329.80 MiB in all three. The repeated result makes the classification discrepancy reproducible for this settled state.
+
 ## Tree totals
 
 | Classification | MiB |
