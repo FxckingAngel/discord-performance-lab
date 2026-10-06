@@ -34,4 +34,6 @@ The same minimal host was then run against the normal Track B WebView2 profile f
 
 This follow-up is not an acceptance comparison and does not demonstrate a saving on the authenticated workload. It rejects promoting the minimal host based on the current evidence. The production shell remains the only Track B implementation under measurement, and renderer attribution remains the primary optimization path.
 
+A full 616.0-second repeat confirmed the regression after settling time: 798.26 MiB median working set, 372.79 MiB median private working set, 565.98 MiB median private bytes, 0.169% CPU, and eight processes. The final sample was still 531.8 MiB private bytes, compared with 255.20 MiB in the separated-role production shell. This rules out the shorter run's settling window as the explanation and closes this candidate for the current architecture.
+
 Raw samples remain local at `benchmarks/raw/track-b-native-host-probe-20261006.json`, `benchmarks/raw/track-b-native-host-probe-20261006-summary.json`, `benchmarks/raw/track-b-native-host-authenticated-20261006.json`, and its summary file.
