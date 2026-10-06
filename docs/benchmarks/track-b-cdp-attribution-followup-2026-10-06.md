@@ -40,6 +40,8 @@ The result provides no evidence of an idle JavaScript, layout, or style-recalcul
 
 The diagnostic also queried Chromium's optional `Memory.getBrowserSamplingProfile` method. The method was accepted, but it returned zero samples and zero sampled bytes on this WebView2 build. That is an unsupported/empty diagnostic result, not evidence that the browser process has no native allocations. The renderer `Memory.getAllTimeSamplingProfile` call continued to return one aggregate sample. The sanitized follow-up artifact is local at `artifacts/diagnostic-authenticated-browser-memory-20261006.json`.
 
+A diagnostic-only `Memory.startSampling`/`Memory.stopSampling` window was also attempted for 20 seconds. The commands completed, but the returned window profile had zero samples for both the renderer and browser profile. This WebView2 runtime therefore does not expose usable stack-level native allocation sampling through the available CDP endpoint. The raw aggregate result is local at `artifacts/diagnostic-authenticated-native-window-20261006.json`; it is not used to select an optimization.
+
 Raw artifacts remain private at:
 
 - `artifacts/diagnostic-authenticated-cdp-followup-20261006.json`

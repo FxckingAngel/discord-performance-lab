@@ -65,10 +65,14 @@ function summarizeProfile(profile) {
 function summarizeNativeMemoryProfile(profile) {
   const samples = Array.isArray(profile?.samples) ? profile.samples : [];
   const sizes = samples.map((sample) => Number(sample.size ?? 0)).filter(Number.isFinite);
+  const totals = samples.map((sample) => Number(sample.total ?? sample.size ?? 0)).filter(Number.isFinite);
+  const stackDepths = samples.map((sample) => Array.isArray(sample.stack) ? sample.stack.length : 0);
   return {
     sampleCount: samples.length,
     sampledBytes: sizes.reduce((sum, size) => sum + size, 0),
+    attributedBytes: totals.reduce((sum, size) => sum + size, 0),
     largestSampleBytes: sizes.length > 0 ? Math.max(...sizes) : 0,
+    maximumStackDepth: stackDepths.length > 0 ? Math.max(...stackDepths) : 0,
     moduleCount: Array.isArray(profile?.modules) ? profile.modules.length : null,
   };
 }
@@ -109,9 +113,16 @@ try {
   });
   result.documentAggregates = aggregate.result?.result?.value ?? { error: aggregate.error };
 
+  const nativeWindow = await optionalCommand('Memory.startSampling', { samplingInterval: 32768, suppressRandomness: true });
   const started = await optionalCommand('HeapProfiler.startSampling', { samplingInterval: 32768 });
+  await new Promise((resolve) => setTimeout(resolve, durationSeconds * 1000));
+  const nativeStopped = nativeWindow.available
+    ? await optionalCommand('Memory.stopSampling')
+    : { available: false, error: nativeWindow.error };
+  result.nativeMemorySamplingWindow = nativeStopped.available
+    ? summarizeNativeMemoryProfile(nativeStopped.result.profile)
+    : { error: nativeStopped.error };
   if (started.available) {
-    await new Promise((resolve) => setTimeout(resolve, durationSeconds * 1000));
     const stopped = await optionalCommand('HeapProfiler.stopSampling');
     result.heapSampling = stopped.available ? summarizeProfile(stopped.result.profile) : { error: stopped.error };
   } else {
