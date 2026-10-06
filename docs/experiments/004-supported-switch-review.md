@@ -11,7 +11,7 @@ The current Discord PTB client uses Electron 42.11.10. The official Electron swi
 - `--disable-http-cache` changes network and cache behavior. It is not a RAM-safe optimization and could increase network work.
 - `--disable-renderer-backgrounding` explicitly prevents Chromium from lowering the priority of invisible renderers, which conflicts with the background-idle goal.
 - `--no-sandbox` disables renderer and helper-process sandboxing. It is outside the project boundary and rejected without testing.
-- `--force_low_power_gpu` changes graphics-device selection rather than reducing Discord work in a generally predictable way. It could change media and rendering behavior and requires machine-specific GPU evidence before consideration.
+- `--force_low_power_gpu` changes graphics-device selection rather than reducing Discord work in a generally predictable way. This machine exposes only one adapter, an NVIDIA GeForce RTX 5060, so there is no lower-power adapter for the switch to select. It is excluded without testing.
 - `--disk-cache-size` changes persistent cache policy, not the process-tree resource target, and could trade memory for network and disk work.
 - Remote debugging and inspector switches add an exposed control surface and are not optimization candidates.
 
