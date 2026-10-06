@@ -18,6 +18,24 @@ $roles = Get-Content -Raw -LiteralPath $RoleSummaryPath | ConvertFrom-Json
 $renderer = @($roles.roles | Where-Object role -eq 'renderer' | Select-Object -First 1)
 if ($renderer.Count -eq 0) { throw 'The role summary does not contain a renderer row.' }
 if (-not $cdp.heapUsage.usedSize) { throw 'The CDP capture does not contain Runtime.getHeapUsage data.' }
+$rendererAttribution = @($roles.processes | Where-Object role -eq 'renderer' | ForEach-Object {
+    [pscustomobject]@{
+        pid = $_.pid
+        parentPid = $_.parentPid
+        samples = $_.samples
+        lifetimeSecondsMedian = $_.lifetimeSecondsMedian
+        privateWorkingSetMedianMiB = $_.privateWorkingSetMedianMiB
+        privateWorkingSetP95MiB = $_.privateWorkingSetP95MiB
+        privateMemoryMedianMiB = $_.privateMemoryMedianMiB
+        privateMemoryP95MiB = $_.privateMemoryP95MiB
+        cpuMedianPercentOfTotal = $_.cpuMedianPercentOfTotal
+        cpuP95PercentOfTotal = $_.cpuP95PercentOfTotal
+        pageFaultsMedianPerSecond = $_.pageFaultsMedianPerSecond
+        pageFaultsP95PerSecond = $_.pageFaultsP95PerSecond
+        handlesMedian = $_.handlesMedian
+        threadsMedian = $_.threadsMedian
+    }
+})
 
 $v8UsedMiB = [math]::Round([double] $cdp.heapUsage.usedSize / 1MB, 3)
 $v8TotalMiB = [math]::Round([double] $cdp.heapUsage.totalSize / 1MB, 3)
@@ -61,6 +79,8 @@ $result = [pscustomobject]@{
     rootPid = $roles.rootPid
     cdpCapturedAt = $cdp.capturedAt
     v8HeapCapacityMiB = $v8TotalMiB
+    rendererCount = $rendererAttribution.Count
+    rendererAttribution = $rendererAttribution
     buckets = $buckets
     nativeAllocationCategories = $nativeCategories
     domCounters = $domCounters
