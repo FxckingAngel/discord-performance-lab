@@ -51,6 +51,18 @@ Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to 
 
 The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqos` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`.
 
+EcoQoS is currently supported only as an experimental background-idle profile. Two paired background runs passed the resource regression gate, but a foreground run showed higher CPU use and full Discord functionality has not been accepted. Do not treat it as a universal replacement for the stock launch. Example:
+
+```powershell
+.\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile ecoqos
+```
+
+The stock profile remains the rollback path:
+
+```powershell
+.\tools\Launch-DiscordPerformanceProfile.ps1 -ExecutablePath 'C:\Path\To\DiscordPTB.exe' -Profile stock
+```
+
 ## Evidence standard
 
 Every performance claim should include the stock and candidate build identifiers, workload, machine state, sample count, raw data location, summary statistics, and any functional regressions observed. The benchmark plan defines the first comparison.
