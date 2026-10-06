@@ -35,6 +35,19 @@ function Get-DiscordProcessSnapshot {
     else {
         @(Get-CimInstance Win32_Process -Filter "Name='$Name.exe'")
     }
+    function Test-CurrentParentProcess {
+        param([object] $Parent, [object] $Child)
+
+        if ([int] $Child.ParentProcessId -ne [int] $Parent.ProcessId) { return $false }
+        try {
+            $parentStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Parent.CreationDate).ToUniversalTime()
+            $childStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Child.CreationDate).ToUniversalTime()
+            return $childStart -ge $parentStart
+        }
+        catch {
+            return $true
+        }
+    }
     if ($TreeRootPid -gt 0) {
         $treePids = [System.Collections.Generic.HashSet[int]]::new()
         $pending = [System.Collections.Generic.Queue[int]]::new()
@@ -42,7 +55,9 @@ function Get-DiscordProcessSnapshot {
         $pending.Enqueue($TreeRootPid)
         while ($pending.Count -gt 0) {
             $parentPid = $pending.Dequeue()
+            $parent = @($processes | Where-Object { [int] $_.ProcessId -eq $parentPid } | Select-Object -First 1)
             foreach ($child in @($processes | Where-Object { [int] $_.ParentProcessId -eq $parentPid })) {
+                if ($parent.Count -gt 0 -and -not (Test-CurrentParentProcess -Parent $parent[0] -Child $child)) { continue }
                 $childPid = [int] $child.ProcessId
                 if ($treePids.Add($childPid)) {
                     $pending.Enqueue($childPid)

@@ -21,9 +21,23 @@ param(
 )
 
 $logicalProcessorCount = [Environment]::ProcessorCount
-$processes = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName.exe'")
+$processes = @(Get-CimInstance Win32_Process)
 if (-not @($processes | Where-Object { [int] $_.ProcessId -eq $RootPid })) {
     throw "Root PID $RootPid was not found among $ProcessName processes."
+}
+
+function Test-CurrentParentProcess {
+    param([object] $Parent, [object] $Child)
+
+    if ([int] $Child.ParentProcessId -ne [int] $Parent.ProcessId) { return $false }
+    try {
+        $parentStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Parent.CreationDate).ToUniversalTime()
+        $childStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Child.CreationDate).ToUniversalTime()
+        return $childStart -ge $parentStart
+    }
+    catch {
+        return $true
+    }
 }
 
 function Get-Role {
@@ -40,7 +54,7 @@ function Get-Role {
 }
 
 function Get-RootedProcesses {
-    $current = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName.exe'")
+    $current = @(Get-CimInstance Win32_Process)
     $root = @($current | Where-Object { [int] $_.ProcessId -eq $RootPid })
     if ($root.Count -eq 0) {
         return @()
@@ -51,7 +65,9 @@ function Get-RootedProcesses {
     $pending.Enqueue($RootPid)
     while ($pending.Count -gt 0) {
         $parentPid = $pending.Dequeue()
+        $parent = @($current | Where-Object { [int] $_.ProcessId -eq $parentPid } | Select-Object -First 1)
         foreach ($child in @($current | Where-Object { [int] $_.ParentProcessId -eq $parentPid })) {
+            if ($parent.Count -gt 0 -and -not (Test-CurrentParentProcess -Parent $parent[0] -Child $child)) { continue }
             $childPid = [int] $child.ProcessId
             if ($treePids.Add($childPid)) {
                 $pending.Enqueue($childPid)

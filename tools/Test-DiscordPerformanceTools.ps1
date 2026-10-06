@@ -77,6 +77,16 @@ try {
     if ($shellSource -notmatch 'partial DiscordNative object') {
         throw 'Normal shell bridge gating does not document the blank-window regression.'
     }
+    $phase2Source = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
+    if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
+        throw 'Phase 2 attribution must enumerate all processes before walking the rooted tree.'
+    }
+    foreach ($treeTool in @('Measure-DiscordProcessTree.ps1', 'Measure-DiscordPhase2Attribution.ps1', 'Measure-TrackBVirtualMemoryTypes.ps1')) {
+        $treeSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath $treeTool) -Raw
+        if ($treeSource -notmatch 'ManagementDateTimeConverter') {
+            throw "$treeTool does not guard PID reuse with process creation times."
+        }
+    }
     if ($shellSource -notmatch 'Uri\.TryCreate') {
         throw 'Normal bridge origin validation does not parse the message source as a URI.'
     }

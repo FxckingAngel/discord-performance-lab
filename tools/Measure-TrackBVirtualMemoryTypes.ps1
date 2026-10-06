@@ -115,12 +115,35 @@ function Get-Descendants {
         $byParent[$parent].Add($row)
     }
     $found = [System.Collections.Generic.HashSet[int]]::new()
+    function Test-CurrentParentProcess {
+        param([object] $Parent, [object] $Child)
+
+        if ([int] $Child.ParentProcessId -ne [int] $Parent.ProcessId) { return $false }
+        try {
+            $parentStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Parent.CreationDate).ToUniversalTime()
+            $childStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Child.CreationDate).ToUniversalTime()
+            return $childStart -ge $parentStart
+        }
+        catch {
+            return $true
+        }
+    }
+    $byPid = @{}
+    foreach ($row in $all) { $byPid[[int] $row.ProcessId] = $row }
+    $byParent = @{}
+    foreach ($row in $all) {
+        $parentId = [int] $row.ParentProcessId
+        if (-not $byParent.ContainsKey($parentId)) { $byParent[$parentId] = [System.Collections.Generic.List[object]]::new() }
+        $byParent[$parentId].Add($row)
+    }
     $queue = [System.Collections.Generic.Queue[int]]::new()
     [void] $found.Add($RootPid)
     $queue.Enqueue($RootPid)
     while ($queue.Count -gt 0) {
         $parent = $queue.Dequeue()
+        $parentRow = $byPid[$parent]
         foreach ($child in @($byParent[$parent])) {
+            if ($parentRow -and -not (Test-CurrentParentProcess -Parent $parentRow -Child $child)) { continue }
             $childId = [int] $child.ProcessId
             if ($found.Add($childId)) { $queue.Enqueue($childId) }
         }
