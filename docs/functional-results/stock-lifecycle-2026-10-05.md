@@ -26,3 +26,5 @@ This run covered only the automatable stock lifecycle items. It did not test acc
 ## Acceptance impact
 
 The stock lifecycle result exposes a cleanup issue in the current test environment or client state: a graceful main-window close did not bring the Discord process tree down within 30 seconds. This is not evidence against EcoQoS specifically, but it blocks claiming lifecycle acceptance until the cause is understood and the candidate is tested against the same requirement.
+
+EcoQoS showed the same behavior in a paired check: `CloseMainWindow()` returned `true`, the window title became empty, and all six processes remained live through 12 seconds of observation. The candidate was then force-cleaned for safety, and stock Discord was relaunched successfully with six processes, a responsive `Friends - Discord` window, and no EcoQoS switch.
