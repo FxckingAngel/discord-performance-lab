@@ -35,6 +35,7 @@ $traceCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBCdpTrace.ps1'
 $functionalCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBFunctionalCheckpoint.ps1'
 $visualCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBVisualCheckpoint.ps1'
 $acceptanceGateTool = Join-Path $resolvedToolsPath 'Test-TrackBAcceptance.ps1'
+$memoryCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBMemoryAttributionCheckpoint.ps1'
 $featureProbeTool = Join-Path $resolvedToolsPath 'Probe-DiscordFeatureSupport.mjs'
 $shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
@@ -56,6 +57,12 @@ try {
     }
     if (-not (Test-Path -LiteralPath $acceptanceGateTool -PathType Leaf)) {
         throw 'Track B acceptance gate tool is missing.'
+    }
+    $memoryCheckpointSource = Get-Content -LiteralPath $memoryCheckpointTool -Raw
+    foreach ($requiredField in @('READY', 'Measure-DiscordPhase2Attribution.ps1', 'Invoke-DiscordPhase2CdpDiagnostics.mjs', 'diagnostic-authenticated-no-bridges')) {
+        if ($memoryCheckpointSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Memory attribution checkpoint does not contain $requiredField."
+        }
     }
     $featureProbeSource = Get-Content -LiteralPath $featureProbeTool -Raw
     if ($featureProbeSource -notmatch 'registryAvailable' -or $featureProbeSource -notmatch 'registry-unavailable') {

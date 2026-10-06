@@ -37,6 +37,8 @@ For the combined bridge-shape test, use `KoroneDiscordShell.exe --diagnostic-bri
 
 For a private login-state check, close the ordinary shell first and use `KoroneDiscordShell.exe --diagnostic-authenticated`. It reuses the normal `WebView2UserData` profile, exposes loopback CDP port 9228, and is intended only for sanitized aggregate diagnostics or a private screenshot. Do not publish screenshots or raw profile data from this mode.
 
+For synchronized renderer memory attribution, run `tools/Invoke-TrackBMemoryAttributionCheckpoint.ps1`. It requires the ordinary shell to be closed, launches `--diagnostic-authenticated-no-bridges`, waits for a manual `READY`, and runs the Windows process-tree sampler alongside the aggregate CDP diagnostics. It writes a raw local process capture, a sanitized process summary, and a sanitized CDP report under the requested output directory, then closes the diagnostic process and restores the normal shell. It does not automate login, navigate account content, or publish heap objects.
+
 For a diagnostic-only capability trace, use `KoroneDiscordShell.exe --diagnostic-capability-events`. It uses a separate `CapabilityEventsProbeUserData` profile, exposes loopback CDP port 9231, and records only permission kinds, sender origins, user-gesture state, and notification origins to `%LOCALAPPDATA%\\KoroneDiscordShell\\Diagnostics\\capability-events.jsonl`. It never records permission decisions, notification text, message content, cookies, tokens, or account data, and it leaves permission and notification behavior unchanged.
 
 ## Scope of this milestone
