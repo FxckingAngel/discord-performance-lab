@@ -28,3 +28,20 @@ The corrected startup run reported:
 - main window responsive: yes.
 
 A later 30-second settled capture against the same unauthenticated profile held eight processes and measured median working set of 1,058.29 MiB and median private memory of 838.89 MiB. This is a baseline for the WebView2 host in its current state, not evidence that the architecture is lighter. The logged-in, same-channel stock comparison remains the decision gate.
+
+## Follow-up rooted attribution
+
+A later 30-second rooted capture was taken while the shell remained responsive. It produced six samples at five-second intervals and held eight processes throughout. The final sample measured 836.2 MiB working set and 557.7 MiB private memory for the full tree:
+
+| Role | Working set | Private memory | CPU seconds since launch |
+| --- | ---: | ---: | ---: |
+| Native shell host | 60.1 MiB | 11.8 MiB | 0.31 |
+| WebView2 browser | 155.3 MiB | 53.3 MiB | 2.77 |
+| Renderer | 401.7 MiB | 340.5 MiB | 9.66 |
+| GPU process | 110.3 MiB | 118.6 MiB | 1.50 |
+| Network service | 48.9 MiB | 15.0 MiB | 1.47 |
+| Storage service | 20.0 MiB | 7.6 MiB | 0.08 |
+| Audio service | 26.5 MiB | 7.9 MiB | 0.11 |
+| Crashpad | 13.5 MiB | 2.9 MiB | 0.05 |
+
+This remains unauthenticated evidence. It shows that the current shell is well above the Track B target before optimization, with the renderer and GPU process accounting for most of the current private-memory footprint. It does not establish whether the same ownership persists after normal login and the required Discord workload.
