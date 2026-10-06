@@ -11,6 +11,12 @@ param(
     [ValidateRange(0, 100)]
     [double] $MaxRegressionPercent = 5,
 
+    [ValidateRange(1, [double]::MaxValue)]
+    [double] $TargetPrivateWorkingSetMiB = 250,
+
+    [ValidateRange(0, [double]::MaxValue)]
+    [double] $TargetCpuPercent = 0.2,
+
     [string] $OutputPath
 )
 
@@ -30,6 +36,7 @@ $metrics = @(
     [pscustomobject] @{ name = 'privateWorkingSetP95MiB'; baseline = [double] $baseline.privateWorkingSetMiB.p95; candidate = [double] $candidate.privateWorkingSetMiB.p95 },
     [pscustomobject] @{ name = 'privateMemoryMedianMiB'; baseline = [double] $baseline.privateMemoryMiB.median; candidate = [double] $candidate.privateMemoryMiB.median },
     [pscustomobject] @{ name = 'privateMemoryP95MiB'; baseline = [double] $baseline.privateMemoryMiB.p95; candidate = [double] $candidate.privateMemoryMiB.p95 },
+    [pscustomobject] @{ name = 'commitMedianMiB'; baseline = [double] $baseline.commitMiB.median; candidate = [double] $candidate.commitMiB.median },
     [pscustomobject] @{ name = 'cpuMedianPercentOfTotal'; baseline = [double] $baseline.cpuPercentOfTotal.medianRun; candidate = [double] $candidate.cpuPercentOfTotal.medianRun },
     [pscustomobject] @{ name = 'cpuP95PercentOfTotal'; baseline = [double] $baseline.cpuPercentOfTotal.p95Run; candidate = [double] $candidate.cpuPercentOfTotal.p95Run },
     [pscustomobject] @{ name = 'processCountMedian'; baseline = [double] $baseline.processCount.median; candidate = [double] $candidate.processCount.median },
@@ -53,6 +60,13 @@ $comparison = [pscustomobject] @{
     candidateSummary = (Resolve-Path -LiteralPath $CandidateSummary).Path
     maxRegressionPercent = $MaxRegressionPercent
     passed = -not @($results | Where-Object regressionBeyondThreshold)
+    target = [pscustomobject] @{
+        privateWorkingSetMedianMiB = [math]::Round([double] $candidate.privateWorkingSetMiB.median, 3)
+        privateWorkingSetLimitMiB = $TargetPrivateWorkingSetMiB
+        cpuMedianPercentOfTotal = [math]::Round([double] $candidate.cpuPercentOfTotal.medianRun, 3)
+        cpuLimitPercentOfTotal = $TargetCpuPercent
+        passed = ([double] $candidate.privateWorkingSetMiB.median -le $TargetPrivateWorkingSetMiB) -and ([double] $candidate.cpuPercentOfTotal.medianRun -le $TargetCpuPercent)
+    }
     metrics = $results
 }
 
