@@ -34,3 +34,7 @@ The watcher changes only Windows process QoS for the selected Discord tree. It d
 ## Live transition check
 
 On 2026-10-06, the visible Discord PTB window was minimized without restarting the client. A one-shot watcher run detected `minimizedOrHidden: true` and applied EcoQoS to all six descendants. The window was then restored; after the UI returned, the accessibility tree still exposed the active voice connection, camera control, and message composer. A second one-shot watcher run detected `minimizedOrHidden: false` and restored system-managed QoS. The client remained stock, responsive, and at six processes. This validates the transition mechanics, not yet the long-running resource or full functional gates.
+
+## Minimized active-use probe
+
+The same session was then measured while minimized with EcoQoS selected. Over 16.195 seconds, the rooted tree remained at six processes and recorded 1,127.63 MiB median working set, 1,133.00 MiB median private memory, and 0.999% CPU. Voice and media remained active during the probe. Because this was a single active-use sample without a paired stock run, it is transition evidence only and is not treated as a new performance improvement. Restoring the window and running the watcher again returned all six processes to system-managed QoS.
