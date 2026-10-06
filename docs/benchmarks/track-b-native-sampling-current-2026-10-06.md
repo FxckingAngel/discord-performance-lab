@@ -26,6 +26,16 @@ Source: `artifacts/track-b-cdp-current-20261006-1656/cdp.json`
 
 No sampled media/WebRTC category appeared in this window. The sampled GPU value is negligible compared with the renderer's private working set and does not support a GPU-allocation optimization as the next target.
 
+## Repeatability
+
+| Diagnostic window | V8 used heap | Chromium-native sampled | GPU sampled | Native attributed |
+| --- | ---: | ---: | ---: | ---: |
+| 16:35 | 67.04 MiB | 27.57 MiB | 0 MiB | 44.00 MiB |
+| 16:56 | 61.22 MiB | 26.08 MiB | 0 MiB | 41.72 MiB |
+| 17:00 | 66.95 MiB | 27.25 MiB | 0.002 MiB | 43.69 MiB |
+
+The repeated native signal is consistent across windows, while the GPU category remains negligible.
+
 ## Interpretation
 
 The live V8 heap and sampled native allocations account for different diagnostic boundaries and must not be added or subtracted from private working set as if they were resident buckets. Together they do show that the renderer's large remainder is not explained by sampled JavaScript heap or sampled GPU allocations. The next attribution boundary is Chromium-native/Blink/runtime state, which requires a stronger native diagnostic or a controlled frontend state comparison before any change is selected.
