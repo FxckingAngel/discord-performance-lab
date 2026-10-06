@@ -46,3 +46,7 @@ The same session was then measured while minimized with the media-safe QoS polic
 ## Continuous loop check
 
 The watcher was also run continuously with a one-second poll interval. It emitted `system-managed` while the window was visible, `ecoqos` for non-media roles while the window was minimized, and `system-managed` after the window was restored. The watcher was then stopped cleanly. A final profile check showed the stock command line, six processes, and a responsive main window.
+
+## Paired minimized active-use gate
+
+The media-safe adaptive policy was compared with stock system-managed QoS in the same minimized session while voice and media remained active. Stock recorded 0.770% CPU, 1,076.71 MiB median working set, and 1,083.77 MiB median private memory. Adaptive recorded 7.588% CPU, 1,101.89 MiB working set, and 1,132.06 MiB private memory. Process count stayed at six. The comparison failed the five-percent regression gate, driven by an 885.455% CPU regression and a 5.743% private-memory p95 regression. Adaptive is rejected for minimized active use and must only be considered after active voice, video, and media work has ended. This does not replace the earlier background-idle result for the separate EcoQoS launch profile.
