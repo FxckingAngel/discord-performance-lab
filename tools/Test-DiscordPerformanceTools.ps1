@@ -81,6 +81,11 @@ try {
             throw "Track B acceptance gate does not evaluate $requiredField."
         }
     }
+    foreach ($functionalId in @('login-session', 'servers-channels', 'messaging', 'images-media', 'notifications', 'voice', 'video', 'screen-share', 'file-dialogs', 'clipboard-drag-drop', 'window-shell', 'accessibility')) {
+        if ($functionalCheckpointSource -notmatch [regex]::Escape($functionalId) -or $acceptanceGateSource -notmatch [regex]::Escape($functionalId)) {
+            throw "Functional checklist ID is not synchronized between the checkpoint and acceptance gate: $functionalId"
+        }
+    }
     $shellSource = Get-Content -LiteralPath $shellSourcePath -Raw
     if ($shellSource -notmatch 'var enableWindowBridge = diagnosticWindowBridge') {
         throw 'Normal shell bridge gating is not explicit.'
