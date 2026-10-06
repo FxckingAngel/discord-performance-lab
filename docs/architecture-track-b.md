@@ -17,7 +17,8 @@ The first proof of concept is intentionally small:
 2. create an isolated WebView2 user-data folder;
 3. navigate to `https://discord.com/app`;
 4. allow normal interactive login and web navigation;
-5. avoid host objects, injected scripts, protocol interception, account automation, and security bypasses.
+5. expose only the two tested, origin-restricted capabilities documented in the compatibility matrix;
+6. avoid general-purpose host objects, protocol interception, account automation, and security bypasses.
 
 The prototype is in `track-b/discord-shell`. It does not copy the official Discord profile or attempt to migrate credentials. A separate profile is a deliberate rollback and privacy boundary.
 
@@ -52,7 +53,7 @@ WebView2 remains eligible for the under-500 MiB minimum only if the authenticate
 
 Desktop features are evaluated one at a time after the core web shell has a baseline. For each feature, record what Discord expects, what WebView2 already provides, the smallest native bridge needed if any, the process and memory cost, and the functional result. Candidate areas include notifications, tray behavior, permissions, file dialogs, downloads, drag and drop, screen capture, audio devices, accessibility, deep links, and session persistence.
 
-No bridge is added in the first prototype. In particular, the host must not expose a general-purpose native object to page JavaScript or use a bridge to bypass Discord permissions or account security.
+The normal prototype exposes only the tested window-action and display-count bridges. It must not expose a general-purpose native object to page JavaScript or use a bridge to bypass Discord permissions or account security. Additional features remain disabled until their behavior, origin boundary, process cost, rollback path, and functional result are measured.
 
 ## Decision gates
 

@@ -2,7 +2,7 @@
 
 This is the first Track B proof of concept. It is a native Windows WinForms executable that hosts Discord's official web application in the installed Microsoft WebView2 Runtime.
 
-The prototype deliberately has no native host bridge, protocol interception, account automation, injected scripts, or Discord-specific network handling. It uses a separate WebView2 user-data folder under `%LOCALAPPDATA%\\KoroneDiscordShell\\WebView2UserData` so it does not reuse or modify the official Discord desktop profile.
+The normal shell has only two narrow, origin-restricted native capabilities: window actions and display-count reporting. It has no protocol interception, account automation, or Discord-specific network handling. It uses a separate WebView2 user-data folder under `%LOCALAPPDATA%\\KoroneDiscordShell\\WebView2UserData` so it does not reuse or modify the official Discord desktop profile.
 
 ## Build
 
@@ -29,6 +29,6 @@ For a private login-state check, close the ordinary shell first and use `KoroneD
 
 ## Scope of this milestone
 
-The shell is only a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. It is not an optimized client, an official Discord build, or a feature-complete replacement.
+The shell is still a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. The two native capabilities are not a complete desktop compatibility layer. It is not an optimized client, an official Discord build, or a feature-complete replacement.
 
 Track B measurements must count the complete WebView2 process tree, not only `KoroneDiscordShell.exe`. Use the existing benchmark tools with a separate process name and record startup, settled working set, private memory, CPU, GPU activity, process count, handles, threads, and responsiveness.
