@@ -10,6 +10,8 @@ The project will continue Track A stock Discord/Electron measurement and begin T
 
 WebView2 is the first candidate because the machine already has the Evergreen Runtime installed and the runtime can be shared instead of bundling another complete Electron/Chromium distribution. WebView2 is not assumed to be the final architecture. The decision depends on full process-tree measurements and functional checks.
 
+The explicit Track B design target is approximately 250 MiB total settled idle working set and 0.2% total idle CPU across the complete process tree. The minimum acceptable result is under 500 MiB and under 1% CPU with normal responsiveness and no major feature loss. The strong and stretch levels, measurement formula, and feature gate are defined in `docs/track-b-performance-goal.md`.
+
 ## Constraints
 
 Track B must preserve normal official web-client behavior and must not recreate Discord's backend, alter its protocol, bypass authentication or entitlements, automate accounts, disable security protections, or redistribute Discord code or binaries. The repository remains private during development.
@@ -24,4 +26,4 @@ Track A remains authoritative for stock baselines. Its existing benchmark, rollb
 
 ## Next gate
 
-Run the same logged-in controlled workload against stock Discord and the shell, count every child process, and compare startup, settled working set, private memory, CPU, GPU activity, process count, handles, threads, and responsiveness. Only a measured advantage large enough to justify compatibility-layer work moves Track B beyond the prototype.
+Run the same logged-in controlled workload against stock Discord and the shell, count every child process, and compare startup, settled working set, private memory, CPU median and p95, GPU activity, process count, handles, threads, responsiveness, and functional pass/fail. Track B must first clear the under-500 MiB minimum before substantial compatibility-layer work is justified. Only a result that also preserves the required functionality moves Track B beyond the prototype.

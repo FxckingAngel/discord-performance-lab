@@ -12,6 +12,7 @@ The project starts with measurement, not patches. Each proposed change must be c
 - Reduce unnecessary background processes without removing required functionality.
 - Preserve normal Discord features, account safety, updates, accessibility, overlays, voice, video, screen sharing, notifications, and rich media.
 - Keep the work auditable, reversible, and private until the build is stable and independently reproducible.
+- Track B design target: approximately 250 MiB total settled idle working set and 0.2% total idle CPU across the complete process tree.
 
 ## Non-goals
 
@@ -23,6 +24,7 @@ The project starts with measurement, not patches. Each proposed change must be c
 ## Architecture tracks
 
 - [Track B architecture decision](docs/architecture-track-b.md)
+- [Track B performance goal](docs/track-b-performance-goal.md)
 - [Track B shell prototype](track-b/discord-shell/README.md)
 - [Track B unauthenticated shell baseline](docs/benchmarks/track-b-unauthenticated-shell-2026-10-06.md)
 

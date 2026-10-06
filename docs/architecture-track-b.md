@@ -21,6 +21,8 @@ The first proof of concept is intentionally small:
 
 The prototype is in `track-b/discord-shell`. It does not copy the official Discord profile or attempt to migrate credentials. A separate profile is a deliberate rollback and privacy boundary.
 
+Track B's explicit design target is approximately 250 MiB total settled idle working set and 0.2% total idle CPU for the complete process tree. The minimum acceptable gate is under 500 MiB and under 1% CPU with a responsive UI and no major feature loss. The full acceptance contract and feature requirements are in [Track B performance goal](track-b-performance-goal.md).
+
 ## Comparison contract
 
 Track B must use the same machine, display, network state, window size, background applications, account state, channel, and settled duration as Track A. The current machine evidence is 1920x1080 at 60 Hz.
@@ -38,7 +40,7 @@ Every comparison counts the full process tree:
 | Handles and threads | pending | pending |
 | Responsive | pending | pending |
 
-The first milestone is architectural evidence, not feature completeness. If the shell does not produce a meaningful full-tree reduction under the same workload, the project should not force this architecture.
+The first milestone is architectural evidence, not feature completeness. The shell must first beat the under-500 MiB minimum on the same logged-in static-channel workload. If it cannot, the project must investigate the process/runtime ownership before investing heavily in native compatibility work.
 
 ## Compatibility layer policy
 
