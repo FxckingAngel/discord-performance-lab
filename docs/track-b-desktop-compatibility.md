@@ -131,6 +131,14 @@ A diagnostic-only WebView2 run reported the observed official Discord user-agent
 
 Raw environment dumps, heap snapshots, screenshots, message contents, account identifiers, tokens, and crash dumps remain local and private. Only sanitized capability names, aggregate measurements, and pass/fail outcomes belong in the repository.
 
+## PTB provenance boundary
+
+The installed Discord PTB is not a pristine Electron reference on this machine. Its `resources/app.asar` is a 219-byte loader that requires the local Vencord patcher. A read-only inspection of the Vencord renderer found these `DiscordNative` call sites: `app.getVersion`, `app.relaunch`, `clipboard.copy`, `fileManager.openFiles`, `fileManager.saveWithDialog`, `nativeModules.requireModule`, and `processUtils.getLastCrash`.
+
+Those names are evidence about the locally patched client, not proof of Discord's unmodified frontend contract. They must not be copied into Track B as a compatibility requirement, and the Vencord renderer, patcher, account state, and local paths must not be published. The existing Electron property-name probe is therefore retained as a patched-client observation and is not sufficient to close the desktop capability matrix.
+
+Before the final desktop-parity decision, obtain a pristine Discord Electron reference or explicitly label every remaining Electron comparison as Vencord-contaminated. Track B continues to expose only audited native capabilities that it genuinely implements.
+
 ## Acceptance
 
 Track B does not pass desktop compatibility until all of the following are true:
