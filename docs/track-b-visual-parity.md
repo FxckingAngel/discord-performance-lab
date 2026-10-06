@@ -49,6 +49,8 @@ node tools/Capture-DiscordCdpScreenshot.mjs 9224 benchmarks/private/track-b-frie
 
 The screenshot files stay private because they may contain account names, messages, or other Discord content. The two captures are valid for comparison only after the same account, route, call state, window dimensions, display scaling, and settled workload have been established. The next workflow step is an aligned pixel/difference report over these local pairs. Visual regressions are tracked separately from performance regressions. A lower memory number does not offset a visible or functional desktop regression.
 
+The authenticated-profile probe on 2026-10-06 produced a blank white private capture despite loading the `/app` route, so no visual-parity conclusion was drawn. A user-visible, same-state capture remains required before comparing official Discord with Track B.
+
 `tools/Compare-DiscordScreenshots.py` compares two same-sized PNGs locally and reports differing-pixel percentage, mean absolute channel error, p95 pixel error, and maximum pixel error. It writes no image content and has no network or Discord integration. A metric of zero is only meaningful for a controlled same-state pair; it is not a substitute for functional review.
 
 No Track B release or public repository decision is made until the authenticated A/B comparison, required functional checks, performance gates, and visual parity review are complete.

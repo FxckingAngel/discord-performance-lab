@@ -25,6 +25,8 @@ For the first native capability test, use `KoroneDiscordShell.exe --diagnostic-w
 
 For the read-only display capability test, use `KoroneDiscordShell.exe --diagnostic-hardware-bridge`. It uses a separate `HardwareBridgeProbeUserData` profile, loads a local in-memory blank document, and exposes loopback CDP port 9227. It exposes only `DiscordNative.hardware.getDisplayCount`, backed by the actual Windows display inventory. This mode is diagnostic until Discord feature use and resource cost are accepted.
 
+For a private login-state check, close the ordinary shell first and use `KoroneDiscordShell.exe --diagnostic-authenticated`. It reuses the normal `WebView2UserData` profile, exposes loopback CDP port 9228, and is intended only for sanitized aggregate diagnostics or a private screenshot. Do not publish screenshots or raw profile data from this mode.
+
 ## Scope of this milestone
 
 The shell is only a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. It is not an optimized client, an official Discord build, or a feature-complete replacement.
