@@ -73,5 +73,15 @@ finally {
         throw "Diagnostic checkpoint process $($process.Id) did not exit through its normal close action."
     }
     Start-Sleep -Seconds 2
-    Start-Process -FilePath $resolvedExecutable | Out-Null
+    $restored = Start-Process -FilePath $resolvedExecutable -PassThru
+    $restoreDeadline = [DateTime]::UtcNow.AddSeconds(15)
+    $restoredObserved = $null
+    do {
+        Start-Sleep -Milliseconds 250
+        $restoredObserved = Get-Process -Id $restored.Id -ErrorAction SilentlyContinue
+        if ($restoredObserved -and $restoredObserved.Responding) { break }
+    } while ([DateTime]::UtcNow -lt $restoreDeadline)
+    if (-not $restoredObserved -or -not $restoredObserved.Responding) {
+        throw "Normal Track B shell did not become responsive after diagnostic restore. PID $($restored.Id)."
+    }
 }
