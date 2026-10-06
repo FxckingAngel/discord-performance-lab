@@ -113,6 +113,12 @@ try {
             throw "Phase 2 bucket summary does not preserve $requiredField."
         }
     }
+    $cdpDiagnosticsSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase2CdpDiagnostics.mjs') -Raw
+    foreach ($requiredField in @('imageNaturalPixelCount', 'videoPixelCount', 'canvasPixelCount')) {
+        if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
+            throw "CDP diagnostics do not report $requiredField."
+        }
+    }
     if ($shellSource -notmatch 'Uri\.TryCreate') {
         throw 'Normal bridge origin validation does not parse the message source as a URI.'
     }

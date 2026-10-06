@@ -105,8 +105,11 @@ try {
       domNodeCount: document.getElementsByTagName('*').length,
       frameCount: window.top === window ? window.frames.length + 1 : null,
       imageElementCount: document.images.length,
+      imageNaturalPixelCount: Array.from(document.images).reduce((sum, image) => sum + (image.naturalWidth * image.naturalHeight), 0),
       videoElementCount: document.getElementsByTagName('video').length,
-      canvasElementCount: document.getElementsByTagName('canvas').length
+      videoPixelCount: Array.from(document.getElementsByTagName('video')).reduce((sum, video) => sum + (video.videoWidth * video.videoHeight), 0),
+      canvasElementCount: document.getElementsByTagName('canvas').length,
+      canvasPixelCount: Array.from(document.getElementsByTagName('canvas')).reduce((sum, canvas) => sum + (canvas.width * canvas.height), 0)
     }))()`,
     returnByValue: true,
     awaitPromise: false,
