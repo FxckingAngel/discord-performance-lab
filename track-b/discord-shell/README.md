@@ -29,6 +29,8 @@ For the combined bridge-shape test, use `KoroneDiscordShell.exe --diagnostic-bri
 
 For a private login-state check, close the ordinary shell first and use `KoroneDiscordShell.exe --diagnostic-authenticated`. It reuses the normal `WebView2UserData` profile, exposes loopback CDP port 9228, and is intended only for sanitized aggregate diagnostics or a private screenshot. Do not publish screenshots or raw profile data from this mode.
 
+For a diagnostic-only capability trace, use `KoroneDiscordShell.exe --diagnostic-capability-events`. It uses a separate `CapabilityEventsProbeUserData` profile, exposes loopback CDP port 9231, and records only permission kinds, sender origins, user-gesture state, and notification origins to `%LOCALAPPDATA%\\KoroneDiscordShell\\Diagnostics\\capability-events.jsonl`. It never records permission decisions, notification text, message content, cookies, tokens, or account data, and it leaves permission and notification behavior unchanged.
+
 ## Scope of this milestone
 
 The shell is still a feasibility prototype. It should establish whether the official web client can run in a smaller desktop container and provide a stock-versus-shell process-tree comparison. The two native capabilities are not a complete desktop compatibility layer. It is not an optimized client, an official Discord build, or a feature-complete replacement.

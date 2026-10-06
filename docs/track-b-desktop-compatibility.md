@@ -45,6 +45,8 @@ Track B does not currently override either event. This preserves the existing We
 
 Sources: [WebView2 PermissionRequested](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.permissionrequested), [WebView2 permission kinds](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2permissionkind), and [WebView2 NotificationReceived](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.notificationreceived).
 
+The shell now has a diagnostic-only `--diagnostic-capability-events` mode on loopback port 9231. It records only event type, origin, permission kind, user-gesture state, and the pre-existing permission state to a local JSONL file. It does not set `Handled` or change `State`, so the probe cannot grant, deny, or replace a capability. The normal shell does not register these diagnostic handlers.
+
 ## Investigation order
 
 1. Capture sanitized, non-secret environment facts from official Electron and Track B: user agent, platform, runtime version, viewport, display scale, media-device availability, notification permission state, clipboard and drag/drop behavior, window APIs, and exposed global names.

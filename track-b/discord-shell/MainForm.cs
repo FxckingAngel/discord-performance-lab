@@ -24,6 +24,8 @@ public sealed class MainForm : Form
     private readonly bool diagnosticHardwareBridge;
     private readonly bool diagnosticBridgePair;
     private readonly bool diagnosticAuthenticated;
+    private readonly bool diagnosticCapabilityEvents;
+    private string? capabilityEventLogPath;
     private readonly Panel titleBar = new() { Dock = DockStyle.Top, Height = 32 };
     private readonly Label titleLabel = new() { AutoEllipsis = true, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
     private readonly Button minimizeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "—", Width = 42, TabStop = false, AccessibleName = "Minimize" };
@@ -31,7 +33,7 @@ public sealed class MainForm : Form
     private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
     private readonly NotifyIcon trayIcon = new() { Icon = SystemIcons.Application, Visible = true, Text = "Discord" };
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
@@ -40,6 +42,7 @@ public sealed class MainForm : Form
         this.diagnosticHardwareBridge = diagnosticHardwareBridge;
         this.diagnosticBridgePair = diagnosticBridgePair;
         this.diagnosticAuthenticated = diagnosticAuthenticated;
+        this.diagnosticCapabilityEvents = diagnosticCapabilityEvents;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
             : diagnosticUserAgent
@@ -52,6 +55,8 @@ public sealed class MainForm : Form
                     ? "Korone's Discord Shell (Bridge Pair Probe)"
                 : diagnosticAuthenticated
                     ? "Korone's Discord Shell (Authenticated Profile Probe)"
+                : diagnosticCapabilityEvents
+                    ? "Korone's Discord Shell (Capability Events Probe)"
                 : diagnosticDiscord
                 ? "Korone's Discord Shell (Environment Probe)"
                 : "Korone's Discord Shell (Prototype)";
@@ -148,18 +153,31 @@ public sealed class MainForm : Form
                             ? "BridgePairProbeUserData"
                         : diagnosticAuthenticated
                             ? "WebView2UserData"
+                        : diagnosticCapabilityEvents
+                            ? "CapabilityEventsProbeUserData"
                         : diagnosticDiscord
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : 9228;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticCapabilityEvents ? 9231 : 9228;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticCapabilityEvents
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
                 userDataFolder: userDataFolder,
                 options: options);
             await webView.EnsureCoreWebView2Async(environment);
+            if (diagnosticCapabilityEvents)
+            {
+                var diagnosticsDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "KoroneDiscordShell",
+                    "Diagnostics");
+                Directory.CreateDirectory(diagnosticsDirectory);
+                capabilityEventLogPath = Path.Combine(diagnosticsDirectory, "capability-events.jsonl");
+                webView.CoreWebView2.PermissionRequested += OnPermissionRequested;
+                webView.CoreWebView2.NotificationReceived += OnNotificationReceived;
+            }
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
@@ -257,10 +275,48 @@ public sealed class MainForm : Form
                             ? "Korone's Discord Shell (Bridge Pair Probe)"
                         : diagnosticAuthenticated
                             ? "Korone's Discord Shell (Authenticated Profile Probe)"
+                        : diagnosticCapabilityEvents
+                            ? "Korone's Discord Shell (Capability Events Probe)"
                     : diagnosticDiscord
                     ? "Korone's Discord Shell (Environment Probe)"
                     : "Korone's Discord Shell (Prototype)";
             titleLabel.Text = Text;
+        }
+    }
+
+    private void OnPermissionRequested(object? sender, CoreWebView2PermissionRequestedEventArgs e)
+    {
+        WriteCapabilityEvent(new
+        {
+            eventType = "permission-requested",
+            origin = e.Uri,
+            permissionKind = e.PermissionKind.ToString(),
+            isUserInitiated = e.IsUserInitiated,
+            state = e.State.ToString(),
+        });
+    }
+
+    private void OnNotificationReceived(object? sender, CoreWebView2NotificationReceivedEventArgs e)
+    {
+        WriteCapabilityEvent(new
+        {
+            eventType = "notification-received",
+            origin = e.SenderOrigin,
+        });
+    }
+
+    private void WriteCapabilityEvent(object value)
+    {
+        if (string.IsNullOrEmpty(capabilityEventLogPath)) return;
+        try
+        {
+            File.AppendAllText(
+                capabilityEventLogPath,
+                JsonSerializer.Serialize(new { timestamp = DateTime.UtcNow, value }) + Environment.NewLine);
+        }
+        catch
+        {
+            // Diagnostics must never affect the Discord page or native shell.
         }
     }
 

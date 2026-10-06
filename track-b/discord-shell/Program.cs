@@ -16,6 +16,7 @@ internal static class Program
         var diagnosticHardwareBridge = args.Length == 1 && string.Equals(args[0], "--diagnostic-hardware-bridge", StringComparison.Ordinal);
         var diagnosticBridgePair = args.Length == 1 && string.Equals(args[0], "--diagnostic-bridge-pair", StringComparison.Ordinal);
         var diagnosticAuthenticated = args.Length == 1 && string.Equals(args[0], "--diagnostic-authenticated", StringComparison.Ordinal);
-        Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated));
+        var diagnosticCapabilityEvents = args.Length == 1 && string.Equals(args[0], "--diagnostic-capability-events", StringComparison.Ordinal);
+        Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents));
     }
 }
