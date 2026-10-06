@@ -55,6 +55,9 @@ public static class TrackBVirtualMemory {
             ["privateWritableCommittedBytes"] = 0,
             ["privateExecutableCommittedBytes"] = 0,
             ["privateOtherProtectionCommittedBytes"] = 0,
+            ["privateWritableRegionCount"] = 0,
+            ["privateWritableRegionsOver1MiB"] = 0,
+            ["largestPrivateWritableRegionBytes"] = 0,
             ["regionCount"] = 0,
         };
         var process = OpenProcess(QueryInformation, false, processId);
@@ -76,7 +79,12 @@ public static class TrackBVirtualMemory {
                         var protection = information.Protect & 0xff;
                         var writable = protection == 0x04 || protection == 0x08 || protection == 0x40 || protection == 0x80;
                         var executable = protection == 0x10 || protection == 0x20 || protection == 0x40 || protection == 0x80;
-                        if (writable) result["privateWritableCommittedBytes"] += regionSize;
+                        if (writable) {
+                            result["privateWritableCommittedBytes"] += regionSize;
+                            result["privateWritableRegionCount"]++;
+                            if (regionSize > 1024 * 1024) result["privateWritableRegionsOver1MiB"]++;
+                            if (regionSize > result["largestPrivateWritableRegionBytes"]) result["largestPrivateWritableRegionBytes"] = regionSize;
+                        }
                         if (executable) result["privateExecutableCommittedBytes"] += regionSize;
                         if (!writable && !executable) result["privateOtherProtectionCommittedBytes"] += regionSize;
                     }
@@ -147,6 +155,9 @@ $rows = foreach ($row in @(Get-Descendants)) {
             privateWritableCommittedBytes = [long] $memory.privateWritableCommittedBytes
             privateExecutableCommittedBytes = [long] $memory.privateExecutableCommittedBytes
             privateOtherProtectionCommittedBytes = [long] $memory.privateOtherProtectionCommittedBytes
+            privateWritableRegionCount = [long] $memory.privateWritableRegionCount
+            privateWritableRegionsOver1MiB = [long] $memory.privateWritableRegionsOver1MiB
+            largestPrivateWritableRegionBytes = [long] $memory.largestPrivateWritableRegionBytes
             mappedCommittedBytes = [long] $memory.mappedCommittedBytes
             imageCommittedBytes = [long] $memory.imageCommittedBytes
             otherCommittedBytes = [long] $memory.otherCommittedBytes

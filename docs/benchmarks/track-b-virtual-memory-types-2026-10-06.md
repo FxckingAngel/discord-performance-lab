@@ -4,6 +4,8 @@ This was a read-only `VirtualQueryEx` snapshot of the current seven-process Trac
 
 Raw artifact: `benchmarks/raw/track-b-virtual-memory-types-current-20261006.json`.
 
+In the later snapshot used for the current raw artifact, the renderer had 119.30 MiB of writable private committed memory across 1,140 regions. Sixteen writable regions were larger than 1 MiB, and the largest was 15.50 MiB. This is a region-shape observation from one point in time, not a leak diagnosis.
+
 ## Per-process result
 
 | Role | Process private bytes | Private committed | Private writable | Private executable | Mapped committed | Image committed |
