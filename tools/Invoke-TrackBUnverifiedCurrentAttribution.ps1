@@ -13,7 +13,9 @@ param(
     [string] $OutputDirectory = (Join-Path (Get-Location) ('artifacts/track-b-cdp-current-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))),
 
     [ValidateNotNullOrEmpty()]
-    [string] $Scenario = 'current-authenticated-unverified'
+    [string] $Scenario = 'current-authenticated-unverified',
+
+    [switch] $CaptureHeapSnapshot
 )
 
 if (-not $AllowNormalShellRestart) {
@@ -25,15 +27,21 @@ $node = Get-Command node.exe -ErrorAction Stop
 $powershell = Get-Command pwsh.exe -ErrorAction Stop
 $measureScript = Join-Path $PSScriptRoot 'Measure-DiscordPhase2Attribution.ps1'
 $cdpScript = Join-Path $PSScriptRoot 'Invoke-DiscordPhase2CdpDiagnostics.mjs'
+$heapScript = Join-Path $PSScriptRoot 'Capture-TrackBCdpHeapSnapshot.mjs'
 foreach ($path in @($measureScript, $cdpScript)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required diagnostic tool was not found: $path"
     }
 }
+if ($CaptureHeapSnapshot -and -not (Test-Path -LiteralPath $heapScript -PathType Leaf)) {
+    throw "Heap snapshot tool was not found: $heapScript"
+}
 
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $processTreePath = Join-Path $OutputDirectory 'process-tree.json'
 $cdpPath = Join-Path $OutputDirectory 'cdp.json'
+$heapRawPath = Join-Path $OutputDirectory 'private.heapsnapshot'
+$heapSummaryPath = Join-Path $OutputDirectory 'heap-summary.json'
 $diagnosticProcess = $null
 $measureProcess = $null
 
@@ -86,6 +94,10 @@ try {
     )
     & $node.Source $cdpScript 9230 $DurationSeconds $cdpPath
     if ($LASTEXITCODE -ne 0) { throw "CDP diagnostics failed with exit code $LASTEXITCODE." }
+    if ($CaptureHeapSnapshot) {
+        & $node.Source $heapScript 9230 $heapRawPath $heapSummaryPath
+        if ($LASTEXITCODE -ne 0) { throw "Heap snapshot capture failed with exit code $LASTEXITCODE." }
+    }
     $measureProcess.WaitForExit()
     if ($measureProcess.ExitCode -ne 0) { throw "Process attribution failed with exit code $($measureProcess.ExitCode)." }
 
@@ -95,6 +107,8 @@ try {
         durationSeconds = $DurationSeconds
         processTreePath = (Resolve-Path $processTreePath).Path
         cdpPath = (Resolve-Path $cdpPath).Path
+        heapSummaryPath = if ($CaptureHeapSnapshot) { (Resolve-Path $heapSummaryPath).Path } else { $null }
+        privateHeapSnapshotPath = if ($CaptureHeapSnapshot) { (Resolve-Path $heapRawPath).Path } else { $null }
     } | ConvertTo-Json -Depth 4
 }
 finally {
