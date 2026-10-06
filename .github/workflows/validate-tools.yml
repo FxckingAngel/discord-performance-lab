@@ -1,0 +1,15 @@
+name: Validate benchmark tools
+
+on:
+  push:
+    branches: [project/bootstrap]
+  pull_request:
+
+jobs:
+  powershell-parse:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell tools
+        shell: pwsh
+        run: ./tools/Test-DiscordPerformanceTools.ps1
