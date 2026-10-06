@@ -43,3 +43,9 @@ The final process sample reported 117.63 MiB renderer private working set and 13
 The renderer's approximately 132 MiB private allocation is not a 132 MiB JavaScript heap. The measured V8 used heap accounts for roughly 31 MiB, leaving a large unclassified renderer-resident remainder. This supports the next Phase 2 work item: use sanitized allocation and compositor diagnostics to distinguish Blink/DOM, native Chromium, decoded media, and shared-buffer allocations before changing renderer behavior.
 
 The CDP probe did not produce a useful allocation-sampling profile in this run (`sampleCount=0`), so no allocation-owner claim is made from sampling. The diagnostic mode was closed after capture and does not alter normal-shell behavior.
+
+## Native sampling follow-up
+
+A second diagnostic run called the browser-supported `Memory.getAllTimeSamplingProfile` method and returned one aggregate native-memory sample of 56.8 MiB, with no exposed stack-frame list in this WebView2 build. The same run measured 30.4 MiB V8 used heap and 12.1 MiB V8 embedder heap. The native sample is retained as an attribution signal only; it is not added to the process private-memory total and is not treated as a complete native-allocation census.
+
+The raw aggregate-only result remains local at `artifacts/diagnostic-authenticated-cdp-native-memory.json`. No allocation stacks or heap objects were published.

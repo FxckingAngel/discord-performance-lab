@@ -62,6 +62,17 @@ function summarizeProfile(profile) {
   };
 }
 
+function summarizeNativeMemoryProfile(profile) {
+  const samples = Array.isArray(profile?.samples) ? profile.samples : [];
+  const sizes = samples.map((sample) => Number(sample.size ?? 0)).filter(Number.isFinite);
+  return {
+    sampleCount: samples.length,
+    sampledBytes: sizes.reduce((sum, size) => sum + size, 0),
+    largestSampleBytes: sizes.length > 0 ? Math.max(...sizes) : 0,
+    stackFrameCount: Array.isArray(profile?.stackFrames) ? profile.stackFrames.length : null,
+  };
+}
+
 const result = {
   schemaVersion: 1,
   capturedAt: new Date().toISOString(),
@@ -77,6 +88,10 @@ try {
   result.heapUsage = (await optionalCommand('Runtime.getHeapUsage')).result ?? null;
   const metrics = await optionalCommand('Performance.getMetrics');
   result.performanceMetrics = metrics.available ? metricMap(metrics.result.metrics) : { error: metrics.error };
+  const nativeMemory = await optionalCommand('Memory.getAllTimeSamplingProfile');
+  result.nativeMemorySampling = nativeMemory.available
+    ? summarizeNativeMemoryProfile(nativeMemory.result.profile)
+    : { error: nativeMemory.error };
   const aggregate = await optionalCommand('Runtime.evaluate', {
     expression: `(() => ({
       domNodeCount: document.getElementsByTagName('*').length,
