@@ -30,6 +30,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Functional checklist](docs/functional-checklist.md)
 - [Experiment 001](docs/experiments/001-low-end-device-mode.md)
 - [Experiment 002](docs/experiments/002-disable-breakpad.md)
+- [Experiment 003](docs/experiments/003-ecoqos.md)
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [Security and safety boundary](SECURITY.md)
 
@@ -46,6 +47,8 @@ It records process-tree working set, private bytes, CPU time, handles, threads, 
 For process-tree startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Measure-DiscordStartup.ps1). It refuses to launch over an existing instance and measures process-tree first-seen and stable times; those values are not a substitute for UI-ready timing.
 
 Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to apply the regression gate to two generated summaries.
+
+The reproducible private profiles are launched with [tools/Launch-DiscordPerformanceProfile.ps1](tools/Launch-DiscordPerformanceProfile.ps1). The `stock` profile passes no extra switch; the `ecoqs` profile passes only `--enable-features=UseEcoQoSForBackgroundProcess`.
 
 ## Evidence standard
 
