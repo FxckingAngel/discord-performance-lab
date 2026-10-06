@@ -2,7 +2,7 @@
 
 ## Status
 
-Promising private profile; functional acceptance pending.
+Mixed private profile; functional acceptance pending.
 
 ## Change
 
@@ -39,3 +39,5 @@ A later window-aware run recorded process-tree stabilization at 12.135 s, the fi
 ## Acceptance state
 
 The quantitative gate passed. Runtime smoke checks passed twice: the root process was responsive, exposed a main window titled `Friends - Discord`, and carried the EcoQoS switch. A stock restore was then verified by launching without the candidate switch. Normal navigation, messaging, notifications, voice, media, settings persistence, and cleanup remain unverified and are still required before final acceptance.
+
+An additional paired idle run on 2026-10-06 did not pass the regression gate. Stock measured 1,375.48 MiB working-set median, 1,153.23 MiB private-memory median, and 0.889% CPU. EcoQoS measured 1,366.95 MiB, 1,125.86 MiB, and 1.012% CPU. Memory improved by 0.6% and 2.4%, while CPU regressed by 13.8%; process count stayed at six. The latest pair is therefore not sufficient to accept EcoQoS as a default profile, despite the earlier favorable pair.
