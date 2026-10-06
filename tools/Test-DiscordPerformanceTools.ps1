@@ -119,6 +119,12 @@ try {
             throw "CDP diagnostics do not report $requiredField."
         }
     }
+    $scenarioCompareSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Compare-TrackBScenarioAttribution.ps1') -Raw
+    foreach ($requiredField in @('renderer.privateWorkingSetMedianMiB', 'v8.usedMiB', 'media.imageNaturalPixelCount')) {
+        if ($scenarioCompareSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Scenario attribution comparison does not report $requiredField."
+        }
+    }
     if ($shellSource -notmatch 'Uri\.TryCreate') {
         throw 'Normal bridge origin validation does not parse the message source as a URI.'
     }
