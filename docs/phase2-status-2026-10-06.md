@@ -87,6 +87,8 @@ The sampler was then corrected to batch process/GPU counter queries and compensa
 
 1. Capture the full scenario matrix: foreground idle, background idle, text scrolling, voice, video, screen sharing, media-heavy channel, notification, startup, and settled state.
 2. Obtain ETW/WPA access or an equivalent trace reader and attribute wakeups, context switches, faults, disk I/O, GPU engines, and process lifetime.
-3. Inspect renderer/V8/Blink retention, media/GIF caches, React trees, timers, animation, WebRTC buffers, and GPU texture/cache behavior using safe diagnostic methods.
+3. Inspect renderer/V8/Blink retention, media/GIF caches, React trees, timers, animation, WebRTC buffers, and GPU texture/cache behavior using safe diagnostic methods. Current Track B evidence ranks renderer allocation first; the sanitized heap snapshot and idle performance window are recorded in `docs/benchmarks/track-b-cdp-heap-snapshot-attribution-2026-10-06.md`.
 4. Rank opportunities by measured ownership and test one narrow, reversible change at a time.
 5. Keep the repository private and do not call a candidate an official-quality build until the full functional matrix passes.
+
+The current ranking is renderer first, then GPU/native runtime attribution. The latest separated-role benchmark measured 120.31 MiB renderer private bytes, 58.20 MiB GPU private bytes, 41.77 MiB WebView2 browser private bytes, and 11.38 MiB native-shell private bytes. The renderer remains the only component with a large Discord-loaded delta over the blank runtime floor.
