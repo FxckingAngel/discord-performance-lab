@@ -47,7 +47,13 @@ The first read-only collector is [tools/Measure-DiscordProcessTree.ps1](tools/Me
 .\tools\Measure-DiscordProcessTree.ps1 -ProcessName DiscordPTB -DurationSeconds 60 -IntervalSeconds 5 -Scenario idle-observation -OutputPath .\benchmarks\raw\stock-discordptb.json
 ```
 
-It records process-tree working set, private bytes, CPU time, handles, threads, parent PIDs, and timestamps. Raw benchmark files stay local by default.
+It records process-tree working set, private bytes, CPU time, handles, threads, parent PIDs, creation times, and timestamps. When a root PID is supplied, the collector follows only that PID and its descendants instead of every process with the same executable name:
+
+```powershell
+.\tools\Measure-DiscordProcessTree.ps1 -ProcessName DiscordPTB -RootPid 12345 -DurationSeconds 60 -IntervalSeconds 5 -Scenario idle-observation -OutputPath .\benchmarks\raw\stock-discordptb-rooted.json
+```
+
+Raw benchmark files stay local by default.
 
 For startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Measure-DiscordStartup.ps1). It refuses to launch over an existing instance and records process-tree timing plus the first responsive main window and its title; it still does not prove that every Discord feature is ready.
 

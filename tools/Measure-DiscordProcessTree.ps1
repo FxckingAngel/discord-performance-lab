@@ -4,6 +4,9 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $ProcessName,
 
+    [ValidateRange(0, [int]::MaxValue)]
+    [int] $RootPid = 0,
+
     [ValidateRange(5, 86400)]
     [int] $DurationSeconds = 30,
 
@@ -21,16 +24,35 @@ function Get-DiscordProcessSnapshot {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string] $Name
+        [string] $Name,
+
+        [int] $TreeRootPid
     )
 
-    $processes = Get-CimInstance Win32_Process -Filter "Name='$Name.exe'"
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name='$Name.exe'")
+    if ($TreeRootPid -gt 0) {
+        $treePids = [System.Collections.Generic.HashSet[int]]::new()
+        $pending = [System.Collections.Generic.Queue[int]]::new()
+        [void] $treePids.Add($TreeRootPid)
+        $pending.Enqueue($TreeRootPid)
+        while ($pending.Count -gt 0) {
+            $parentPid = $pending.Dequeue()
+            foreach ($child in @($processes | Where-Object { [int] $_.ParentProcessId -eq $parentPid })) {
+                $childPid = [int] $child.ProcessId
+                if ($treePids.Add($childPid)) {
+                    $pending.Enqueue($childPid)
+                }
+            }
+        }
+        $processes = @($processes | Where-Object { $treePids.Contains([int] $_.ProcessId) })
+    }
     $rows = foreach ($process in $processes) {
         try {
             $current = Get-Process -Id $process.ProcessId -ErrorAction Stop
             [pscustomobject] @{
                 pid             = $current.Id
                 parentPid       = [int] $process.ParentProcessId
+                creationTime    = $current.StartTime.ToUniversalTime().ToString('o')
                 name            = $current.ProcessName
                 path            = $current.Path
                 cpuSeconds      = $current.CPU
@@ -60,14 +82,15 @@ function Invoke-DiscordBenchmark {
         [Parameter(Mandatory = $true)] [string] $Name,
         [Parameter(Mandatory = $true)] [int] $Duration,
         [Parameter(Mandatory = $true)] [int] $Interval,
-        [Parameter(Mandatory = $true)] [string] $ScenarioName
+        [Parameter(Mandatory = $true)] [string] $ScenarioName,
+        [int] $TreeRootPid
     )
 
     $samples = [System.Collections.Generic.List[object]]::new()
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     do {
-        $snapshot = Get-DiscordProcessSnapshot -Name $Name
+        $snapshot = Get-DiscordProcessSnapshot -Name $Name -TreeRootPid $TreeRootPid
         $samples.Add([pscustomobject] @{
             timestamp        = (Get-Date).ToUniversalTime().ToString('o')
             processCount     = $snapshot.processCount
@@ -86,6 +109,7 @@ function Invoke-DiscordBenchmark {
         schemaVersion          = 1
         build                  = $Name
         scenario               = $ScenarioName
+        rootPid                = if ($TreeRootPid -gt 0) { $TreeRootPid } else { $null }
         durationSeconds        = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
         sampleIntervalSeconds  = $Interval
         startedAt               = $samples[0].timestamp
@@ -94,7 +118,7 @@ function Invoke-DiscordBenchmark {
     }
 }
 
-$result = Invoke-DiscordBenchmark -Name $ProcessName -Duration $DurationSeconds -Interval $IntervalSeconds -ScenarioName $Scenario
+$result = Invoke-DiscordBenchmark -Name $ProcessName -Duration $DurationSeconds -Interval $IntervalSeconds -ScenarioName $Scenario -TreeRootPid $RootPid
 $parent = Split-Path -Parent $OutputPath
 if ($parent -and -not (Test-Path -LiteralPath $parent)) {
     New-Item -ItemType Directory -Path $parent -Force | Out-Null

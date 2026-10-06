@@ -8,7 +8,7 @@ The safest path is to work at a supported application boundary and keep the stoc
 
 ### 1. Measurement harness
 
-The harness launches a selected Discord build, records its process tree, collects resource samples, timestamps readiness milestones, and exports raw data plus metadata. It must identify processes by PID and creation time rather than by process name alone.
+The harness launches a selected Discord build, records its process tree, collects resource samples, timestamps readiness milestones, and exports raw data plus metadata. Rooted collection follows a selected PID and its descendants, retaining PID and creation time rather than treating a process name as a unique instance.
 
 Measurements should use Windows process APIs or the `Process V2` performance counter set where available. Working set is useful for resident RAM, but it is a momentary view and must not be treated as the application's complete memory cost. Private bytes, process count, and the process tree should be reported alongside it.
 
