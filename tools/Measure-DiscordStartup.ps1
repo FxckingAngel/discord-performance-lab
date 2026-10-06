@@ -34,6 +34,9 @@ if ($existing.Count -gt 0) {
 $watch = [System.Diagnostics.Stopwatch]::StartNew()
 $launched = Start-Process -FilePath $resolvedExecutable -ArgumentList $ArgumentList -PassThru
 $firstProcessAt = $null
+$firstWindowAt = $null
+$windowTitle = ''
+$windowResponding = $false
 $stableCount = 0
 $lastCount = -1
 $observed = @()
@@ -46,6 +49,20 @@ while ($stableCount -lt $StableSamples) {
     if ($current.Count -gt 0 -and -not $firstProcessAt) {
         $firstProcessAt = $watch.Elapsed.TotalSeconds
     }
+    foreach ($item in $current) {
+        try {
+            $process = Get-Process -Id $item.ProcessId -ErrorAction Stop
+            if ($process.MainWindowHandle -ne 0) {
+                if (-not $firstWindowAt) { $firstWindowAt = $watch.Elapsed.TotalSeconds }
+                $windowTitle = $process.MainWindowTitle
+                $windowResponding = [bool] $process.Responding
+                break
+            }
+        }
+        catch [System.ArgumentException] {
+            # A child can exit between the process query and the sample.
+        }
+    }
     if ($current.Count -eq $lastCount -and $current.Count -gt 0) {
         $stableCount++
     }
@@ -57,6 +74,9 @@ while ($stableCount -lt $StableSamples) {
         elapsedSeconds = [math]::Round($watch.Elapsed.TotalSeconds, 3)
         processCount = $current.Count
         pids = @($current | ForEach-Object ProcessId)
+        mainWindowPresent = ($null -ne $firstWindowAt)
+        mainWindowTitle = $windowTitle
+        mainWindowResponding = $windowResponding
     }
 }
 
@@ -67,6 +87,9 @@ $result = [pscustomobject]@{
     scenario = $Scenario
     processTreeFirstSeenSeconds = [math]::Round($firstProcessAt, 3)
     processTreeStableSeconds = [math]::Round($watch.Elapsed.TotalSeconds, 3)
+    mainWindowFirstSeenSeconds = if ($null -ne $firstWindowAt) { [math]::Round($firstWindowAt, 3) } else { $null }
+    mainWindowTitle = $windowTitle
+    mainWindowResponding = $windowResponding
     stableSampleCount = $StableSamples
     observations = @($observed)
 }

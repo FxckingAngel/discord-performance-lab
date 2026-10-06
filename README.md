@@ -44,7 +44,7 @@ The first read-only collector is [tools/Measure-DiscordProcessTree.ps1](tools/Me
 
 It records process-tree working set, private bytes, CPU time, handles, threads, parent PIDs, and timestamps. Raw benchmark files stay local by default.
 
-For process-tree startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Measure-DiscordStartup.ps1). It refuses to launch over an existing instance and measures process-tree first-seen and stable times; those values are not a substitute for UI-ready timing.
+For startup timing, use [tools/Measure-DiscordStartup.ps1](tools/Measure-DiscordStartup.ps1). It refuses to launch over an existing instance and records process-tree timing plus the first responsive main window and its title; it still does not prove that every Discord feature is ready.
 
 Use [tools/Compare-DiscordBenchmark.ps1](tools/Compare-DiscordBenchmark.ps1) to apply the regression gate to two generated summaries.
 
