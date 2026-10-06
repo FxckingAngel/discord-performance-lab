@@ -67,7 +67,7 @@ function Get-DisplayMetadata {
 }
 
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
-$rootProcess = Get-Process -Id $RootPid -ErrorAction Stop
+$null = Get-Process -Id $RootPid -ErrorAction Stop
 $manifest = [System.Collections.Generic.List[object]]::new()
 for ($repetition = 1; $repetition -le $Repetitions; $repetition++) {
     $repeatDirectory = Join-Path $OutputDirectory ("repeat-{0:D2}" -f $repetition)
