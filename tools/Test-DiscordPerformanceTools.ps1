@@ -97,6 +97,10 @@ try {
     if (-not $comparison.passed) {
         throw 'Synthetic benchmark comparison did not pass.'
     }
+    $shareableMetric = @($comparison.metrics | Where-Object name -eq 'shareableWorkingSetMedianMiB')
+    if ($shareableMetric.Count -ne 1 -or $shareableMetric[0].candidate -ne 450) {
+        throw 'Shareable working-set comparison was not calculated as expected.'
+    }
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
