@@ -41,8 +41,9 @@ function Test-CurrentParentProcess {
 }
 
 function Get-Role {
-    param([object] $Process)
+    param([object] $Process, [int] $TreeRootPid)
 
+    if ([int] $Process.ProcessId -eq $TreeRootPid) { return 'native-shell' }
     $role = 'browser'
     if ($Process.CommandLine -match '--type=([^\s]+)') {
         $role = $Matches[1]
@@ -122,7 +123,7 @@ for ($index = 0; $index -le $sampleCount; $index++) {
             [pscustomobject]@{
                 pid = $processId
                 parentPid = [int] $cimProcess.ParentProcessId
-                role = Get-Role -Process $cimProcess
+                role = Get-Role -Process $cimProcess -TreeRootPid $RootPid
                 lifetimeSeconds = [math]::Round(($timestamp - $process.StartTime.ToUniversalTime()).TotalSeconds, 3)
                 workingSetMiB = [math]::Round($process.WorkingSet64 / 1MB, 2)
                 privateMemoryMiB = [math]::Round($process.PrivateMemorySize64 / 1MB, 2)
@@ -139,7 +140,7 @@ for ($index = 0; $index -le $sampleCount; $index++) {
             [pscustomobject]@{
                 pid = $processId
                 parentPid = [int] $cimProcess.ParentProcessId
-                role = Get-Role -Process $cimProcess
+                role = Get-Role -Process $cimProcess -TreeRootPid $RootPid
                 status = 'unavailable'
                 errorCategory = $_.Exception.GetType().Name
             }
