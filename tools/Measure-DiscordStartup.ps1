@@ -33,6 +33,7 @@ if ($existing.Count -gt 0) {
 
 $watch = [System.Diagnostics.Stopwatch]::StartNew()
 $launched = Start-Process -FilePath $resolvedExecutable -ArgumentList $ArgumentList -PassThru
+$rootPid = [int] $launched.Id
 $firstProcessAt = $null
 $firstWindowAt = $null
 $windowTitle = ''
@@ -41,11 +42,34 @@ $stableCount = 0
 $lastCount = -1
 $observed = @()
 
+function Select-RootedProcessTree {
+    param(
+        [Parameter(Mandatory = $true)] [object[]] $Processes,
+        [Parameter(Mandatory = $true)] [int] $TreeRootPid
+    )
+
+    $treePids = [System.Collections.Generic.HashSet[int]]::new()
+    $pending = [System.Collections.Generic.Queue[int]]::new()
+    [void] $treePids.Add($TreeRootPid)
+    $pending.Enqueue($TreeRootPid)
+    while ($pending.Count -gt 0) {
+        $parentPid = $pending.Dequeue()
+        foreach ($child in @($Processes | Where-Object { [int] $_.ParentProcessId -eq $parentPid })) {
+            $childPid = [int] $child.ProcessId
+            if ($treePids.Add($childPid)) {
+                $pending.Enqueue($childPid)
+            }
+        }
+    }
+    @($Processes | Where-Object { $treePids.Contains([int] $_.ProcessId) })
+}
+
 while ($stableCount -lt $StableSamples) {
     Start-Sleep -Seconds $PollIntervalSeconds
     $current = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName.exe'" | Where-Object {
         $_.ExecutablePath -and ((Resolve-Path -LiteralPath $_.ExecutablePath -ErrorAction SilentlyContinue).Path -eq $resolvedExecutable)
     })
+    $current = @(Select-RootedProcessTree -Processes $current -TreeRootPid $rootPid)
     if ($current.Count -gt 0 -and -not $firstProcessAt) {
         $firstProcessAt = $watch.Elapsed.TotalSeconds
     }
@@ -84,6 +108,7 @@ $result = [pscustomobject]@{
     schemaVersion = 1
     executablePath = $resolvedExecutable
     processName = $ProcessName
+    rootPid = $rootPid
     scenario = $Scenario
     processTreeFirstSeenSeconds = [math]::Round($firstProcessAt, 3)
     processTreeStableSeconds = [math]::Round($watch.Elapsed.TotalSeconds, 3)
