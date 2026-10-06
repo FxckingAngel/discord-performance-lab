@@ -77,13 +77,20 @@ public sealed class MainForm : Form
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
+            var enableWindowBridge = diagnosticWindowBridge
+                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticHardwareBridge);
+            var enableHardwareBridge = diagnosticHardwareBridge
+                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticWindowBridge);
+            if (enableWindowBridge || enableHardwareBridge)
+            {
+                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+            }
             if (diagnosticUserAgent)
             {
                 webView.CoreWebView2.Settings.UserAgent = DiagnosticOfficialUserAgent;
             }
-            if (diagnosticWindowBridge)
+            if (enableWindowBridge)
             {
-                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
                 await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
 (() => {
   const actions = new Set(['minimize', 'maximize', 'restore', 'close', 'focus']);
@@ -96,9 +103,8 @@ public sealed class MainForm : Form
   }
 })();");
             }
-            if (diagnosticHardwareBridge)
+            if (enableHardwareBridge)
             {
-                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
                 await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
 (() => {
   const pending = new Map();
@@ -167,6 +173,13 @@ public sealed class MainForm : Form
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
+        if (!diagnosticWindowBridge
+            && !diagnosticHardwareBridge
+            && !e.Source.StartsWith("https://discord.com/", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         string message;
         try
         {
