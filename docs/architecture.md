@@ -48,9 +48,12 @@ benchmarks/
 src/
 tests/
 tools/
+  Measure-DiscordProcessTree.ps1
 ```
 
 The initial repository intentionally contains no client-modification code. The benchmark harness should land before optimization changes so that every later change has a baseline.
+
+The current collector is read-only. It observes an already running process tree and does not change Discord files, settings, network behavior, or account state.
 
 ## Decision gates
 

@@ -28,6 +28,16 @@ This repository contains the project charter, architecture direction, and benchm
 - [Benchmark plan](docs/benchmark-plan.md)
 - [Security and safety boundary](SECURITY.md)
 
+## Baseline tooling
+
+The first read-only collector is [tools/Measure-DiscordProcessTree.ps1](tools/Measure-DiscordProcessTree.ps1). Example:
+
+```powershell
+.\tools\Measure-DiscordProcessTree.ps1 -ProcessName DiscordPTB -DurationSeconds 60 -IntervalSeconds 5 -Scenario idle-observation -OutputPath .\benchmarks\raw\stock-discordptb.json
+```
+
+It records process-tree working set, private bytes, CPU time, handles, threads, parent PIDs, and timestamps. Raw benchmark files stay local by default.
+
 ## Evidence standard
 
 Every performance claim should include the stock and candidate build identifiers, workload, machine state, sample count, raw data location, summary statistics, and any functional regressions observed. The benchmark plan defines the first comparison.
