@@ -145,8 +145,23 @@ function Invoke-DiscordBenchmark {
         }
     } while ($stopwatch.Elapsed.TotalSeconds -lt $Duration)
 
+    # Convert cumulative process CPU time into interval CPU percentage after sampling.
+    for ($index = 1; $index -lt $samples.Count; $index++) {
+        $previous = $samples[$index - 1]
+        $current = $samples[$index]
+        $wallSeconds = ([datetime] $current.timestamp - [datetime] $previous.timestamp).TotalSeconds
+        $cpuPercentOfTotal = if ($wallSeconds -gt 0) {
+            (($current.cpuSeconds - $previous.cpuSeconds) / $wallSeconds) * 100 / [Environment]::ProcessorCount
+        }
+        else {
+            $null
+        }
+        $current | Add-Member -NotePropertyName cpuPercentOfTotal -NotePropertyValue $cpuPercentOfTotal -Force
+    }
+    $samples[0] | Add-Member -NotePropertyName cpuPercentOfTotal -NotePropertyValue $null -Force
+
     [pscustomobject] @{
-        schemaVersion          = 1
+        schemaVersion          = 2
         build                  = $Name
         scenario               = $ScenarioName
         rootPid                = if ($TreeRootPid -gt 0) { $TreeRootPid } else { $null }
