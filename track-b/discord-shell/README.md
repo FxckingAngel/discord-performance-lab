@@ -2,7 +2,7 @@
 
 This is the first Track B proof of concept. It is a native Windows WinForms executable that hosts Discord's official web application in the installed Microsoft WebView2 Runtime.
 
-The normal shell has only two narrow, origin-restricted native capabilities: window actions and display-count reporting. It has no protocol interception, account automation, or Discord-specific network handling. It uses a separate WebView2 user-data folder under `%LOCALAPPDATA%\\KoroneDiscordShell\\WebView2UserData` so it does not reuse or modify the official Discord desktop profile.
+The normal shell currently exposes no `DiscordNative` object to Discord's frontend. A partial object caused the frontend to stop after loading its scripts, leaving an empty root and a blank window. Window actions remain implemented by the shell titlebar, but the audited window and display-count bridges stay behind explicit diagnostic modes until the complete capability contract is implemented. The shell has no protocol interception, account automation, or Discord-specific network handling. It uses a separate WebView2 user-data folder under `%LOCALAPPDATA%\\KoroneDiscordShell\\WebView2UserData` so it does not reuse or modify the official Discord desktop profile.
 
 Normal launches use a local single-instance mutex. A second ordinary launch exits without creating another WebView2 tree, restores the existing window if it is minimized, and makes a best-effort foreground request. This prevents accidental duplicate shells from inflating resource measurements while retaining normal launcher behavior. Diagnostic modes remain separately launchable so they can use their isolated profiles and ports.
 

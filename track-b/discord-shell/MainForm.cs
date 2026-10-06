@@ -200,10 +200,18 @@ public sealed class MainForm : Form
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
-            var enableWindowBridge = diagnosticWindowBridge || diagnosticBridgePair
-                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticHardwareBridge && !diagnosticAuthenticatedNoBridges);
-            var enableHardwareBridge = diagnosticHardwareBridge || diagnosticBridgePair
-                || (!diagnosticBlank && !diagnosticDiscord && !diagnosticUserAgent && !diagnosticWindowBridge && !diagnosticAuthenticatedNoBridges);
+            // Discord aborts frontend initialization when a partial DiscordNative object is present.
+            // Keep the audited bridge behind explicit diagnostic modes until its full capability set is implemented.
+            var enableWindowBridge = diagnosticWindowBridge
+                || diagnosticBridgePair
+                || diagnosticAuthenticated
+                || diagnosticCapabilityEvents
+                || diagnosticAuthenticatedCapabilityEvents;
+            var enableHardwareBridge = diagnosticHardwareBridge
+                || diagnosticBridgePair
+                || diagnosticAuthenticated
+                || diagnosticCapabilityEvents
+                || diagnosticAuthenticatedCapabilityEvents;
             if (enableWindowBridge || enableHardwareBridge)
             {
                 webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;

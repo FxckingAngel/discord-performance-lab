@@ -68,6 +68,15 @@ try {
         }
     }
     $shellSource = Get-Content -LiteralPath $shellSourcePath -Raw
+    if ($shellSource -notmatch 'var enableWindowBridge = diagnosticWindowBridge') {
+        throw 'Normal shell bridge gating is not explicit.'
+    }
+    if ($shellSource -notmatch 'var enableHardwareBridge = diagnosticHardwareBridge') {
+        throw 'Normal shell hardware bridge gating is not explicit.'
+    }
+    if ($shellSource -notmatch 'partial DiscordNative object') {
+        throw 'Normal shell bridge gating does not document the blank-window regression.'
+    }
     if ($shellSource -notmatch 'Uri\.TryCreate') {
         throw 'Normal bridge origin validation does not parse the message source as a URI.'
     }
