@@ -17,7 +17,9 @@ param(
     [string] $OutputPath,
 
     [ValidateNotNullOrEmpty()]
-    [string] $ProcessName = 'DiscordPTB'
+    [string] $ProcessName = 'DiscordPTB',
+
+    [switch] $IncludeThreadCounters
 )
 
 $processNamePattern = "$ProcessName.exe"
@@ -152,6 +154,53 @@ function Get-GpuRows {
     }
 }
 
+function Get-ThreadCounterRows {
+    param([int[]] $RootedPids)
+
+    $idByInstance = @{}
+    $switchesByInstance = @{}
+    try {
+        $counters = Get-Counter -Counter @(
+            '\Thread(*)\ID Process',
+            '\Thread(*)\Context Switches/sec'
+        ) -MaxSamples 1 -ErrorAction Stop
+        foreach ($sample in @($counters.CounterSamples)) {
+            $instance = $sample.InstanceName
+            if ($sample.Path -match '\\Thread\(' -and $sample.Path -match '\\ID Process$') {
+                $idByInstance[$instance] = [int] $sample.CookedValue
+            }
+            elseif ($sample.Path -match '\\Thread\(' -and $sample.Path -match '\\Context Switches/sec$') {
+                $switchesByInstance[$instance] = [double] $sample.CookedValue
+            }
+        }
+    }
+    catch {
+        # Thread counters are supplementary and vary by Windows policy.
+    }
+
+    $byPid = @{}
+    foreach ($pair in $idByInstance.GetEnumerator()) {
+        $processId = $pair.Value
+        if ($RootedPids -notcontains $processId) { continue }
+        if (-not $byPid.ContainsKey($processId)) {
+            $byPid[$processId] = [pscustomobject]@{ contextSwitchesPerSecond = 0.0; threadCounterInstances = 0 }
+        }
+        $byPid[$processId].threadCounterInstances++
+        if ($switchesByInstance.ContainsKey($pair.Key)) {
+            $byPid[$processId].contextSwitchesPerSecond += $switchesByInstance[$pair.Key]
+        }
+    }
+
+    foreach ($processId in $RootedPids) {
+        $value = $byPid[$processId]
+        [pscustomobject]@{
+            pid = $processId
+            contextSwitchesPerSecond = if ($null -ne $value) { [math]::Round($value.contextSwitchesPerSecond, 2) } else { $null }
+            threadCounterInstances = if ($null -ne $value) { $value.threadCounterInstances } else { $null }
+        }
+    }
+}
+
 $initialPids = @(Get-RootedPids)
 if ($initialPids.Count -eq 0) {
     throw "Root PID $RootPid was not found among $ProcessName processes."
@@ -168,6 +217,7 @@ for ($index = 0; $index -le $sampleCount; $index++) {
         timestamp = $timestamp
         processCount = $rootedPids.Count
         processes = @(Get-ProcessCounterRows -RootedPids $rootedPids)
+        threads = if ($IncludeThreadCounters) { @(Get-ThreadCounterRows -RootedPids $rootedPids) } else { @() }
         gpu = @(Get-GpuRows -RootedPids $rootedPids)
     })
     if ($index -lt $sampleCount) {
@@ -189,6 +239,7 @@ $result = [pscustomobject]@{
     endedAt = [DateTime]::UtcNow
     durationSeconds = ([DateTime]::UtcNow - $startedAt).TotalSeconds
     sampleIntervalSeconds = $IntervalSeconds
+    threadCountersEnabled = [bool] $IncludeThreadCounters
     counterPaths = $counterPaths
     samples = @($samples)
 }
