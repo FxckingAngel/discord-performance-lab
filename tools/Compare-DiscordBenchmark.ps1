@@ -40,7 +40,11 @@ $metrics = @(
     [pscustomobject] @{ name = 'cpuMedianPercentOfTotal'; baseline = [double] $baseline.cpuPercentOfTotal.medianRun; candidate = [double] $candidate.cpuPercentOfTotal.medianRun },
     [pscustomobject] @{ name = 'cpuP95PercentOfTotal'; baseline = [double] $baseline.cpuPercentOfTotal.p95Run; candidate = [double] $candidate.cpuPercentOfTotal.p95Run },
     [pscustomobject] @{ name = 'processCountMedian'; baseline = [double] $baseline.processCount.median; candidate = [double] $candidate.processCount.median },
-    [pscustomobject] @{ name = 'processCountMaximum'; baseline = [double] $baseline.processCount.maximum; candidate = [double] $candidate.processCount.maximum }
+    [pscustomobject] @{ name = 'processCountMaximum'; baseline = [double] $baseline.processCount.maximum; candidate = [double] $candidate.processCount.maximum },
+    [pscustomobject] @{ name = 'handlesMedian'; baseline = [double] $baseline.handles.median; candidate = [double] $candidate.handles.median },
+    [pscustomobject] @{ name = 'handlesP95'; baseline = [double] $baseline.handles.p95; candidate = [double] $candidate.handles.p95 },
+    [pscustomobject] @{ name = 'threadsMedian'; baseline = [double] $baseline.threads.median; candidate = [double] $candidate.threads.median },
+    [pscustomobject] @{ name = 'threadsP95'; baseline = [double] $baseline.threads.p95; candidate = [double] $candidate.threads.p95 }
 )
 
 $results = @($metrics | ForEach-Object {
