@@ -143,6 +143,12 @@ try {
             throw "CDP diagnostics do not report $requiredField."
         }
     }
+    $checkpointSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBMemoryAttributionCheckpoint.ps1') -Raw
+    foreach ($requiredField in @('[string] $Scenario', "'-Scenario', `$Scenario")) {
+        if ($checkpointSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Memory attribution checkpoint does not preserve a caller-supplied scenario label: $requiredField."
+        }
+    }
     foreach ($requiredField in @('selfBytes', 'topFunctions')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP heap sampling does not report $requiredField."

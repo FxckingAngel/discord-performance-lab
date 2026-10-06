@@ -12,7 +12,10 @@ param(
     [int] $IntervalSeconds = 5,
 
     [ValidateNotNullOrEmpty()]
-    [string] $OutputDirectory = (Join-Path (Get-Location) ('artifacts/track-b-memory-checkpoint-' + (Get-Date -Format 'yyyyMMdd-HHmmss')))
+    [string] $OutputDirectory = (Join-Path (Get-Location) ('artifacts/track-b-memory-checkpoint-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))),
+
+    [ValidateNotNullOrEmpty()]
+    [string] $Scenario = 'track-b-memory-attribution-checkpoint'
 )
 
 $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath -ErrorAction Stop).Path
@@ -72,7 +75,7 @@ try {
         '-RootPid', "$($diagnosticProcess.Id)",
         '-DurationSeconds', "$DurationSeconds",
         '-IntervalSeconds', "$IntervalSeconds",
-        '-Scenario', 'track-b-memory-attribution-checkpoint',
+        '-Scenario', $Scenario,
         '-OutputPath', $rawAttributionPath
     )
     $measureProcess = Start-Process -FilePath $powershell.Source -ArgumentList $measureArguments -PassThru -WindowStyle Hidden
