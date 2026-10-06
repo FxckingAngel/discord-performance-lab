@@ -23,4 +23,5 @@ The process tree remained at six processes during the read-only check. The acces
 ## Follow-up evidence
 
 - A fresh active-use measurement on the same stock client recorded six processes, 1,256 MiB median working set, 1,081 MiB median private memory, and 7.32% CPU over 5.04 seconds. This is a live snapshot, not a replacement for the repeatable baseline.
+- A post-experiment stock recheck recorded six processes, 1,141.78 MiB median working set, 1,140.62 MiB median private memory, and 2.344% CPU over 11.204 seconds. The client was visible with the existing voice/media session active.
 - The user reported independently verifying messaging and voice/video functionality. This remains user-reported evidence because this run did not send a message or transmit audio/video.
