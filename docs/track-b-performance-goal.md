@@ -8,6 +8,8 @@ Build a standalone Discord desktop shell that preserves essentially all normal D
 
 The shell must replace the Electron desktop container, not Discord's web client, backend, authentication, authorization, or network behavior. Every resource result counts the complete application process tree, including the native host, every WebView2 helper, renderer, network service, audio service, GPU process, and crash handler.
 
+The shell must also meet the separate [visual parity requirement](track-b-visual-parity.md). Discord's frontend must render the Discord application area, and the authenticated result must be visually and functionally almost indistinguishable from official desktop Discord under the same controlled state.
+
 The design target is approximately **250 MiB total settled idle working set and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable.
 
 ## Target levels
@@ -88,4 +90,4 @@ Each desktop capability is an independent compatibility item. Before adding it, 
 5. If it reaches 150–250 MiB with normal functionality, record that as stretch success.
 6. If a critical feature cannot be preserved safely, document the limitation instead of adding a protocol or security bypass.
 
-No Track B result is called successful until the full-tree performance gate and the required functional matrix both pass.
+No Track B result is called successful until the full-tree performance gate, required functional matrix, and visual parity review all pass.

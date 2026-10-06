@@ -33,7 +33,12 @@ $counterPaths = @{
 }
 
 function Get-RootedPids {
-    $current = @(Get-CimInstance Win32_Process -Filter "Name='$processNamePattern'")
+    $current = if ($RootPid -gt 0) {
+        @(Get-CimInstance Win32_Process)
+    }
+    else {
+        @(Get-CimInstance Win32_Process -Filter "Name='$processNamePattern'")
+    }
     if (-not @($current | Where-Object { [int] $_.ProcessId -eq $RootPid })) {
         return @()
     }

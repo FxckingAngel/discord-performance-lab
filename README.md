@@ -25,6 +25,7 @@ The project starts with measurement, not patches. Each proposed change must be c
 
 - [Track B architecture decision](docs/architecture-track-b.md)
 - [Track B performance goal](docs/track-b-performance-goal.md)
+- [Track B visual parity requirement](docs/track-b-visual-parity.md)
 - [Track B shell prototype](track-b/discord-shell/README.md)
 - [Track B unauthenticated shell baseline](docs/benchmarks/track-b-unauthenticated-shell-2026-10-06.md)
 

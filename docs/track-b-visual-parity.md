@@ -1,0 +1,45 @@
+# Track B visual parity requirement
+
+Date: 2026-10-06
+
+Visual parity is a separate Track B acceptance gate alongside performance and functionality. The target is that a normal user can switch between official Discord and Track B without feeling that the Discord application area changed from desktop Discord to a generic browser page.
+
+## Boundary
+
+Discord's own frontend remains responsible for rendering servers, channels, DMs, messages, settings, calls, media, and other Discord UI. Track B must not manually recreate those surfaces or inject rewritten Discord UI code to force screenshots to match.
+
+The native shell may implement desktop-only behavior such as the titlebar, window controls, drag region, navigation controls, window state, tray integration, and system integration when those are needed. Any native capability must be narrowly scoped, documented, reversible, and must not spoof authentication, authorization, entitlements, API behavior, or security state.
+
+## Controlled A/B comparison
+
+Capture official Discord and Track B with:
+
+- the same Discord account and exact DM, channel, or call state;
+- the same window dimensions and display scaling;
+- the same 1920x1080, 60 Hz display;
+- the same frontend route and settled state;
+- the same media, voice, video, and screen-share conditions.
+
+The first comparison set covers Friends, a server channel, a DM, Settings, a voice-connected DM, a video call, screen sharing, and a media-heavy channel. Preserve the original screenshots locally and keep them out of public commits when they contain account or message data.
+
+## Difference investigation
+
+For every visible difference, classify whether it is caused by:
+
+- web versus desktop environment detection;
+- user-agent or runtime reporting;
+- an Electron-specific frontend capability;
+- viewport, display scaling, or titlebar/client-area calculations;
+- native window chrome or safe-area offsets;
+- a desktop-only feature flag;
+- a missing preload or native capability;
+- CSS or media-query behavior;
+- a platform capability reported to the frontend.
+
+Use read-only observation and small, reversible shell capabilities to identify the cause. Do not spoof security state or change Discord's network protocol. If a desktop capability is required, document the expected behavior, the safe WebView2 equivalent, resource cost, and functional test before implementing it.
+
+## Regression workflow
+
+The visual workflow will eventually produce aligned official-versus-Track-B pairs and a reviewable difference image or metric for each scenario. Visual regressions are tracked separately from performance regressions. A lower memory number does not offset a visible or functional desktop regression.
+
+No Track B release or public repository decision is made until the authenticated A/B comparison, required functional checks, performance gates, and visual parity review are complete.
