@@ -44,6 +44,8 @@ Summarize and rank ownership by role:
 
 The summarizer combines multiple renderer or utility instances by role before calculating medians and p95 values. The working-set rank is an opportunity ranking, not proof that the allocation is removable.
 
+For a paired Track B rooted tree and sanitized CDP diagnostic, use `tools/Summarize-TrackBCdpAttribution.ps1`. It reports the final process-tree totals, renderer/GPU private ownership, measured V8 heap, and the renderer private-memory lower bound outside measured V8. The lower bound is intentionally not labeled Blink or native memory until a stronger attribution method proves that split.
+
 The Phase 1 active voice baseline provides an initial attribution hypothesis:
 
 | Role | Approximate working set observed | Initial opportunity rank |
