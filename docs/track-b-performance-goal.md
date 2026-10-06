@@ -18,7 +18,7 @@ The design target is approximately **250 MiB total settled idle working set and 
 
 **Track B goal: ACTIVE**
 
-**Authenticated same-route A/B benchmark: WAITING FOR MANUAL CHECKPOINT**
+**Authenticated Track B checkpoint: CAPTURED; official same-route A/B pairing and parity validation pending**
 
 The authenticated benchmark is a manual UI checkpoint, not a blocked project goal. Use `tools/Invoke-TrackBManualCheckpoint.ps1` to launch or reuse Track B, then manually log in, navigate to the requested channel or DM, leave the state ready, and type `READY`. The script then measures the existing Track B process tree without UI automation. Official Discord does not need to be closed for this workflow.
 
