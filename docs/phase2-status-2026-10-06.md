@@ -7,6 +7,7 @@ Date: 2026-10-06
 - Preserved the Phase 1 rooted benchmark and stock rollback path.
 - Added per-process attribution sampling for working set, private memory, paged memory, CPU, page faults, I/O, handles, threads, and lifetime.
 - Added role-level aggregation and ranking across multiple renderer or utility instances.
+- Added a Windows performance-counter sampler for process CPU, memory, page faults, I/O, threads, GPU engine utilization, and dedicated GPU memory by rooted PID.
 - Added WPR start/stop wrappers for CPU, Disk I/O, GPU, Handle, and Resident Set profiles.
 - Added a WebView2 shell architecture research document without implementing or endorsing that architecture.
 
@@ -37,6 +38,12 @@ A longer foreground-idle stock sample followed the same root for 13 samples over
 | crashpad-handler | 39.05 MiB | 9.45 MiB | 0.00% |
 
 This confirms the renderer and GPU as the first attribution targets in a settled foreground-idle workload. The raw sample is local at `benchmarks/raw/phase2/foreground-idle-60s-stock/`.
+
+## Current Windows-counter evidence
+
+A short read-only counter capture against the still-running stock root PID 36604 found seven rooted processes. The renderer PID 33552 was the dominant process in both samples at about 1,450 MiB private working set and about 1,581 MiB private bytes. Its CPU samples were 6.24% and 4.80% of total system capacity, with page-fault rates of 9,602.69 and 8,338.47 per second. The GPU process PID 6024 reported 2.62% to 8.56% aggregate engine utilization and about 313 to 388 MiB dedicated GPU memory across the two samples.
+
+The counter capture is stored at `benchmarks/raw/phase2/current-foreground-counters-2026-10-06/windows-counters-fixed.json`. It is a short current-state observation, not the required 10-minute scenario result. The process and GPU mappings are now available for longer scenario captures without changing Discord state.
 
 ## ETW status
 

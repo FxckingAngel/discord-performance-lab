@@ -21,6 +21,19 @@ Run the rooted sampler against a known Discord root PID:
 
 Each sample reports sanitized role, PID, parent PID, process lifetime, working set, private memory, paged memory, handles, threads, CPU percent of total, page faults per second, and read/write I/O rates. It follows only the selected root and descendants. Raw output contains no command lines, account identifiers, message contents, tokens, or crash data.
 
+For Windows performance-counter evidence that complements the sampler, run:
+
+```powershell
+.\tools\Measure-DiscordPhase2WindowsCounters.ps1 `
+  -RootPid 12345 `
+  -DurationSeconds 600 `
+  -IntervalSeconds 5 `
+  -Scenario foreground-idle-10m `
+  -OutputPath .\benchmarks\raw\phase2\foreground-idle-10m\windows-counters.json
+```
+
+This records process-instance CPU, private and private working-set bytes, page faults, read/write I/O, and thread count. It also maps the Windows GPU Engine utilization and GPU Process Memory counters back to rooted PIDs. Counter instances are sampled read-only and may be absent on a machine with different drivers or performance-counter policy. The counter file is supplementary; it does not replace an ETW trace or provide call stacks and context-switch attribution.
+
 Summarize and rank ownership by role:
 
 ```powershell
