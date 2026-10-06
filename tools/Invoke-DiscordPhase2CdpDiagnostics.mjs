@@ -175,9 +175,18 @@ try {
   const nativeStopped = nativeWindow.available
     ? await optionalCommand('Memory.stopSampling')
     : { available: false, error: nativeWindow.error };
-  result.nativeMemorySamplingWindow = nativeStopped.available
-    ? summarizeNativeMemoryProfile(nativeStopped.result.profile)
-    : unavailableNativeMemory(nativeStopped.error);
+  const nativeProfile = nativeWindow.available
+    ? await optionalCommand('Memory.getSamplingProfile')
+    : { available: false, error: nativeWindow.error };
+  const stopProfile = nativeStopped.available ? summarizeNativeMemoryProfile(nativeStopped.result.profile) : unavailableNativeMemory(nativeStopped.error);
+  const getProfile = nativeProfile.available ? summarizeNativeMemoryProfile(nativeProfile.result.profile) : unavailableNativeMemory(nativeProfile.error);
+  const primaryProfile = nativeProfile.available ? getProfile : stopProfile;
+  result.nativeMemorySamplingWindow = {
+    ...primaryProfile,
+    sourceMethod: nativeProfile.available ? 'Memory.getSamplingProfile' : 'Memory.stopSampling',
+    stopSampling: stopProfile,
+    getSamplingProfile: getProfile,
+  };
   if (started.available) {
     const stopped = await optionalCommand('HeapProfiler.stopSampling');
     result.heapSampling = stopped.available ? summarizeProfile(stopped.result.profile) : { error: stopped.error };
