@@ -51,6 +51,7 @@ src/
 tests/
 tools/
   Measure-DiscordProcessTree.ps1
+  Measure-DiscordStartup.ps1
 ```
 
 The initial repository intentionally contains no client-modification code. The benchmark harness should land before optimization changes so that every later change has a baseline.
