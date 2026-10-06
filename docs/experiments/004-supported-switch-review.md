@@ -17,6 +17,12 @@ The current Discord PTB client uses Electron 42.11.10. The official Electron swi
 
 Electron states that unsupported command-line switches have no effect and that Chromium flags vary by the embedded Chromium version. The project therefore keeps the tested EcoQoS switch as the only current candidate and does not add speculative flags.
 
+## `--disable-gpu` measurement
+
+The switch was tested against the installed Discord PTB 1.0.1223 executable after an authorized restart. The main window appeared in 1.290 seconds and remained responsive. The process tree stabilized in 12.517 seconds at six processes, including a `gpu-process` role, so the switch did not meet the process-count objective. A short rooted sample recorded about 1,529.7 MiB working set and 1,108.6 MiB private memory at the final sample. No voice, video, messaging, or media action was performed during this candidate run.
+
+Discord was then closed and relaunched without the switch. The stock rollback stabilized in 12.098 seconds at six processes with a responsive `@xoxo - Discord` window. The raw evidence is retained locally at `benchmarks/raw/disable-gpu-startup.json`, `benchmarks/raw/disable-gpu-stable.json`, and `benchmarks/raw/stock-after-disable-gpu-rejection.json`.
+
 ## Sources
 
 - [Electron supported command line switches](https://www.electronjs.org/docs/latest/api/command-line-switches)
