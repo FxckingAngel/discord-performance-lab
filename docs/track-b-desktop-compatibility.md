@@ -33,7 +33,7 @@ The official Electron environment must be observed locally with read-only diagno
 | Drag and drop | Browser events plus Electron window behavior | WebView2 events plus native shell handling where required | No | Not measured |
 | Global keybinds and push-to-talk | Electron globalShortcut or Discord-supported desktop path | Native Windows registration with explicit cleanup and conflict handling | No | Not measured |
 | Screen/window capture | Electron/Chromium capture path and desktop capture picker | WebView2 capture support plus native picker only after an end-to-end test | No | Not measured |
-| Tray and startup | Electron Tray and startup integration | Native Windows tray and startup registration | No | Not measured |
+| Tray and startup | Electron Tray and startup integration | Native tray icon with show/restore and exit actions; startup registration not implemented | Tray implemented in shell; Discord use and startup behavior unverified | Not isolated |
 | Rich Presence/game integration | Electron/Discord-supported desktop integration | Only a supported, separately tested native equivalent | No | Not measured |
 | Session persistence | Electron profile and storage | Isolated WebView2 user-data folder with normal interactive login | Prototype only | Included in tree |
 

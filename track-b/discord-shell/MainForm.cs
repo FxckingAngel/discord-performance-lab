@@ -29,6 +29,7 @@ public sealed class MainForm : Form
     private readonly Button minimizeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "—", Width = 42, TabStop = false, AccessibleName = "Minimize" };
     private readonly Button maximizeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "□", Width = 42, TabStop = false, AccessibleName = "Maximize" };
     private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
+    private readonly NotifyIcon trayIcon = new() { Icon = SystemIcons.Application, Visible = true, Text = "Discord" };
 
     public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated)
     {
@@ -82,6 +83,12 @@ public sealed class MainForm : Form
         maximizeButton.Click += (_, _) => ToggleMaximize();
         closeButton.Click += (_, _) => Close();
         Resize += (_, _) => UpdateMaximizeButton();
+        var trayMenu = new ContextMenuStrip();
+        trayMenu.Items.Add("Show", null, (_, _) => ShowFromTray());
+        trayMenu.Items.Add("Exit", null, (_, _) => Close());
+        trayIcon.ContextMenuStrip = trayMenu;
+        trayIcon.DoubleClick += (_, _) => ShowFromTray();
+        FormClosed += (_, _) => trayIcon.Dispose();
         Controls.Add(webView);
         Controls.Add(titleBar);
         Shown += OnShown;
@@ -112,6 +119,13 @@ public sealed class MainForm : Form
     {
         maximizeButton.Text = WindowState == FormWindowState.Maximized ? "❐" : "□";
         maximizeButton.AccessibleName = WindowState == FormWindowState.Maximized ? "Restore" : "Maximize";
+    }
+
+    private void ShowFromTray()
+    {
+        Show();
+        WindowState = WindowState == FormWindowState.Minimized ? FormWindowState.Normal : WindowState;
+        Activate();
     }
 
     private async void OnShown(object? sender, EventArgs e)
