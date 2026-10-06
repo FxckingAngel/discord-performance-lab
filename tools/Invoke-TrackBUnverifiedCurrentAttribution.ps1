@@ -3,6 +3,12 @@ param(
     [Parameter(Mandatory = $true)]
     [switch] $AllowNormalShellRestart,
 
+    [ValidateSet('--diagnostic-authenticated-no-bridges', '--diagnostic-blank')]
+    [string] $DiagnosticArgument = '--diagnostic-authenticated-no-bridges',
+
+    [ValidateSet(9223, 9230)]
+    [int] $CdpPort = 9230,
+
     [ValidateRange(5, 600)]
     [int] $DurationSeconds = 30,
 
@@ -20,7 +26,9 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $Scenario = 'current-authenticated-unverified',
 
-    [switch] $CaptureHeapSnapshot
+    [switch] $CaptureHeapSnapshot,
+
+    [switch] $CaptureResidentTypes
 )
 
 if (-not $AllowNormalShellRestart) {
@@ -33,6 +41,7 @@ $powershell = Get-Command pwsh.exe -ErrorAction Stop
 $measureScript = Join-Path $PSScriptRoot 'Measure-DiscordPhase2Attribution.ps1'
 $cdpScript = Join-Path $PSScriptRoot 'Invoke-DiscordPhase2CdpDiagnostics.mjs'
 $heapScript = Join-Path $PSScriptRoot 'Capture-TrackBCdpHeapSnapshot.mjs'
+$residentScript = Join-Path $PSScriptRoot 'Measure-TrackBResidentMemoryTypes.ps1'
 foreach ($path in @($measureScript, $cdpScript)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required diagnostic tool was not found: $path"
@@ -41,12 +50,17 @@ foreach ($path in @($measureScript, $cdpScript)) {
 if ($CaptureHeapSnapshot -and -not (Test-Path -LiteralPath $heapScript -PathType Leaf)) {
     throw "Heap snapshot tool was not found: $heapScript"
 }
+if ($CaptureResidentTypes -and -not (Test-Path -LiteralPath $residentScript -PathType Leaf)) {
+    throw "Resident memory classifier was not found: $residentScript"
+}
 
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $processTreePath = Join-Path $OutputDirectory 'process-tree.json'
 $cdpPath = Join-Path $OutputDirectory 'cdp.json'
 $heapRawPath = Join-Path $OutputDirectory 'private.heapsnapshot'
 $heapSummaryPath = Join-Path $OutputDirectory 'heap-summary.json'
+$residentDirectory = Join-Path $OutputDirectory 'resident-types'
+$residentManifestPath = Join-Path $OutputDirectory 'resident-types.json'
 $diagnosticProcess = $null
 $measureProcess = $null
 
@@ -70,12 +84,12 @@ try {
         throw 'A normal Track B shell root remains after the requested close.'
     }
 
-    $diagnosticProcess = Start-Process -FilePath $resolvedExecutable -ArgumentList '--diagnostic-authenticated-no-bridges' -PassThru
+    $diagnosticProcess = Start-Process -FilePath $resolvedExecutable -ArgumentList $DiagnosticArgument -PassThru
     $ready = $false
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
     do {
         try {
-            $targets = @(Invoke-RestMethod -Uri 'http://127.0.0.1:9230/json/list' -TimeoutSec 1)
+            $targets = @(Invoke-RestMethod -Uri "http://127.0.0.1:$CdpPort/json/list" -TimeoutSec 1)
             if (@($targets | Where-Object { $_.type -eq 'page' -and $_.webSocketDebuggerUrl }).Count -gt 0) {
                 $ready = $true
                 break
@@ -86,7 +100,7 @@ try {
         }
         Start-Sleep -Milliseconds 250
     } while ([DateTime]::UtcNow -lt $deadline)
-    if (-not $ready) { throw 'The authenticated diagnostic CDP endpoint did not open.' }
+    if (-not $ready) { throw "The $DiagnosticArgument CDP endpoint did not open on port $CdpPort." }
 
     if ($SettleSeconds -gt 0) {
         Start-Sleep -Seconds $SettleSeconds
@@ -101,16 +115,52 @@ try {
         '-OutputPath', $processTreePath,
         '-ProcessName', 'KoroneDiscordShell'
     )
-    $cdpArguments = @($cdpScript, '9230', "$DurationSeconds", $cdpPath)
+    $cdpArguments = @($cdpScript, "$CdpPort", "$DurationSeconds", $cdpPath)
     if ($CollectGarbage) { $cdpArguments += '--collect-garbage' }
     & $node.Source @cdpArguments
     if ($LASTEXITCODE -ne 0) { throw "CDP diagnostics failed with exit code $LASTEXITCODE." }
     if ($CaptureHeapSnapshot) {
-        & $node.Source $heapScript 9230 $heapRawPath $heapSummaryPath
+        & $node.Source $heapScript $CdpPort $heapRawPath $heapSummaryPath
         if ($LASTEXITCODE -ne 0) { throw "Heap snapshot capture failed with exit code $LASTEXITCODE." }
     }
     $measureProcess.WaitForExit()
     if ($measureProcess.ExitCode -ne 0) { throw "Process attribution failed with exit code $($measureProcess.ExitCode)." }
+
+    $residentManifest = $null
+    if ($CaptureResidentTypes) {
+        New-Item -ItemType Directory -Path $residentDirectory -Force | Out-Null
+        $tree = Get-Content -LiteralPath $processTreePath -Raw | ConvertFrom-Json
+        $residentRows = foreach ($process in @($tree.samples[-1].processes | Where-Object { $_.status -ne 'unavailable' -and $null -ne $_.pid })) {
+            $residentPath = Join-Path $residentDirectory ("pid-$($process.pid).json")
+            try {
+                & $powershell.Source -NoProfile -File $residentScript -ProcessId ([int]$process.pid) -Role ([string]$process.role) -OutputPath $residentPath | Out-Null
+                [pscustomobject]@{
+                    pid = [int] $process.pid
+                    role = [string] $process.role
+                    outputPath = (Resolve-Path -LiteralPath $residentPath).Path
+                    captured = $true
+                    error = $null
+                }
+            }
+            catch {
+                [pscustomobject]@{
+                    pid = [int] $process.pid
+                    role = [string] $process.role
+                    outputPath = $null
+                    captured = $false
+                    error = $_.Exception.Message
+                }
+            }
+        }
+        $residentManifest = [pscustomobject]@{
+            schemaVersion = 1
+            capturedAt = (Get-Date).ToUniversalTime().ToString('o')
+            policy = 'Per-PID read-only resident page classifications. No command lines or page content are written.'
+            processTreeSource = (Resolve-Path -LiteralPath $processTreePath).Path
+            rows = @($residentRows)
+        }
+        $residentManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $residentManifestPath -Encoding utf8
+    }
 
     [pscustomobject]@{
         result = 'CAPTURED'
@@ -118,6 +168,9 @@ try {
         durationSeconds = $DurationSeconds
         settleSeconds = $SettleSeconds
         collectGarbage = [bool] $CollectGarbage
+        diagnosticArgument = $DiagnosticArgument
+        cdpPort = $CdpPort
+        residentTypesPath = if ($CaptureResidentTypes) { (Resolve-Path -LiteralPath $residentManifestPath).Path } else { $null }
         processTreePath = (Resolve-Path $processTreePath).Path
         cdpPath = (Resolve-Path $cdpPath).Path
         heapSummaryPath = if ($CaptureHeapSnapshot) { (Resolve-Path $heapSummaryPath).Path } else { $null }
