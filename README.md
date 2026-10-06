@@ -28,6 +28,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [Benchmark plan](docs/benchmark-plan.md)
 - [Stock baseline](docs/baseline-2026-10-05.md)
 - [Functional checklist](docs/functional-checklist.md)
+- [Experiment 001](docs/experiments/001-low-end-device-mode.md)
 - [Client boundary decision](docs/decisions/0001-client-boundary.md)
 - [Security and safety boundary](SECURITY.md)
 

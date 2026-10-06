@@ -27,7 +27,9 @@ Each scenario has a fixed duration, a readiness condition, and a cleanup step. M
 
 ### 3. Candidate build boundary
 
-Candidate changes must have a clear distribution and rollback story. Prefer supported configuration, packaging, or an independently buildable client layer over modifying a live installed copy. Do not add code that intercepts credentials, tokens, private messages, or encrypted transport. Do not weaken update or signature checks as a way to make a prototype run.
+Candidate changes must have a clear private distribution and rollback story. A performance-only local client experiment is allowed by Decision 0001, but it must preserve the stock launch path and must not access credentials, tokens, private messages, encrypted transport, authorization state, or feature entitlements. Do not weaken update or signature checks as a way to make a prototype run.
+
+The first candidate is an external Chromium launch switch, not a package rewrite. If a later candidate needs a client-side patch, keep it isolated, source-controlled, reversible, and limited to measurable performance work.
 
 Before implementation, the project will verify the current Discord client distribution terms and any applicable API or developer requirements. The result belongs in a project decision record.
 
