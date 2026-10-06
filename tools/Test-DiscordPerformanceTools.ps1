@@ -29,6 +29,7 @@ if ($failures.Count -gt 0) {
 
 $summaryTool = Join-Path $resolvedToolsPath 'Summarize-DiscordBenchmark.ps1'
 $compareTool = Join-Path $resolvedToolsPath 'Compare-DiscordBenchmark.ps1'
+$joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 try {
@@ -103,6 +104,31 @@ try {
     $shareableMetric = @($comparison.metrics | Where-Object name -eq 'shareableWorkingSetMedianMiB')
     if ($shareableMetric.Count -ne 1 -or $shareableMetric[0].candidate -ne 450) {
         throw 'Shareable working-set comparison was not calculated as expected.'
+    }
+
+    $treeFixturePath = Join-Path $tempRoot 'tree.json'
+    $cdpFixturePath = Join-Path $tempRoot 'cdp.json'
+    $joinFixturePath = Join-Path $tempRoot 'join.json'
+    $treeFixture = [pscustomobject]@{
+        samples = @([pscustomobject]@{
+            processes = @(
+                [pscustomobject]@{ pid = 301; role = 'renderer'; workingSetPrivateBytes = 100 * 1MB; privateBytes = 120 * 1MB; handles = 10; threads = 5 }
+                [pscustomobject]@{ pid = 302; role = 'crashpad-handler'; workingSetPrivateBytes = 2 * 1MB; privateBytes = 3 * 1MB; handles = 4; threads = 2 }
+            )
+        })
+    }
+    $cdpFixture = [pscustomobject]@{
+        processes = @(
+            [pscustomobject]@{ id = 301; type = 'renderer'; cpuTime = 1.25 }
+            [pscustomobject]@{ id = 303; type = 'GPU'; cpuTime = 0.5 }
+        )
+    }
+    $treeFixture | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $treeFixturePath -Encoding utf8
+    $cdpFixture | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $cdpFixturePath -Encoding utf8
+    & $joinTool -ProcessTreePath $treeFixturePath -CdpProcessInfoPath $cdpFixturePath -OutputPath $joinFixturePath | Out-Null
+    $joinFixture = Get-Content -LiteralPath $joinFixturePath -Raw | ConvertFrom-Json
+    if ($joinFixture.matchedCount -ne 1 -or $joinFixture.joinedProcesses[0].cdpType -ne 'renderer') {
+        throw 'CDP-to-Windows attribution join fixture did not preserve the expected match boundary.'
     }
 }
 finally {
