@@ -85,7 +85,7 @@ On 2026-10-06, official Discord PTB was restarted once with a localhost-only CDP
 | `DiscordNative` | Present; property names include `desktopCapture`, `fileManager`, `window`, `clipboard`, `features`, `hardware`, `powerMonitor`, `safeStorage`, `settings`, `tracing`, and others | Absent | Primary compatibility-layer investigation target |
 | Electron globals | `electron`, `require`, `process`, and `module` absent at page scope | Same absent | Do not add these globals blindly |
 
-The `DiscordNative` property names are capability labels only. Their values, IPC methods, account data, and native object contents were not read. The next implementation step is to determine which named groups the Discord frontend actually calls in each failed or visually different scenario, then provide one narrow native equivalent at a time.
+The `DiscordNative` property names are capability labels only. Their values, IPC methods, account data, and native object contents were not read. The authenticated `--diagnostic-authenticated-capability-events` mode now records only the names of calls to the two existing audited bridge groups, so each settings, media, or capture scenario can be checked without collecting page or account data. The next implementation step is to determine which named groups the Discord frontend actually calls in each failed or visually different scenario, then provide one narrow native equivalent at a time.
 
 ## First native bridge probe
 

@@ -25,6 +25,7 @@ public sealed class MainForm : Form
     private readonly bool diagnosticBridgePair;
     private readonly bool diagnosticAuthenticated;
     private readonly bool diagnosticCapabilityEvents;
+    private readonly bool diagnosticAuthenticatedCapabilityEvents;
     private readonly bool diagnosticAuthenticatedNoBridges;
     private string? capabilityEventLogPath;
     private readonly Panel titleBar = new() { Dock = DockStyle.Top, Height = 32 };
@@ -34,7 +35,7 @@ public sealed class MainForm : Form
     private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
     private readonly NotifyIcon trayIcon = new() { Icon = SystemIcons.Application, Visible = true, Text = "Discord" };
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
@@ -44,6 +45,7 @@ public sealed class MainForm : Form
         this.diagnosticBridgePair = diagnosticBridgePair;
         this.diagnosticAuthenticated = diagnosticAuthenticated;
         this.diagnosticCapabilityEvents = diagnosticCapabilityEvents;
+        this.diagnosticAuthenticatedCapabilityEvents = diagnosticAuthenticatedCapabilityEvents;
         this.diagnosticAuthenticatedNoBridges = diagnosticAuthenticatedNoBridges;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
@@ -57,6 +59,8 @@ public sealed class MainForm : Form
                     ? "Korone's Discord Shell (Bridge Pair Probe)"
                 : diagnosticAuthenticated
                     ? "Korone's Discord Shell (Authenticated Profile Probe)"
+                : diagnosticAuthenticatedCapabilityEvents
+                    ? "Korone's Discord Shell (Authenticated Capability Events Probe)"
                 : diagnosticAuthenticatedNoBridges
                     ? "Korone's Discord Shell (Authenticated No-Bridge Probe)"
                 : diagnosticCapabilityEvents
@@ -159,8 +163,10 @@ public sealed class MainForm : Form
                             ? "HardwareBridgeProbeUserData"
                         : diagnosticBridgePair
                             ? "BridgePairProbeUserData"
-                        : diagnosticAuthenticated
+                        : diagnosticAuthenticated || diagnosticAuthenticatedCapabilityEvents
                             ? "WebView2UserData"
+                        : diagnosticAuthenticatedCapabilityEvents
+                            ? "AuthenticatedCapabilityEventsProbeUserData"
                         : diagnosticAuthenticatedNoBridges
                             ? "WebView2UserData"
                         : diagnosticCapabilityEvents
@@ -169,8 +175,8 @@ public sealed class MainForm : Form
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticAuthenticatedNoBridges ? 9230 : diagnosticCapabilityEvents ? 9231 : 9228;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticAuthenticatedNoBridges || diagnosticCapabilityEvents
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticAuthenticatedNoBridges ? 9230 : diagnosticCapabilityEvents ? 9231 : diagnosticAuthenticatedCapabilityEvents ? 9232 : 9228;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticAuthenticatedNoBridges || diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -178,7 +184,7 @@ public sealed class MainForm : Form
                 options: options);
             await webView.EnsureCoreWebView2Async(environment);
             UpdateWebViewVisibility();
-            if (diagnosticCapabilityEvents)
+            if (diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents)
             {
                 var diagnosticsDirectory = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -293,6 +299,8 @@ public sealed class MainForm : Form
                             ? "Korone's Discord Shell (Bridge Pair Probe)"
                     : diagnosticAuthenticated
                         ? "Korone's Discord Shell (Authenticated Profile Probe)"
+                    : diagnosticAuthenticatedCapabilityEvents
+                            ? "Korone's Discord Shell (Authenticated Capability Events Probe)"
                     : diagnosticAuthenticatedNoBridges
                         ? "Korone's Discord Shell (Authenticated No-Bridge Probe)"
                     : diagnosticCapabilityEvents
@@ -414,6 +422,16 @@ public sealed class MainForm : Form
                     return;
                 }
 
+                if (diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents)
+                {
+                    WriteCapabilityEvent(new
+                    {
+                        eventType = "capability-call",
+                        group = "hardware",
+                        action = "getDisplayCount",
+                    });
+                }
+
                 webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new
                 {
                     source = "track-b-hardware-result",
@@ -426,6 +444,16 @@ public sealed class MainForm : Form
             if (!string.Equals(sourceName, "track-b-window", StringComparison.Ordinal))
             {
                 return;
+            }
+
+            if (diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents)
+            {
+                WriteCapabilityEvent(new
+                {
+                    eventType = "capability-call",
+                    group = "window",
+                    action,
+                });
             }
         }
         catch (JsonException)

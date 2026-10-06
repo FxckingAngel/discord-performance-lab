@@ -83,6 +83,9 @@ try {
     if ($shellSource -notmatch 'FormWindowState\.Minimized') {
         throw 'Normal shell does not distinguish minimized window state for WebView2 visibility.'
     }
+    if ($shellSource -notmatch 'capability-call') {
+        throw 'Diagnostic capability-call instrumentation is missing from the shell source.'
+    }
     $measureSource = Get-Content -LiteralPath $measureTool -Raw
     if ($measureSource -notmatch 'TreeRootPid -gt 0.*ProcessId -eq \$TreeRootPid') {
         throw 'Rooted process measurements no longer identify the native shell root.'

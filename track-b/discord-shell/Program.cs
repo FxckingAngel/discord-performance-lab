@@ -47,6 +47,7 @@ internal static class Program
         var diagnosticAuthenticated = args.Length == 1 && string.Equals(args[0], "--diagnostic-authenticated", StringComparison.Ordinal);
         var diagnosticAuthenticatedNoBridges = args.Length == 1 && string.Equals(args[0], "--diagnostic-authenticated-no-bridges", StringComparison.Ordinal);
         var diagnosticCapabilityEvents = args.Length == 1 && string.Equals(args[0], "--diagnostic-capability-events", StringComparison.Ordinal);
+        var diagnosticAuthenticatedCapabilityEvents = args.Length == 1 && string.Equals(args[0], "--diagnostic-authenticated-capability-events", StringComparison.Ordinal);
         var diagnosticNativeHost = args.Length == 1 && string.Equals(args[0], "--diagnostic-native-host", StringComparison.Ordinal);
         var diagnosticNativeHostAuthenticated = args.Length == 1 && string.Equals(args[0], "--diagnostic-native-host-authenticated", StringComparison.Ordinal);
         if (diagnosticNativeHost || diagnosticNativeHostAuthenticated)
@@ -56,7 +57,7 @@ internal static class Program
         }
         try
         {
-            Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents, diagnosticAuthenticatedNoBridges));
+            Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents, diagnosticAuthenticatedCapabilityEvents, diagnosticAuthenticatedNoBridges));
         }
         finally
         {
