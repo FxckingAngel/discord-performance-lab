@@ -82,9 +82,9 @@ function Get-PerfByPid {
     $byPid = @{}
     try {
         foreach ($row in @(Get-CimInstance Win32_PerfFormattedData_PerfProc_Process)) {
-            $pid = [int] $row.IDProcess
-            if ($pid -gt 0) {
-                $byPid[$pid] = $row
+            $perfPid = [int] $row.IDProcess
+            if ($perfPid -gt 0) {
+                $byPid[$perfPid] = $row
             }
         }
     }

@@ -95,6 +95,9 @@ try {
             throw "Phase 2 attribution does not preserve per-PID $requiredField."
         }
     }
+    if ($phase2Source -match '\$pid\s*=') {
+        throw 'Phase 2 attribution must not assign to PowerShell''s read-only PID variable.'
+    }
     $phase2SummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-DiscordPhase2Attribution.ps1') -Raw
     foreach ($requiredField in @('privateWorkingSetMedianMiB', 'workingSetShareableMedianMiB')) {
         if ($phase2SummarySource -notmatch [regex]::Escape($requiredField)) {
