@@ -103,6 +103,10 @@ These names do not authorize exposing an object with matching methods. Each row 
 
 The 2026-10-06 probe returned `false` for every human-readable candidate tested, including the observed `window`, `hardware`, `desktopCapture`, `fileManager`, `clipboard`, `powerMonitor`, and `safeStorage` method names. This is inconclusive because the feature registry likely uses internal identifiers. It must not be read as proof that the corresponding desktop capabilities are unused or unsupported, and no feature flag was changed.
 
+## Launch-flag boundary
+
+A read-only inspection of the live PTB process tree on 2026-10-06 showed Electron-specific renderer flags for device scale, media capture, H.264 handling, raster threads, and autoplay. It also showed `--no-sandbox` and `--enable-node-leakage-in-renderers`. These are observations about the official client, not Track B requirements. Track B does not copy the unsafe flags, disable WebView2 security protections, or enable renderer node leakage. Any media or display behavior needed for parity must be provided through a genuine, separately tested WebView2/native capability.
+
 ## UA-only experiment
 
 A diagnostic-only WebView2 run reported the observed official Discord user-agent string, including `discord/1.0.1223` and `Electron/42.11.10`, while leaving the rest of the shell unchanged. The page still had no `DiscordNative` object, retained the WebView2 1264x761 DPR 1 viewport, and exposed the same normal web capabilities. UA identification alone therefore does not satisfy desktop compatibility and is rejected as a Track B implementation. It may only be used in future experiments when paired with genuine native capabilities and a documented reason.
