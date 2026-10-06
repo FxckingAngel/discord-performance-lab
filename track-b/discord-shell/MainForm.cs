@@ -17,19 +17,23 @@ public sealed class MainForm : Form
     private readonly bool diagnosticDiscord;
     private readonly bool diagnosticUserAgent;
     private readonly bool diagnosticWindowBridge;
+    private readonly bool diagnosticHardwareBridge;
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
         this.diagnosticUserAgent = diagnosticUserAgent;
         this.diagnosticWindowBridge = diagnosticWindowBridge;
+        this.diagnosticHardwareBridge = diagnosticHardwareBridge;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
             : diagnosticUserAgent
                 ? "Korone's Discord Shell (User-Agent Probe)"
                 : diagnosticWindowBridge
                     ? "Korone's Discord Shell (Window Bridge Probe)"
+                : diagnosticHardwareBridge
+                    ? "Korone's Discord Shell (Hardware Bridge Probe)"
                 : diagnosticDiscord
                 ? "Korone's Discord Shell (Environment Probe)"
                 : "Korone's Discord Shell (Prototype)";
@@ -56,12 +60,14 @@ public sealed class MainForm : Form
                         ? "UserAgentProbeUserData"
                         : diagnosticWindowBridge
                             ? "WindowBridgeProbeUserData"
+                        : diagnosticHardwareBridge
+                            ? "HardwareBridgeProbeUserData"
                         : diagnosticDiscord
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : 9226;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : 9227;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -87,6 +93,32 @@ public sealed class MainForm : Form
   const windowApi = Object.freeze(Object.fromEntries([...actions].map((action) => [action, () => send(action)])));
   if (!globalThis.DiscordNative) {
     Object.defineProperty(globalThis, 'DiscordNative', { configurable: false, enumerable: false, value: Object.freeze({ window: windowApi }) });
+  }
+})();");
+            }
+            if (diagnosticHardwareBridge)
+            {
+                webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+                await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
+(() => {
+  const pending = new Map();
+  let nextId = 1;
+  chrome.webview.addEventListener('message', (event) => {
+    const message = event.data;
+    if (message?.source !== 'track-b-hardware-result' || !pending.has(message.id)) return;
+    const request = pending.get(message.id);
+    pending.delete(message.id);
+    if (message.error) request.reject(new Error(message.error));
+    else request.resolve(message.value);
+  });
+  const getDisplayCount = () => new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    chrome.webview.postMessage(JSON.stringify({ source: 'track-b-hardware', action: 'getDisplayCount', id }));
+  });
+  const hardware = Object.freeze({ getDisplayCount });
+  if (!globalThis.DiscordNative) {
+    Object.defineProperty(globalThis, 'DiscordNative', { configurable: false, enumerable: false, value: Object.freeze({ hardware }) });
   }
 })();");
             }
@@ -118,6 +150,8 @@ public sealed class MainForm : Form
                         ? "Korone's Discord Shell (User-Agent Probe)"
                         : diagnosticWindowBridge
                             ? "Korone's Discord Shell (Window Bridge Probe)"
+                        : diagnosticHardwareBridge
+                            ? "Korone's Discord Shell (Hardware Bridge Probe)"
                     : diagnosticDiscord
                     ? "Korone's Discord Shell (Environment Probe)"
                     : "Korone's Discord Shell (Prototype)";
@@ -142,13 +176,35 @@ public sealed class MainForm : Form
             using var document = JsonDocument.Parse(message);
             var root = document.RootElement;
             if (!root.TryGetProperty("source", out var source)
-                || !string.Equals(source.GetString(), "track-b-window", StringComparison.Ordinal)
                 || !root.TryGetProperty("action", out var actionElement))
             {
                 return;
             }
 
+            var sourceName = source.GetString();
             action = actionElement.GetString();
+            if (string.Equals(sourceName, "track-b-hardware", StringComparison.Ordinal))
+            {
+                if (!string.Equals(action, "getDisplayCount", StringComparison.Ordinal)
+                    || !root.TryGetProperty("id", out var idElement)
+                    || !idElement.TryGetInt32(out var id))
+                {
+                    return;
+                }
+
+                webView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new
+                {
+                    source = "track-b-hardware-result",
+                    id,
+                    value = Screen.AllScreens.Length,
+                }));
+                return;
+            }
+
+            if (!string.Equals(sourceName, "track-b-window", StringComparison.Ordinal))
+            {
+                return;
+            }
         }
         catch (JsonException)
         {
