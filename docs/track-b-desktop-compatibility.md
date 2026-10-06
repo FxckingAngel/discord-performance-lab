@@ -49,6 +49,8 @@ The read-only probe is `tools/Invoke-DiscordEnvironmentProbe.mjs`. It requires a
 
 For a controlled official-client capability-use trace, use `tools/Probe-DiscordNativeMethodCalls.mjs <port> <seconds> <output>`. It reloads the diagnostic page, wraps only callable properties under `DiscordNative`, and records unique method names plus counts. It never records arguments, return values, page content, URLs, cookies, tokens, or native object values. Run it only against a disposable controlled diagnostic session, not the ordinary live client.
 
+The 2026-10-06 controlled trace found every observed `DiscordNative` group to be non-configurable and non-writable in the page world. The probe therefore recorded zero wrapped groups and zero calls. It did not bypass those descriptors, replace the native object, or inject an alternate implementation. This is a diagnostic limitation, not evidence that the groups are unused. Future capability-use evidence must come from behavior-level tests or a supported host-side diagnostic boundary.
+
 ## Measured Track B environment
 
 The isolated `--diagnostic-discord` profile was measured on 2026-10-06 using WebView2 Runtime 154.0.4258.53. The Discord route reported Edge/WebView2 user-agent data, `Win32`, a 1264x761 viewport at device-pixel ratio 1, and normal web capabilities for notifications, media devices, microphone/camera capture, display capture, clipboard, file pickers, downloads, drag/drop, and visual viewport APIs. It did not expose `DiscordNative`, `electron`, `require`, `process`, or `module` globals.

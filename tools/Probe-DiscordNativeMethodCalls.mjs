@@ -39,6 +39,7 @@ const install = `(() => {
   const state = globalThis.__trackBNativeCallTrace ?? {
     calls: [],
     wrapped: new Set(),
+    blocked: new Set(),
     timer: null,
   };
   globalThis.__trackBNativeCallTrace = state;
@@ -46,27 +47,34 @@ const install = `(() => {
     const native = globalThis.DiscordNative;
     if (!native || (typeof native !== 'object' && typeof native !== 'function')) return;
     for (const groupName of Object.getOwnPropertyNames(native)) {
+      if (state.wrapped.has(groupName + '.__group__')) continue;
       let group;
       try { group = native[groupName]; } catch { continue; }
       if (!group || (typeof group !== 'object' && typeof group !== 'function')) continue;
-      for (const methodName of Object.getOwnPropertyNames(group)) {
-        const key = groupName + '.' + methodName;
-        if (state.wrapped.has(key)) continue;
-        let method;
-        try { method = group[methodName]; } catch { continue; }
-        if (typeof method !== 'function') continue;
-        try {
-          Object.defineProperty(group, methodName, {
-            configurable: true,
-            enumerable: true,
-            value: function (...args) {
-              if (state.calls.length < 1000) state.calls.push(key);
-              return Reflect.apply(method, this, args);
-            }
-          });
-          state.wrapped.add(key);
-        } catch {}
+      const descriptor = Object.getOwnPropertyDescriptor(native, groupName);
+      if (!descriptor || (!descriptor.configurable && !descriptor.writable)) {
+        state.blocked.add(groupName);
+        continue;
       }
+      const proxy = new Proxy(group, {
+        get(target, property, receiver) {
+          const value = Reflect.get(target, property, receiver);
+          if (typeof value !== 'function' || typeof property !== 'string') return value;
+          const key = groupName + '.' + property;
+          return function (...args) {
+            if (state.calls.length < 1000) state.calls.push(key);
+            return Reflect.apply(value, this, args);
+          };
+        }
+      });
+      try {
+        if (descriptor.configurable) {
+          Object.defineProperty(native, groupName, { ...descriptor, value: proxy });
+        } else {
+          native[groupName] = proxy;
+        }
+        state.wrapped.add(groupName + '.__group__');
+      } catch {}
     }
   };
   scan();
@@ -84,6 +92,7 @@ const result = await command('Runtime.evaluate', {
       calls: Array.from(new Set(state?.calls ?? [])).sort(),
       callCount: state?.calls?.length ?? 0,
       wrappedCount: state?.wrapped?.size ?? 0,
+      blockedGroups: Array.from(state?.blocked ?? []).sort(),
     };
   })()`,
   returnByValue: true,
