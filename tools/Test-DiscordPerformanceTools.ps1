@@ -76,7 +76,7 @@ try {
         throw 'Feature-support probe does not distinguish an unavailable registry from a reported capability.'
     }
     $acceptanceGateSource = Get-Content -LiteralPath $acceptanceGateTool -Raw
-    foreach ($requiredField in @('privateWorkingSetMiB', 'privateMemoryMiB', 'cpuPercentOfTotal', 'functionalPassed', 'visualPassed')) {
+    foreach ($requiredField in @('privateWorkingSetMiB', 'privateMemoryMiB', 'cpuPercentOfTotal', 'functionalPassed', 'visualPassed', 'visualComparisonValid')) {
         if ($acceptanceGateSource -notmatch [regex]::Escape($requiredField)) {
             throw "Track B acceptance gate does not evaluate $requiredField."
         }
@@ -297,7 +297,7 @@ try {
         cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
     [pscustomobject]@{ passed = $true; results = @([pscustomobject]@{ status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
-    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
+    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ width = 1920; height = 1080; differingPixelPercent = 0; meanAbsoluteChannelError = 0; p95PixelError = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $acceptanceResultText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath -OutputPath $acceptanceOutputPath
     $acceptanceResult = $acceptanceResultText | ConvertFrom-Json
     if (-not $acceptanceResult.passed) {
@@ -323,12 +323,18 @@ try {
     if ($highPrivateBytesP95Result.passed) {
         throw 'Acceptance gate must reject private-bytes p95 over the target even when the median passes.'
     }
+    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
+    $malformedVisualText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $malformedVisualResult = $malformedVisualText | ConvertFrom-Json
+    if ($malformedVisualResult.passed -or $malformedVisualResult.visualComparisonValid) {
+        throw 'Acceptance gate must reject an incomplete screenshot comparison object.'
+    }
     [pscustomobject]@{
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
         privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
         cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
-    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $false; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
+    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $false; screenshotComparison = [pscustomobject]@{ width = 1920; height = 1080; differingPixelPercent = 0; meanAbsoluteChannelError = 0; p95PixelError = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $rejectedAcceptanceText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $rejectedAcceptanceResult = $rejectedAcceptanceText | ConvertFrom-Json
     if ($rejectedAcceptanceResult.passed) {

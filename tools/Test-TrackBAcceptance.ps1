@@ -51,7 +51,9 @@ $resourcePassed = @($resourceFields | Where-Object { $_.value -gt $_.limit }).Co
 
 $functionalResults = @($functional.results)
 $functionalPassed = ($functional.passed -eq $true) -and $functionalResults.Count -gt 0 -and @($functionalResults | Where-Object { $_.status -ne 'PASS' }).Count -eq 0
-$visualPassed = ($visual.parityReady -eq $true) -and ($visual.visualReviewPassed -eq $true) -and $null -ne $visual.screenshotComparison
+$visualComparisonFields = @('width', 'height', 'differingPixelPercent', 'meanAbsoluteChannelError', 'p95PixelError')
+$visualComparisonValid = $null -ne $visual.screenshotComparison -and @($visualComparisonFields | Where-Object { $null -eq $visual.screenshotComparison.$_ }).Count -eq 0 -and [double] $visual.screenshotComparison.width -gt 0 -and [double] $visual.screenshotComparison.height -gt 0
+$visualPassed = ($visual.parityReady -eq $true) -and ($visual.visualReviewPassed -eq $true) -and $visualComparisonValid
 
 $report = [pscustomobject] @{
     schemaVersion = 1
@@ -61,6 +63,7 @@ $report = [pscustomobject] @{
     visualReport = (Resolve-Path -LiteralPath $VisualReport).Path
     resourcePassed = $resourcePassed
     functionalPassed = $functionalPassed
+    visualComparisonValid = $visualComparisonValid
     visualPassed = $visualPassed
     resourceMetrics = @($resourceFields | ForEach-Object {
         [pscustomobject] @{ name = $_.name; value = [math]::Round($_.value, 5); limit = $_.limit; passed = ($_.value -le $_.limit) }
