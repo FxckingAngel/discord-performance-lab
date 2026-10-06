@@ -1,6 +1,6 @@
-# Discord Performance Lab
+# Korone's Discord Performance Lab
 
-Discord Performance Lab is a private research project for reducing Discord's resource use while retaining normal user-facing functionality.
+Korone's Discord Performance Lab is a private research project for reducing Discord's resource use while retaining normal user-facing functionality.
 
 The project starts with measurement, not patches. Each proposed change must be compared with stock Discord on the same machine, account, Discord channel state, and workload. A lower RAM number is not a win if it causes missing notifications, broken calls, unreliable media playback, damaged updates, or a poor user experience.
 

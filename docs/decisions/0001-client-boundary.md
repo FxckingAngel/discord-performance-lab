@@ -6,7 +6,7 @@ Accepted for the current project scope. Updated after Korone explicitly authoriz
 
 ## Decision
 
-Discord Performance Lab may test a private, reversible performance modification of the local Discord client. The modification must be limited to reducing client work or resource use. It must not provide access to features or data the account is not entitled to use.
+Korone's Discord Performance Lab may test a private, reversible performance modification of the local Discord client. The modification must be limited to reducing client work or resource use. It must not provide access to features or data the account is not entitled to use.
 
 The project will not distribute a modified Discord client, and it will not alter Discord's network protocol, authentication, authorization, update, signature, or security behavior.
 
