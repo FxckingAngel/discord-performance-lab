@@ -46,6 +46,12 @@ internal static class Program
         var diagnosticBridgePair = args.Length == 1 && string.Equals(args[0], "--diagnostic-bridge-pair", StringComparison.Ordinal);
         var diagnosticAuthenticated = args.Length == 1 && string.Equals(args[0], "--diagnostic-authenticated", StringComparison.Ordinal);
         var diagnosticCapabilityEvents = args.Length == 1 && string.Equals(args[0], "--diagnostic-capability-events", StringComparison.Ordinal);
+        var diagnosticNativeHost = args.Length == 1 && string.Equals(args[0], "--diagnostic-native-host", StringComparison.Ordinal);
+        if (diagnosticNativeHost)
+        {
+            Application.Run(new NativeHostProbeContext());
+            return;
+        }
         try
         {
             Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents));

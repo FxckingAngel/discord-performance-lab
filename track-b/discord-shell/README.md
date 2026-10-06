@@ -19,6 +19,8 @@ The machine must have the WebView2 Runtime installed. The first run uses the nor
 
 For runtime attribution only, `KoroneDiscordShell.exe --diagnostic-blank` opens `about:blank` in a separate WebView2 user-data folder. This mode does not load Discord and must not be used as an application performance result. It estimates the shell and WebView2 runtime floor against the normal Discord URL. Diagnostic blank mode exposes only loopback CDP port 9223 for the sanitized environment probe and is not part of the normal shell.
 
+For native-host footprint research only, `KoroneDiscordShell.exe --diagnostic-native-host` uses a minimal native window and WebView2 controller with a separate `NativeHostProbeUserData` folder. It does not implement the production titlebar, tray, native bridges, or Discord workload and must not be treated as a Track B client.
+
 For a separate unauthenticated environment probe against the actual Discord route, use `KoroneDiscordShell.exe --diagnostic-discord`. It uses a separate `EnvironmentProbeUserData` profile and loopback CDP port 9224. It must not be used to transfer credentials or claim a logged-in performance result.
 
 For a diagnostic-only UA experiment, use `KoroneDiscordShell.exe --diagnostic-official-ua`. It uses a separate `UserAgentProbeUserData` profile, reports the observed official Discord UA, and exposes loopback CDP port 9225. This does not add `DiscordNative` or any native capability and is not accepted as a desktop compatibility implementation.

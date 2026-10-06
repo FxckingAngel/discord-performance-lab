@@ -5,7 +5,7 @@ param(
 )
 
 $root = Split-Path -Parent $PSScriptRoot
-$projectFiles = @('KoroneDiscordShell.csproj', 'Program.cs', 'MainForm.cs', 'app.manifest')
+$projectFiles = @('KoroneDiscordShell.csproj', 'Program.cs', 'MainForm.cs', 'NativeHostProbe.cs', 'app.manifest')
 $resolvedDotnet = (Resolve-Path -LiteralPath $DotnetPath -ErrorAction Stop).Path
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('trackb-build-' + [guid]::NewGuid().ToString('N'))
 $tempProject = Join-Path $tempRoot 'KoroneDiscordShell.csproj'
