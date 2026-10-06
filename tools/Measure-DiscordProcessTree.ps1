@@ -104,6 +104,7 @@ function Get-DiscordProcessSnapshot {
         workingSetBytes = [double] (($rows | Measure-Object workingSetBytes -Sum).Sum)
         workingSetPrivateBytes = [double] (($rows | Measure-Object workingSetPrivateBytes -Sum).Sum)
         workingSetShareableBytes = [double] (($rows | Measure-Object workingSetShareableBytes -Sum).Sum)
+        workingSetShareableMethod = 'derived-total-minus-private; no native shared-working-set counter exposed'
         privateBytes    = [double] (($rows | Measure-Object privateBytes -Sum).Sum)
         commitBytes     = [double] (($rows | Measure-Object commitBytes -Sum).Sum)
         cpuSeconds      = [double] (($rows | Measure-Object cpuSeconds -Sum).Sum)
@@ -132,6 +133,7 @@ function Invoke-DiscordBenchmark {
             workingSetBytes  = $snapshot.workingSetBytes
             workingSetPrivateBytes = $snapshot.workingSetPrivateBytes
             workingSetShareableBytes = $snapshot.workingSetShareableBytes
+            workingSetShareableMethod = $snapshot.workingSetShareableMethod
             privateBytes     = $snapshot.privateBytes
             commitBytes      = $snapshot.commitBytes
             cpuSeconds       = $snapshot.cpuSeconds

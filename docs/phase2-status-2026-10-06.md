@@ -75,6 +75,8 @@ The sanitized memory-bucket report for the diagnostic run separates 153.641 MiB 
 
 The read-only attribution sampler remains usable without that privilege and is not a substitute for stack-level ETW evidence. It must be run separately for each required scenario.
 
+The Windows `Process` counter set on this machine exposes `Working Set`, `Working Set - Private`, and `Private Bytes`, but no native shared-working-set counter. The benchmark harness therefore labels its shareable value as the derived estimate `total working set - private working set`; it is retained for comparison context and is not used as the primary 250 MiB acceptance metric.
+
 ## Track B fallback counter capture
 
 On 2026-10-06, the non-ETW Windows counter sampler completed against the running verified Track B shell. It collected seven samples over 146 seconds across all seven rooted processes. Median process-tree totals were approximately 163.3 MiB private working set and 256.0 MiB private bytes. The median page-fault rate was 3.94 faults/sec, read and write I/O were both 0 bytes/sec, GPU engine utilization was 0%, and GPU dedicated memory was 17.5 MiB. These counters confirm a quiet settled state but do not provide ETW stacks, context-switch attribution, or wakeup ownership.

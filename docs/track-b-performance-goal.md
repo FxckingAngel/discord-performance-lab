@@ -33,7 +33,7 @@ A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.
 | Stretch goal | 150–250 MiB | effectively 0% | No noticeable difference from official Discord during normal use |
 | Design target | about 250 MiB | about 0.2% | Preserve normal functionality and avoid artificial trimming |
 
-These levels are judged after the same account is logged in, the same static channel is visible, the window has settled for the same duration, and the same background conditions are present. Record total working set, private working set, shareable working set where Windows exposes it, and private bytes/commit separately. A login page or unauthenticated web profile cannot pass the gate.
+These levels are judged after the same account is logged in, the same static channel is visible, the window has settled for the same duration, and the same background conditions are present. Record total working set, private working set, native shareable working set when Windows exposes it, and private bytes/commit separately. On this machine no native shared-working-set counter is exposed, so the harness labels `total working set - private working set` as a derived estimate only. A login page or unauthenticated web profile cannot pass the gate.
 
 ## Measurement and comparison contract
 
