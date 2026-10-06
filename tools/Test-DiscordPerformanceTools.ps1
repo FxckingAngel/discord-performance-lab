@@ -76,7 +76,7 @@ try {
         throw 'Feature-support probe does not distinguish an unavailable registry from a reported capability.'
     }
     $acceptanceGateSource = Get-Content -LiteralPath $acceptanceGateTool -Raw
-    foreach ($requiredField in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal', 'functionalCoverageComplete', 'functionalPassed', 'visualPassed', 'visualComparisonValid', 'measurementEvidence')) {
+    foreach ($requiredField in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB', 'processCount', 'cpuPercentOfTotal', 'functionalProcessValid', 'functionalCoverageComplete', 'functionalPassed', 'visualPassed', 'visualComparisonValid', 'measurementEvidence')) {
         if ($acceptanceGateSource -notmatch [regex]::Escape($requiredField)) {
             throw "Track B acceptance gate does not evaluate $requiredField."
         }
@@ -301,13 +301,20 @@ try {
         processCount = [pscustomobject]@{ median = 8; maximum = 8 }
         cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
-    [pscustomobject]@{ passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ width = 1920; height = 1080; differingPixelPercent = 0; meanAbsoluteChannelError = 0; p95PixelError = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $acceptanceResultText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath -OutputPath $acceptanceOutputPath
     $acceptanceResult = $acceptanceResultText | ConvertFrom-Json
     if (-not $acceptanceResult.passed) {
         throw "Synthetic Track B acceptance gate should pass when every gate is satisfied: $($acceptanceResult | ConvertTo-Json -Compress)"
     }
+    [pscustomobject]@{ processName = 'DiscordPTB'; passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    $wrongProcessText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $wrongProcessResult = $wrongProcessText | ConvertFrom-Json
+    if ($wrongProcessResult.passed -or $wrongProcessResult.functionalProcessValid) {
+        throw 'Acceptance gate must reject functional results attributed to the stock Discord process.'
+    }
+    [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     [pscustomobject]@{
         workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
         privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 251 }
@@ -332,13 +339,13 @@ try {
     if ($highPrivateBytesP95Result.passed) {
         throw 'Acceptance gate must reject private-bytes p95 over the target even when the median passes.'
     }
-    [pscustomobject]@{ passed = $true; results = @([pscustomobject]@{ id = 'messaging'; status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = $true; results = @([pscustomobject]@{ id = 'messaging'; status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     $incompleteFunctionalText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $incompleteFunctionalResult = $incompleteFunctionalText | ConvertFrom-Json
     if ($incompleteFunctionalResult.passed -or $incompleteFunctionalResult.functionalCoverageComplete) {
         throw 'Acceptance gate must reject an incomplete functional checklist.'
     }
-    [pscustomobject]@{ passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = $true; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
     $malformedVisualText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $malformedVisualResult = $malformedVisualText | ConvertFrom-Json
@@ -358,7 +365,7 @@ try {
     if ($rejectedAcceptanceResult.passed) {
         throw 'Synthetic Track B acceptance gate should fail without explicit visual review.'
     }
-    [pscustomobject]@{ passed = 'false'; results = @([pscustomobject]@{ status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = 'false'; results = $functionalFixtureResults } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     $stringBooleanText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $stringBooleanResult = $stringBooleanText | ConvertFrom-Json
     if ($stringBooleanResult.passed) {
