@@ -67,6 +67,26 @@ On 2026-10-06, official Discord PTB was restarted once with a localhost-only CDP
 
 The `DiscordNative` property names are capability labels only. Their values, IPC methods, account data, and native object contents were not read. The next implementation step is to determine which named groups the Discord frontend actually calls in each failed or visually different scenario, then provide one narrow native equivalent at a time.
 
+## Measured Electron API shape
+
+The property-name-only probe also recorded these nested names from the stock client:
+
+| Group | Observed names relevant to a replacement shell | Track B status |
+| --- | --- | --- |
+| `window` | `minimize`, `maximize`, `restore`, `close`, `fullscreen`, `focus`, `blur`, `getMediaSourceId`, `getNativeHandle`, `setFrameRate`, `setAlwaysOnTop`, `setContentProtection` | Not implemented |
+| `desktopCapture` | `getDesktopCaptureSources` | Not implemented |
+| `fileManager` | `openFiles`, `showOpenDialog`, `saveWithDialog`, `showItemInFolder`, path/cache helpers | Not implemented |
+| `clipboard` | `copy`, `paste`, `copyFile`, `copyImage`, `read`, `cut`, `hasMixedContent` | Not implemented |
+| `features` | `declareSupported`, `supports` | Not implemented |
+| `app` | version/build data, `relaunch`, `setBadgeCount`, language and startup-related getters | Not implemented |
+| `powerMonitor` | `getSystemIdleTimeMs`, `on`, `removeAllListeners` | Not implemented |
+| `settings` | `get`, `getSync`, `set` | Not implemented |
+| `hardware` | `getDisplayCount` | Not implemented |
+| `safeStorage` | encryption availability and string encrypt/decrypt | Not implemented |
+| `tracing` | performance capture and save-to-downloads | Not implemented |
+
+These names do not authorize exposing an object with matching methods. Each row requires a behavior-level test, a narrow native implementation, a rollback path, and a full-tree resource measurement before it can be reported to Discord as supported.
+
 Raw environment dumps, heap snapshots, screenshots, message contents, account identifiers, tokens, and crash dumps remain local and private. Only sanitized capability names, aggregate measurements, and pass/fail outcomes belong in the repository.
 
 ## Acceptance

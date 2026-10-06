@@ -49,6 +49,25 @@ const expression = `(() => {
       return [];
     }
   };
+  const groupShape = (name) => {
+    try {
+      const native = globalThis.DiscordNative;
+      const value = native?.[name];
+      if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+        return { present: false, type: typeof value, ownPropertyNames: [] };
+      }
+      return {
+        present: true,
+        type: typeof value,
+        ownPropertyNames: Object.getOwnPropertyNames(value).sort().map((key) => ({
+          name: key,
+          type: typeof value[key]
+        }))
+      };
+    } catch {
+      return { present: false, type: 'error', ownPropertyNames: [] };
+    }
+  };
   const native = navigator.userAgentData ?? null;
   const globalNames = [
     'DiscordNative', 'electron', 'require', 'process', 'module', 'chrome',
@@ -96,7 +115,12 @@ const expression = `(() => {
     globalOwnPropertyNames: {
       DiscordNative: ownNames('DiscordNative'),
       chrome: ownNames('chrome')
-    }
+    },
+    discordNativeGroups: Object.fromEntries([
+      'accessibility', 'app', 'clipboard', 'desktopCapture', 'features',
+      'fileManager', 'hardware', 'powerMonitor', 'safeStorage', 'settings',
+      'thumbar', 'tracing', 'window'
+    ].map((name) => [name, groupShape(name)]))
   };
 })()`;
 
