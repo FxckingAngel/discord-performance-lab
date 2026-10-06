@@ -59,3 +59,9 @@ Three settled repetitions against the running Discord-loaded shell used the upda
 | Process count | 8 | 8 | 8 | 8 | 8 |
 
 Compared with the repeated blank-runtime median, the Discord-loaded shell adds approximately 475.5 MiB total working set, 348.2 MiB private working set, and 427.6 MiB private bytes/commit. The private-working-set result is materially lower than the ordinary summed working-set delta, but it is still above the 250 MiB complete-app target before authentication and normal desktop compatibility work.
+
+## Track B CDP aggregate diagnostic
+
+An isolated unauthenticated Discord route was also sampled through the diagnostic-only loopback CDP port for 10 seconds. The aggregate result reported approximately 70.1 MiB V8 used and 91.2 MiB V8 heap capacity, 1,175 DOM nodes, 12 frames, 1,134 JavaScript event listeners, 3 image elements, 0 video elements, and 2 canvas elements. The task-duration metric was 0.000083 seconds over the sampled interval. The raw CDP output remains local and ignored.
+
+This is not a logged-in stock comparison and does not attribute every native renderer allocation. It does establish that the 421.3 MiB median private working set cannot be labeled JavaScript/V8 memory without further attribution. The remaining renderer memory includes Blink/DOM, native Chromium allocations, image and GPU resources, and other runtime state.
