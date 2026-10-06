@@ -37,6 +37,7 @@ if ($Profile -eq 'adaptive') {
         '-ExecutionPolicy', 'Bypass',
         '-File', $watcherScript,
         '-RootPid', $process.Id,
+        '-ProcessName', $ProcessName,
         '-PollIntervalSeconds', '2'
     ) -PassThru
 }
