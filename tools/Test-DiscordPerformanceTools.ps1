@@ -37,6 +37,7 @@ $visualCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBVisualCheckpo
 $acceptanceGateTool = Join-Path $resolvedToolsPath 'Test-TrackBAcceptance.ps1'
 $memoryCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBMemoryAttributionCheckpoint.ps1'
 $featureProbeTool = Join-Path $resolvedToolsPath 'Probe-DiscordFeatureSupport.mjs'
+$screenshotCompareTool = Join-Path $resolvedToolsPath 'Compare-DiscordScreenshots.py'
 $shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
@@ -54,6 +55,12 @@ try {
     $visualCheckpointSource = Get-Content -LiteralPath $visualCheckpointTool -Raw
     if ($visualCheckpointSource -notmatch 'visualReviewPassed') {
         throw 'Visual checkpoint does not retain an explicit visual review result.'
+    }
+    $screenshotCompareSource = Get-Content -LiteralPath $screenshotCompareTool -Raw
+    foreach ($requiredField in @('identical dimensions', 'differingPixelPercent')) {
+        if ($screenshotCompareSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Screenshot comparator does not preserve $requiredField."
+        }
     }
     if (-not (Test-Path -LiteralPath $acceptanceGateTool -PathType Leaf)) {
         throw 'Track B acceptance gate tool is missing.'
