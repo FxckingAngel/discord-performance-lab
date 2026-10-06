@@ -35,8 +35,8 @@ $resourceFields = @(
 $resourcePassed = @($resourceFields | Where-Object { $_.value -gt $_.limit }).Count -eq 0
 
 $functionalResults = @($functional.results)
-$functionalPassed = [bool] $functional.passed -and $functionalResults.Count -gt 0 -and @($functionalResults | Where-Object { $_.status -ne 'PASS' }).Count -eq 0
-$visualPassed = [bool] $visual.parityReady -and [bool] $visual.visualReviewPassed -and $null -ne $visual.screenshotComparison
+$functionalPassed = ($functional.passed -eq $true) -and $functionalResults.Count -gt 0 -and @($functionalResults | Where-Object { $_.status -ne 'PASS' }).Count -eq 0
+$visualPassed = ($visual.parityReady -eq $true) -and ($visual.visualReviewPassed -eq $true) -and $null -ne $visual.screenshotComparison
 
 $report = [pscustomobject] @{
     schemaVersion = 1

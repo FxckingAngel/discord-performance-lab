@@ -214,6 +214,12 @@ try {
     if ($rejectedAcceptanceResult.passed) {
         throw 'Synthetic Track B acceptance gate should fail without explicit visual review.'
     }
+    [pscustomobject]@{ passed = 'false'; results = @([pscustomobject]@{ status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    $stringBooleanText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $stringBooleanResult = $stringBooleanText | ConvertFrom-Json
+    if ($stringBooleanResult.passed) {
+        throw 'Acceptance gate must reject string values that resemble true booleans.'
+    }
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
