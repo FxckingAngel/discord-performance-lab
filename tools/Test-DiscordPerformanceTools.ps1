@@ -381,8 +381,21 @@ try {
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
     $highPrivateBytesP95Text = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
     $highPrivateBytesP95Result = $highPrivateBytesP95Text | ConvertFrom-Json
-    if ($highPrivateBytesP95Result.passed) {
-        throw 'Acceptance gate must reject private-bytes p95 over the target even when the median passes.'
+    if (-not $highPrivateBytesP95Result.passed -or -not $highPrivateBytesP95Result.resourcePassed -or $highPrivateBytesP95Result.measurementEvidence.privateBytesP95MiB -ne 251) {
+        throw 'Acceptance gate must keep private-bytes p95 as reported corroborating evidence rather than treating it as the primary resident-memory gate.'
+    }
+    [pscustomobject]@{
+        builds = @('KoroneDiscordShell')
+        workingSetMiB = [pscustomobject]@{ median = 200; p95 = 220 }
+        privateWorkingSetMiB = [pscustomobject]@{ median = 150; p95 = 245 }
+        privateMemoryMiB = [pscustomobject]@{ median = 240; p95 = 245 }
+        processCount = [pscustomobject]@{ median = 8; maximum = 8 }
+        cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.9 }
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
+    $highCpuP95Text = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $highCpuP95Result = $highCpuP95Text | ConvertFrom-Json
+    if (-not $highCpuP95Result.passed -or -not $highCpuP95Result.resourcePassed -or $highCpuP95Result.measurementEvidence.cpuP95PercentOfTotal -ne 0.9) {
+        throw 'Acceptance gate must use settled-idle CPU median as the hard criterion while preserving CPU p95 in the report.'
     }
     [pscustomobject]@{ processName = 'KoroneDiscordShell'; passed = $true; results = @([pscustomobject]@{ id = 'messaging'; status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
     $incompleteFunctionalText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath

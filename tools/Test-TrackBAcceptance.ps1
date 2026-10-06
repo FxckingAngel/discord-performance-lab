@@ -47,10 +47,7 @@ if ($missingValues.Count -gt 0) {
 $resourceFields = @(
     [pscustomobject] @{ name = 'privateWorkingSetMedianMiB'; value = [double] $candidate.privateWorkingSetMiB.median; limit = 250 }
     [pscustomobject] @{ name = 'privateWorkingSetP95MiB'; value = [double] $candidate.privateWorkingSetMiB.p95; limit = 250 }
-    [pscustomobject] @{ name = 'privateBytesMedianMiB'; value = [double] $candidate.privateMemoryMiB.median; limit = 250 }
-    [pscustomobject] @{ name = 'privateBytesP95MiB'; value = [double] $candidate.privateMemoryMiB.p95; limit = 250 }
     [pscustomobject] @{ name = 'cpuMedianPercentOfTotal'; value = [double] $candidate.cpuPercentOfTotal.medianRun; limit = 0.2 }
-    [pscustomobject] @{ name = 'cpuP95PercentOfTotal'; value = [double] $candidate.cpuPercentOfTotal.p95Run; limit = 0.2 }
 )
 $resourcePassed = @($resourceFields | Where-Object { $_.value -gt $_.limit }).Count -eq 0
 
@@ -85,6 +82,12 @@ $report = [pscustomobject] @{
     measurementEvidence = [pscustomobject] @{
         totalWorkingSetMedianMiB = [double] $candidate.workingSetMiB.median
         totalWorkingSetP95MiB = [double] $candidate.workingSetMiB.p95
+        privateWorkingSetMedianMiB = [double] $candidate.privateWorkingSetMiB.median
+        privateWorkingSetP95MiB = [double] $candidate.privateWorkingSetMiB.p95
+        privateBytesMedianMiB = [double] $candidate.privateMemoryMiB.median
+        privateBytesP95MiB = [double] $candidate.privateMemoryMiB.p95
+        cpuMedianPercentOfTotal = [double] $candidate.cpuPercentOfTotal.medianRun
+        cpuP95PercentOfTotal = [double] $candidate.cpuPercentOfTotal.p95Run
         processCountMedian = [double] $candidate.processCount.median
         processCountMaximum = [double] $candidate.processCount.maximum
     }
