@@ -41,6 +41,7 @@ This repository contains the project charter, architecture direction, and benchm
 - [EcoQoS profile decision](docs/decisions/0002-ecoqos-profile-scope.md)
 - [Adaptive profile scope decision](docs/decisions/0003-adaptive-profile-scope.md)
 - [Memory-priority experiment](docs/experiments/007-memory-priority.md)
+- [Current active voice-session baseline](docs/benchmarks/stock-active-voice-current-2026-10-06.md)
 - [Security and safety boundary](SECURITY.md)
 - [Current project status](docs/status-2026-10-06.md)
 
