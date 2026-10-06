@@ -25,7 +25,7 @@ The official Electron environment must be observed locally with read-only diagno
 | Runtime and platform identification | Electron 42.11.10 with Chromium and Electron runtime signals | Native WebView2 runtime plus an explicitly documented, minimal environment surface | No | Not measured |
 | Preload-exposed globals | Must be enumerated from the stock client under a disposable diagnostic launch | No preload bridge in the prototype | No | Not measured |
 | Window controls and state | Electron BrowserWindow and native window state | WebView2 message bridge to WinForms state/actions, source-restricted in normal mode | Implemented in normal shell; Discord use unverified | No measurable cost in isolated bridge runs |
-| Custom titlebar and drag region | Electron frame/titlebar configuration | Native WinForms titlebar or documented custom frame | No | Not measured |
+| Custom titlebar and drag region | Electron frame/titlebar configuration | Native WinForms titlebar, drag region, and window buttons | Implemented in shell; visual parity unverified | Included in shell process; measurement pending |
 | Desktop notifications | Electron/OS notification integration | WebView2 permission and Windows notification integration, subject to supported behavior | No | Not measured |
 | Media devices and permissions | Chromium media APIs with Electron permission handling | WebView2 media permissions and native device selection | No | Not measured |
 | Native file dialogs and downloads | Electron dialog and session/download APIs | WebView2 download events plus native Windows dialogs | No | Not measured |

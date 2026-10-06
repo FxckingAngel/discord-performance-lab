@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Text.Json;
@@ -10,6 +12,8 @@ namespace KoroneDiscordShell;
 
 public sealed class MainForm : Form
 {
+    private const int WmNclButtonDown = 0x00A1;
+    private const int HtCaption = 2;
     private const string DiscordWebApp = "https://discord.com/app";
     private const string DiagnosticOfficialUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.1223 Chrome/148.0.7778.280 Electron/42.11.10 Safari/537.36";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
@@ -20,6 +24,11 @@ public sealed class MainForm : Form
     private readonly bool diagnosticHardwareBridge;
     private readonly bool diagnosticBridgePair;
     private readonly bool diagnosticAuthenticated;
+    private readonly Panel titleBar = new() { Dock = DockStyle.Top, Height = 32 };
+    private readonly Label titleLabel = new() { AutoEllipsis = true, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+    private readonly Button minimizeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "—", Width = 42, TabStop = false, AccessibleName = "Minimize" };
+    private readonly Button maximizeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "□", Width = 42, TabStop = false, AccessibleName = "Maximize" };
+    private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
 
     public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated)
     {
@@ -48,10 +57,61 @@ public sealed class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         Width = 1280;
         Height = 800;
-        MinimizeBox = true;
-        MaximizeBox = true;
+        FormBorderStyle = FormBorderStyle.None;
+        MinimizeBox = false;
+        MaximizeBox = false;
+        titleBar.BackColor = Color.FromArgb(30, 31, 34);
+        titleLabel.ForeColor = Color.FromArgb(219, 222, 225);
+        titleLabel.Padding = new Padding(12, 0, 0, 0);
+        titleLabel.Text = Text;
+        foreach (var button in new[] { minimizeButton, maximizeButton, closeButton })
+        {
+            button.BackColor = titleBar.BackColor;
+            button.ForeColor = titleLabel.ForeColor;
+            button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(64, 66, 71);
+        }
+        closeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(237, 66, 69);
+        titleBar.Controls.Add(titleLabel);
+        titleBar.Controls.Add(minimizeButton);
+        titleBar.Controls.Add(maximizeButton);
+        titleBar.Controls.Add(closeButton);
+        titleBar.MouseDown += BeginWindowDrag;
+        titleLabel.MouseDown += BeginWindowDrag;
+        minimizeButton.Click += (_, _) => WindowState = FormWindowState.Minimized;
+        maximizeButton.Click += (_, _) => ToggleMaximize();
+        closeButton.Click += (_, _) => Close();
+        Resize += (_, _) => UpdateMaximizeButton();
         Controls.Add(webView);
+        Controls.Add(titleBar);
         Shown += OnShown;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
+
+    private void BeginWindowDrag(object? sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Left) return;
+        ReleaseCapture();
+        SendMessage(Handle, WmNclButtonDown, new IntPtr(HtCaption), IntPtr.Zero);
+    }
+
+    private void ToggleMaximize()
+    {
+        WindowState = WindowState == FormWindowState.Maximized
+            ? FormWindowState.Normal
+            : FormWindowState.Maximized;
+        UpdateMaximizeButton();
+    }
+
+    private void UpdateMaximizeButton()
+    {
+        maximizeButton.Text = WindowState == FormWindowState.Maximized ? "❐" : "□";
+        maximizeButton.AccessibleName = WindowState == FormWindowState.Maximized ? "Restore" : "Maximize";
     }
 
     private async void OnShown(object? sender, EventArgs e)
@@ -186,6 +246,7 @@ public sealed class MainForm : Form
                     : diagnosticDiscord
                     ? "Korone's Discord Shell (Environment Probe)"
                     : "Korone's Discord Shell (Prototype)";
+            titleLabel.Text = Text;
         }
     }
 
