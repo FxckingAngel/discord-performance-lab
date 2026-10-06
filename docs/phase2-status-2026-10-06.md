@@ -11,6 +11,7 @@ Date: 2026-10-06
 - Added the Phase 2.1 repeatable isolation runner, local-only role/PID command-line map, window-state and display-refresh capture, and localhost-only CDP diagnostics.
 - Added WPR start/stop wrappers for CPU, Disk I/O, GPU, Handle, and Resident Set profiles.
 - Added a WebView2 shell architecture research document without implementing or endorsing that architecture.
+- Added Track B's architecture decision, native WebView2 shell prototype, full-descendant process-tree measurement, and a non-comparable unauthenticated baseline.
 
 ## First attribution evidence
 
@@ -61,6 +62,8 @@ The ordinary stock launch had no `--remote-debugging-port` or `--inspect` flag, 
 The same diagnostic-only session had a single renderer at about 610 MiB median working set and 522 MiB median private memory over a 30-second sampler run. That is not directly comparable to the earlier 1 GiB renderer result because the channel/media state was not operator-labeled and the renderer tree changed across restarts. The diagnostic port was then removed, the ordinary stock launch was restored, and the restored process was responsive with six processes and no listening port.
 
 This is useful separation evidence, not an optimization result. The Phase 2.1 seven-scenario matrix still requires three operator-labeled repetitions per scenario, and no renderer or GPU change has been made.
+
+The sanitized memory-bucket report for the diagnostic run separates 153.641 MiB of measured V8 heap from 521.73 MiB renderer private memory. The arithmetic leaves a 368.0 MiB non-V8 renderer residual lower bound. It is intentionally labeled unresolved and may include Blink, native Chromium, decoded media, shared buffers, or other allocations.
 
 ## ETW status
 

@@ -64,6 +64,15 @@ The current diagnostic implementation is `Invoke-DiscordPhase2CdpDiagnostics.ps1
   -OutputPath .\benchmarks\raw\phase2-1\cdp\aggregate-10s.json
 ```
 
+Compare the CDP V8 result with the preserved per-renderer process result using `Summarize-DiscordPhase21MemoryBuckets.ps1`. Its residual is a lower bound, not a claim about a specific allocator:
+
+```powershell
+.\tools\Summarize-DiscordPhase21MemoryBuckets.ps1 `
+  -CdpInputPath .\benchmarks\raw\phase2-1\cdp\aggregate-10s.json `
+  -RoleSummaryPath .\benchmarks\raw\phase2-1\cdp\role-summary-30s.json `
+  -OutputPath .\benchmarks\raw\phase2-1\cdp\memory-buckets.json
+```
+
 Do not call `Runtime.evaluate` to read message contents, tokens, local storage, cookies, or account state. Do not publish heap snapshots or trace payloads. Do not enable a debugging port in the normal launcher. A CDP endpoint is a local control surface, so it must be closed after each run and treated as a diagnostic exception, not a product feature.
 
 The attribution report must keep these buckets separate:
