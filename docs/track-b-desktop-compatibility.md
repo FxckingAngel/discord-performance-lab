@@ -87,6 +87,10 @@ The property-name-only probe also recorded these nested names from the stock cli
 
 These names do not authorize exposing an object with matching methods. Each row requires a behavior-level test, a narrow native implementation, a rollback path, and a full-tree resource measurement before it can be reported to Discord as supported.
 
+## UA-only experiment
+
+A diagnostic-only WebView2 run reported the observed official Discord user-agent string, including `discord/1.0.1223` and `Electron/42.11.10`, while leaving the rest of the shell unchanged. The page still had no `DiscordNative` object, retained the WebView2 1264x761 DPR 1 viewport, and exposed the same normal web capabilities. UA identification alone therefore does not satisfy desktop compatibility and is rejected as a Track B implementation. It may only be used in future experiments when paired with genuine native capabilities and a documented reason.
+
 Raw environment dumps, heap snapshots, screenshots, message contents, account identifiers, tokens, and crash dumps remain local and private. Only sanitized capability names, aggregate measurements, and pass/fail outcomes belong in the repository.
 
 ## Acceptance

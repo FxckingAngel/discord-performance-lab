@@ -10,17 +10,22 @@ namespace KoroneDiscordShell;
 public sealed class MainForm : Form
 {
     private const string DiscordWebApp = "https://discord.com/app";
+    private const string DiagnosticOfficialUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.1223 Chrome/148.0.7778.280 Electron/42.11.10 Safari/537.36";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
     private readonly bool diagnosticBlank;
     private readonly bool diagnosticDiscord;
+    private readonly bool diagnosticUserAgent;
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
+        this.diagnosticUserAgent = diagnosticUserAgent;
         Text = diagnosticBlank
             ? "Korone's Discord Shell (Runtime Baseline)"
-            : diagnosticDiscord
+            : diagnosticUserAgent
+                ? "Korone's Discord Shell (User-Agent Probe)"
+                : diagnosticDiscord
                 ? "Korone's Discord Shell (Environment Probe)"
                 : "Korone's Discord Shell (Prototype)";
         StartPosition = FormStartPosition.CenterScreen;
@@ -42,12 +47,14 @@ public sealed class MainForm : Form
                 "KoroneDiscordShell",
                 diagnosticBlank
                     ? "RuntimeBaselineUserData"
-                    : diagnosticDiscord
+                    : diagnosticUserAgent
+                        ? "UserAgentProbeUserData"
+                        : diagnosticDiscord
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : 9224;
-            var options = diagnosticBlank || diagnosticDiscord
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : 9225;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -57,6 +64,10 @@ public sealed class MainForm : Form
             webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             webView.CoreWebView2.Settings.IsZoomControlEnabled = true;
+            if (diagnosticUserAgent)
+            {
+                webView.CoreWebView2.Settings.UserAgent = DiagnosticOfficialUserAgent;
+            }
             webView.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             webView.Source = new Uri(diagnosticBlank ? "about:blank" : DiscordWebApp);
         }
@@ -81,7 +92,9 @@ public sealed class MainForm : Form
         {
             Text = diagnosticBlank
                 ? "Korone's Discord Shell (Runtime Baseline)"
-                : diagnosticDiscord
+                : diagnosticUserAgent
+                    ? "Korone's Discord Shell (User-Agent Probe)"
+                    : diagnosticDiscord
                     ? "Korone's Discord Shell (Environment Probe)"
                     : "Korone's Discord Shell (Prototype)";
         }
