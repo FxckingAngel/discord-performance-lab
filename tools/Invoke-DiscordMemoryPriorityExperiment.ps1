@@ -7,7 +7,7 @@ param(
     [ValidateSet('normal', 'below-normal', 'low', 'very-low')]
     [string] $Priority = 'low',
 
-    [ValidateRange(1, 3600)]
+    [ValidateRange(5, 3600)]
     [int] $DurationSeconds = 30,
 
     [ValidateRange(1, 60)]
@@ -48,12 +48,16 @@ New-Item -ItemType Directory -Path $experimentDirectory -Force | Out-Null
 function Get-MemoryPriorityState {
     param([string] $OutputPath)
 
-    $state = & $getPriorityScript -RootPid $RootPid -ProcessName $ProcessName
-    if ($LASTEXITCODE -ne 0) {
+    $stateText = & $getPriorityScript -RootPid $RootPid -ProcessName $ProcessName | Out-String
+    if ([string]::IsNullOrWhiteSpace($stateText)) {
         throw "Could not read memory priority for root PID $RootPid."
     }
-    $state | Set-Content -LiteralPath $OutputPath -Encoding utf8
-    return @($state | ConvertFrom-Json)
+    $stateText | Set-Content -LiteralPath $OutputPath -Encoding utf8
+    $state = @($stateText | ConvertFrom-Json)
+    if (@($state | Where-Object status -eq 'failed').Count -gt 0) {
+        throw "Could not read memory priority for root PID $RootPid."
+    }
+    return $state
 }
 
 function Set-MemoryPriority {
@@ -62,18 +66,32 @@ function Set-MemoryPriority {
         [string[]] $ExcludedRoles
     )
 
-    $output = & $setPriorityScript -RootPid $RootPid -Priority $TargetPriority -ExcludeRole $ExcludedRoles -ProcessName $ProcessName
-    if ($LASTEXITCODE -ne 0) {
+    $outputText = & $setPriorityScript -RootPid $RootPid -Priority $TargetPriority -ExcludeRole $ExcludedRoles -ProcessName $ProcessName | Out-String
+    if ([string]::IsNullOrWhiteSpace($outputText)) {
         throw "Could not set memory priority to $TargetPriority for root PID $RootPid."
     }
-    return @($output | ConvertFrom-Json)
+    $output = @($outputText | ConvertFrom-Json)
+    if (@($output | Where-Object status -eq 'failed').Count -gt 0) {
+        throw "Could not set memory priority to $TargetPriority for root PID $RootPid."
+    }
+    return $output
 }
 
 function Measure-Tree {
     param([string] $Scenario, [string] $OutputPath)
 
-    & $measureScript -ProcessName $ProcessName -RootPid $RootPid -DurationSeconds $DurationSeconds -IntervalSeconds $IntervalSeconds -Scenario $Scenario -OutputPath $OutputPath | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Stop'
+    try {
+        & $measureScript -ProcessName $ProcessName -RootPid $RootPid -DurationSeconds $DurationSeconds -IntervalSeconds $IntervalSeconds -Scenario $Scenario -OutputPath $OutputPath | Out-Null
+    }
+    catch {
+        throw "Measurement failed for scenario ${Scenario}: $($_.Exception.Message)"
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
         throw "Measurement failed for scenario $Scenario."
     }
 }
