@@ -1,7 +1,26 @@
 [CmdletBinding()]
 param(
+    [ValidateNotNullOrEmpty()]
+    [string] $ProcessName = 'KoroneDiscordShell',
+
     [string] $OutputPath = (Join-Path (Get-Location) ('benchmarks/raw/track-b-functional-checkpoint-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json'))
 )
+
+function Get-TrackBCheckpointProcess {
+    $processes = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)
+    if ($processes.Count -eq 0) {
+        throw "Track B process '$ProcessName' is not running. Start the shell and leave it ready before recording the checklist."
+    }
+    if ($processes.Count -ne 1) {
+        throw "Expected exactly one Track B process named '$ProcessName', found $($processes.Count)."
+    }
+    if (-not $processes[0].Responding) {
+        throw "Track B process PID $($processes[0].Id) is not responding. Do not record functional results while the shell is unresponsive."
+    }
+    return $processes[0]
+}
+
+$checkpointProcess = Get-TrackBCheckpointProcess
 
 $checks = @(
     @{ id = 'login-session'; label = 'Login and session persistence' }
@@ -36,6 +55,10 @@ $results = foreach ($check in $checks) {
 $report = [pscustomobject]@{
     schemaVersion = 1
     capturedAt = (Get-Date).ToUniversalTime().ToString('o')
+    processName = $checkpointProcess.ProcessName
+    rootPid = $checkpointProcess.Id
+    windowTitle = $checkpointProcess.MainWindowTitle
+    windowResponding = $checkpointProcess.Responding
     policy = 'Manual functional checkpoint. No account identifiers, message content, tokens, screenshots, or raw profile data belong in this report.'
     results = @($results)
     passed = (@($results | Where-Object status -ne 'PASS').Count -eq 0)

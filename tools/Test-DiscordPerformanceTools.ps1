@@ -32,9 +32,20 @@ $compareTool = Join-Path $resolvedToolsPath 'Compare-DiscordBenchmark.ps1'
 $measureTool = Join-Path $resolvedToolsPath 'Measure-DiscordProcessTree.ps1'
 $joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
 $traceCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBCdpTrace.ps1'
+$functionalCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBFunctionalCheckpoint.ps1'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 try {
+    $functionalCheckpointSource = Get-Content -LiteralPath $functionalCheckpointTool -Raw
+    if ($functionalCheckpointSource -notmatch 'Get-Process -Name .*\$ProcessName') {
+        throw 'Functional checkpoint does not validate the Track B process before manual results are recorded.'
+    }
+    if ($functionalCheckpointSource -notmatch 'Responding') {
+        throw 'Functional checkpoint does not validate shell responsiveness before manual results are recorded.'
+    }
+    if ($functionalCheckpointSource -notmatch 'rootPid') {
+        throw 'Functional checkpoint does not retain the measured root PID.'
+    }
     $measureSource = Get-Content -LiteralPath $measureTool -Raw
     if ($measureSource -notmatch 'TreeRootPid -gt 0.*ProcessId -eq \$TreeRootPid') {
         throw 'Rooted process measurements no longer identify the native shell root.'
