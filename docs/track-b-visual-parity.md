@@ -51,6 +51,10 @@ The screenshot files stay private because they may contain account names, messag
 
 The authenticated-profile probe on 2026-10-06 produced a blank white private capture despite loading the `/app` route, so no visual-parity conclusion was drawn. A user-visible, same-state capture remains required before comparing official Discord with Track B.
 
+## Manual checkpoint
+
+When the native-window connector cannot inspect the desktop window, run `tools/Invoke-TrackBVisualCheckpoint.ps1` after placing the official and Track B screenshots on the local machine. Confirm each condition interactively. The script records only the confirmations and sanitized pixel-error metrics. It does not copy, publish, or embed either screenshot. Missing confirmations leave the result as `WAITING_FOR_MANUAL_CHECKPOINT`.
+
 `tools/Compare-DiscordScreenshots.py` compares two same-sized PNGs locally and reports differing-pixel percentage, mean absolute channel error, p95 pixel error, and maximum pixel error. It writes no image content and has no network or Discord integration. A metric of zero is only meaningful for a controlled same-state pair; it is not a substitute for functional review.
 
 No Track B release or public repository decision is made until the authenticated A/B comparison, required functional checks, performance gates, and visual parity review are complete.
