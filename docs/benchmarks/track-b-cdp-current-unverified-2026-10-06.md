@@ -14,3 +14,9 @@ CDP reported 66.83 MiB V8 used heap and 90.30 MiB total heap, 1,155 DOM nodes, o
 The renderer's private working set exceeded measured V8 used heap by roughly 438 MiB in this run. This is evidence that the renderer residual includes substantial non-V8 allocation, but it does not identify whether the bytes are Blink, decoded media, compositor resources, WebRTC, or other Chromium-native allocations. No optimization was selected from this result.
 
 Raw process and CDP artifacts remain under `artifacts/` and are private.
+
+## Readback repeat
+
+A repeat after adding the explicit `Memory.getSamplingProfile` readback collected 732 native samples during the window. The previous `Memory.stopSampling` response contained zero samples, so the earlier empty result was a readback limitation rather than proof that the window had no native allocations.
+
+The repeat measured 490.54 MiB renderer private working set and 540.46 MiB renderer private bytes at the median, with 67.07 MiB V8 used heap. The sampled native bytes were grouped as `other` because the returned stack labels were not specific enough to support safe Blink, media, GPU, or Chromium-native attribution. The raw repeat is under `artifacts/track-b-cdp-current-20261006-163419/`.
