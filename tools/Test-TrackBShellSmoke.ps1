@@ -8,6 +8,16 @@ param(
 )
 
 $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath -ErrorAction Stop).Path
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class TrackBShellSmokeWindow {
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(IntPtr hWnd);
+}
+'@
 $allProcesses = @()
 function Get-DescendantProcesses {
     param([int] $RootPid)
@@ -111,6 +121,13 @@ try {
         throw 'Normal shell did not become responsive for the single-instance smoke test.'
     }
 
+    $firstWindowHandle = $firstObserved.MainWindowHandle
+    [TrackBShellSmokeWindow]::ShowWindow($firstWindowHandle, 6) | Out-Null
+    Start-Sleep -Milliseconds 250
+    if (-not [TrackBShellSmokeWindow]::IsIconic($firstWindowHandle)) {
+        throw 'Normal shell could not be minimized before the duplicate-launch restore check.'
+    }
+
     $secondNormal = Start-Process -FilePath $resolvedExecutable -PassThru
     if (-not $secondNormal.WaitForExit(5000)) {
         throw "Second normal launch did not exit while the first instance was running. PID $($secondNormal.Id)."
@@ -120,6 +137,9 @@ try {
     })
     if ($verifiedRoots.Count -ne 1 -or [int] $verifiedRoots[0].ProcessId -ne $firstNormal.Id) {
         throw "Expected one normal shell root after duplicate launch, found $($verifiedRoots.Count)."
+    }
+    if ([TrackBShellSmokeWindow]::IsIconic($firstWindowHandle)) {
+        throw 'Duplicate normal launch did not restore the existing minimized window.'
     }
 
     $normalResult = [pscustomobject]@{

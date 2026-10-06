@@ -1,10 +1,18 @@
 using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace KoroneDiscordShell;
 
 internal static class Program
 {
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     [STAThread]
     private static void Main(string[] args)
     {
@@ -15,6 +23,16 @@ internal static class Program
             normalInstance = new Mutex(true, "Local\\KoroneDiscordShell.Normal", out var ownsNormalInstance);
             if (!ownsNormalInstance)
             {
+                foreach (var process in Process.GetProcessesByName("KoroneDiscordShell"))
+                {
+                    using (process)
+                    {
+                        if (process.MainWindowHandle == IntPtr.Zero) continue;
+                        ShowWindow(process.MainWindowHandle, 9);
+                        SetForegroundWindow(process.MainWindowHandle);
+                        break;
+                    }
+                }
                 normalInstance.Dispose();
                 return;
             }
