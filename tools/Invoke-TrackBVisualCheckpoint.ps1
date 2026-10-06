@@ -40,6 +40,14 @@ if ($OfficialScreenshot -or $TrackBScreenshot) {
     $comparison = $comparisonJson | ConvertFrom-Json
 }
 
+$visualReviewStatus = 'UNREVIEWED'
+if ($comparison) {
+    $visualReviewStatus = (Read-Host 'After reviewing the side-by-side screenshots, enter PASS or FAIL').Trim().ToUpperInvariant()
+    if ($visualReviewStatus -notin @('PASS', 'FAIL')) {
+        throw "Invalid visual review result '$visualReviewStatus'. Use PASS or FAIL."
+    }
+}
+
 $parityReady = @($confirmed | Where-Object { -not $_.confirmed }).Count -eq 0
 $report = [pscustomobject]@{
     schemaVersion = 1
@@ -48,7 +56,9 @@ $report = [pscustomobject]@{
     conditions = @($confirmed)
     screenshotComparison = $comparison
     parityReady = $parityReady
-    result = if (-not $parityReady) { 'WAITING_FOR_MANUAL_CHECKPOINT' } elseif (-not $comparison) { 'READY_FOR_LOCAL_SCREENSHOT_COMPARISON' } else { 'RECORDED_FOR_REVIEW' }
+    visualReviewStatus = $visualReviewStatus
+    visualReviewPassed = ($visualReviewStatus -eq 'PASS')
+    result = if (-not $parityReady) { 'WAITING_FOR_MANUAL_CHECKPOINT' } elseif (-not $comparison) { 'READY_FOR_LOCAL_SCREENSHOT_COMPARISON' } elseif ($visualReviewStatus -ne 'PASS') { 'VISUAL_REVIEW_FAILED_OR_UNCONFIRMED' } else { 'VISUAL_REVIEW_PASSED' }
 }
 
 $parent = Split-Path -Parent $OutputPath

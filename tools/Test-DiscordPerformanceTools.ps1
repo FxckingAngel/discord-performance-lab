@@ -33,6 +33,8 @@ $measureTool = Join-Path $resolvedToolsPath 'Measure-DiscordProcessTree.ps1'
 $joinTool = Join-Path $resolvedToolsPath 'Join-TrackBCdpWindowsAttribution.ps1'
 $traceCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBCdpTrace.ps1'
 $functionalCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBFunctionalCheckpoint.ps1'
+$visualCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBVisualCheckpoint.ps1'
+$acceptanceGateTool = Join-Path $resolvedToolsPath 'Test-TrackBAcceptance.ps1'
 $shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
@@ -46,6 +48,19 @@ try {
     }
     if ($functionalCheckpointSource -notmatch 'rootPid') {
         throw 'Functional checkpoint does not retain the measured root PID.'
+    }
+    $visualCheckpointSource = Get-Content -LiteralPath $visualCheckpointTool -Raw
+    if ($visualCheckpointSource -notmatch 'visualReviewPassed') {
+        throw 'Visual checkpoint does not retain an explicit visual review result.'
+    }
+    if (-not (Test-Path -LiteralPath $acceptanceGateTool -PathType Leaf)) {
+        throw 'Track B acceptance gate tool is missing.'
+    }
+    $acceptanceGateSource = Get-Content -LiteralPath $acceptanceGateTool -Raw
+    foreach ($requiredField in @('privateWorkingSetMiB', 'privateMemoryMiB', 'cpuPercentOfTotal', 'functionalPassed', 'visualPassed')) {
+        if ($acceptanceGateSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Track B acceptance gate does not evaluate $requiredField."
+        }
     }
     $shellSource = Get-Content -LiteralPath $shellSourcePath -Raw
     if ($shellSource -notmatch 'Uri\.TryCreate') {
@@ -176,6 +191,29 @@ try {
     if ($runTaskMetric.Count -ne 1 -or $runTaskMetric[0].baselinePerSecond -ne 2 -or $runTaskMetric[0].candidatePerSecond -ne 1) {
         throw 'CDP trace comparison did not normalize event counts per second.'
     }
+
+    $acceptanceCandidatePath = Join-Path $tempRoot 'acceptance-candidate.json'
+    $acceptanceFunctionalPath = Join-Path $tempRoot 'acceptance-functional.json'
+    $acceptanceVisualPath = Join-Path $tempRoot 'acceptance-visual.json'
+    $acceptanceOutputPath = Join-Path $tempRoot 'acceptance-output.json'
+    [pscustomobject]@{
+        privateWorkingSetMiB = [pscustomobject]@{ median = 150 }
+        privateMemoryMiB = [pscustomobject]@{ median = 240 }
+        cpuPercentOfTotal = [pscustomobject]@{ medianRun = 0.1; p95Run = 0.15 }
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceCandidatePath -Encoding utf8
+    [pscustomobject]@{ passed = $true; results = @([pscustomobject]@{ status = 'PASS' }) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceFunctionalPath -Encoding utf8
+    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $true; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
+    $acceptanceResultText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath -OutputPath $acceptanceOutputPath
+    $acceptanceResult = $acceptanceResultText | ConvertFrom-Json
+    if (-not $acceptanceResult.passed) {
+        throw "Synthetic Track B acceptance gate should pass when every gate is satisfied: $($acceptanceResult | ConvertTo-Json -Compress)"
+    }
+    [pscustomobject]@{ parityReady = $true; visualReviewPassed = $false; screenshotComparison = [pscustomobject]@{ differingPixelPercent = 0 } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $acceptanceVisualPath -Encoding utf8
+    $rejectedAcceptanceText = & $acceptanceGateTool -CandidateSummary $acceptanceCandidatePath -FunctionalReport $acceptanceFunctionalPath -VisualReport $acceptanceVisualPath
+    $rejectedAcceptanceResult = $rejectedAcceptanceText | ConvertFrom-Json
+    if ($rejectedAcceptanceResult.passed) {
+        throw 'Synthetic Track B acceptance gate should fail without explicit visual review.'
+    }
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -187,3 +225,4 @@ finally {
     benchmarkFixturePassed = $true
     toolsPath = $resolvedToolsPath
 }
+$global:LASTEXITCODE = 0

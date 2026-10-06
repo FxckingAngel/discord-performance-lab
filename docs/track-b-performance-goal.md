@@ -26,6 +26,8 @@ The authenticated benchmark is a manual UI checkpoint, not a blocked project goa
 
 Use `tools/Invoke-TrackBFunctionalCheckpoint.ps1` for the feature gate after the shell is visibly ready. It requires exactly one responsive Track B process before prompting for sanitized PASS, FAIL, or UNTESTED results, and records the root PID and window state. It cannot produce a functional report for a missing or unresponsive shell.
 
+The final gate is `tools/Test-TrackBAcceptance.ps1`. It requires a complete Track B summary, an all-PASS functional report, and a visual report with every comparison condition confirmed, screenshots present, and an explicit visual-review PASS. Missing evidence produces a failed gate rather than being interpreted as success.
+
 A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.95 MiB median private working set and 0.072% median total CPU, but its private-bytes median was 331.29 MiB and its p95 private working set was 266.93 MiB. This is encouraging runtime-floor evidence only; it does not satisfy the authenticated same-channel acceptance gate.
 
 ## Target levels
