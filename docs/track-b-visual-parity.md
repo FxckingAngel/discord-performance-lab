@@ -40,6 +40,13 @@ Use read-only observation and small, reversible shell capabilities to identify t
 
 ## Regression workflow
 
-The visual workflow will eventually produce aligned official-versus-Track-B pairs and a reviewable difference image or metric for each scenario. Visual regressions are tracked separately from performance regressions. A lower memory number does not offset a visible or functional desktop regression.
+`tools/Capture-DiscordCdpScreenshot.mjs` captures a local PNG from a controlled loopback CDP diagnostic endpoint and records only viewport metadata to stdout. Example:
+
+```text
+node tools/Capture-DiscordCdpScreenshot.mjs 9222 benchmarks/private/official-friends.png
+node tools/Capture-DiscordCdpScreenshot.mjs 9224 benchmarks/private/track-b-friends.png
+```
+
+The screenshot files stay private because they may contain account names, messages, or other Discord content. The two captures are valid for comparison only after the same account, route, call state, window dimensions, display scaling, and settled workload have been established. The next workflow step is an aligned pixel/difference report over these local pairs. Visual regressions are tracked separately from performance regressions. A lower memory number does not offset a visible or functional desktop regression.
 
 No Track B release or public repository decision is made until the authenticated A/B comparison, required functional checks, performance gates, and visual parity review are complete.
