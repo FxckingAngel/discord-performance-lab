@@ -83,10 +83,40 @@ foreach ($roleGroup in @($roleSamples | Group-Object role)) {
         threads = Get-MemorySummary @($roleGroup.Group | ForEach-Object threads)
     }
 }
+$logicalProcessors = [int] (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+$roleCpuSamples = foreach ($run in $runs) {
+    $firstCpuByPid = @{}
+    foreach ($process in @($run.samples[0].processes)) {
+        $firstCpuByPid[[int]$process.pid] = [double]$process.cpuSeconds
+    }
+    foreach ($roleGroup in @($run.samples[-1].processes | Group-Object role)) {
+        $delta = 0.0
+        foreach ($process in @($roleGroup.Group)) {
+            $processId = [int]$process.pid
+            if ($firstCpuByPid.ContainsKey($processId)) {
+                $delta += [double]$process.cpuSeconds - $firstCpuByPid[$processId]
+            }
+        }
+        $start = [datetime]::Parse($run.samples[0].timestamp)
+        $end = [datetime]::Parse($run.samples[-1].timestamp)
+        $wallSeconds = ($end - $start).TotalSeconds
+        [pscustomobject]@{
+            role = $roleGroup.Name
+            cpuSeconds = $delta
+            cpuPercentOfTotal = if ($wallSeconds -gt 0 -and $logicalProcessors -gt 0) { ($delta / $wallSeconds / $logicalProcessors) * 100 } else { $null }
+        }
+    }
+}
+foreach ($roleGroup in @($roleCpuSamples | Group-Object role)) {
+    if (-not $roleBreakdown.Contains($roleGroup.Name)) {
+        $roleBreakdown[$roleGroup.Name] = [pscustomobject]@{}
+    }
+    $roleBreakdown[$roleGroup.Name] | Add-Member -NotePropertyName cpuSeconds -NotePropertyValue (Get-MemorySummary @($roleGroup.Group | ForEach-Object cpuSeconds))
+    $roleBreakdown[$roleGroup.Name] | Add-Member -NotePropertyName cpuPercentOfTotal -NotePropertyValue (Get-MemorySummary @($roleGroup.Group | ForEach-Object cpuPercentOfTotal))
+}
 $cpuDeltas = @($runs | ForEach-Object {
     [double] $_.samples[-1].cpuSeconds - [double] $_.samples[0].cpuSeconds
 })
-$logicalProcessors = [int] (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
 $cpuPercent = @($runs | ForEach-Object {
     $start = [datetime]::Parse($_.samples[0].timestamp)
     $end = [datetime]::Parse($_.samples[-1].timestamp)
