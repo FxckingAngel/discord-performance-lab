@@ -74,6 +74,30 @@ function Get-MetricValue {
     }
 }
 
+function Get-ProcessAttribution {
+    param([object] $Summary, [string] $Source)
+    return @($Summary.processes | ForEach-Object {
+        [pscustomobject]@{
+            source = $Source
+            pid = $_.pid
+            parentPid = $_.parentPid
+            role = $_.role
+            samples = $_.samples
+            lifetimeSecondsMedian = $_.lifetimeSecondsMedian
+            privateWorkingSetMedianMiB = $_.privateWorkingSetMedianMiB
+            privateWorkingSetP95MiB = $_.privateWorkingSetP95MiB
+            privateMemoryMedianMiB = $_.privateMemoryMedianMiB
+            privateMemoryP95MiB = $_.privateMemoryP95MiB
+            cpuMedianPercentOfTotal = $_.cpuMedianPercentOfTotal
+            cpuP95PercentOfTotal = $_.cpuP95PercentOfTotal
+            pageFaultsMedianPerSecond = $_.pageFaultsMedianPerSecond
+            pageFaultsP95PerSecond = $_.pageFaultsP95PerSecond
+            handlesMedian = $_.handlesMedian
+            threadsMedian = $_.threadsMedian
+        }
+    })
+}
+
 $baselineCdp = Read-JsonFile -Path $BaselineCdpPath
 $candidateCdp = Read-JsonFile -Path $CandidateCdpPath
 $baselineSummary = Read-JsonFile -Path $BaselineRoleSummaryPath
@@ -110,11 +134,16 @@ $metrics = foreach ($name in $metricNames) {
     }
 }
 $comparison = [pscustomobject]@{
-    schemaVersion = 1
+    schemaVersion = 2
     baselineCdp = (Resolve-Path -LiteralPath $BaselineCdpPath).Path
     candidateCdp = (Resolve-Path -LiteralPath $CandidateCdpPath).Path
     baselineRoleSummary = (Resolve-Path -LiteralPath $BaselineRoleSummaryPath).Path
     candidateRoleSummary = (Resolve-Path -LiteralPath $CandidateRoleSummaryPath).Path
+    processAttribution = @(
+        Get-ProcessAttribution -Summary $baselineSummary -Source 'baseline'
+        Get-ProcessAttribution -Summary $candidateSummary -Source 'candidate'
+    )
+    pidMatching = 'PIDs are local to each run and are preserved for inspection but are not matched across scenarios.'
     interpretation = 'Descriptive workload comparison. Deltas do not establish an optimization or a functional result.'
     metrics = @($metrics)
 }
