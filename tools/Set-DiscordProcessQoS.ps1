@@ -7,6 +7,8 @@ param(
     [ValidateSet('ecoqos', 'system-managed')]
     [string] $Mode = 'system-managed',
 
+    [string[]] $ExcludeRole = @(),
+
     [ValidateNotNullOrEmpty()]
     [string] $ProcessName = 'DiscordPTB'
 )
@@ -99,19 +101,30 @@ while ($pending.Count -gt 0) {
 
 $ecoQoS = $Mode -eq 'ecoqos'
 $results = foreach ($process in @($processes | Where-Object { $treePids.Contains([int] $_.ProcessId) })) {
+    $role = 'browser'
+    if ($process.CommandLine -match '--type=([^\s]+)') {
+        $role = $Matches[1]
+    }
+    if ($process.CommandLine -match '--utility-sub-type=([^\s]+)') {
+        $role = "$role/$($Matches[1])"
+    }
+    $excluded = $ExcludeRole -contains $role
+    $targetEcoQoS = $ecoQoS -and -not $excluded
     try {
-        [DiscordProcessQoSNative]::Set([uint32] $process.ProcessId, $ecoQoS)
+        [DiscordProcessQoSNative]::Set([uint32] $process.ProcessId, $targetEcoQoS)
         [pscustomobject]@{
             pid = [int] $process.ProcessId
             parentPid = [int] $process.ParentProcessId
-            mode = $Mode
-            status = 'applied'
+            role = $role
+            mode = if ($targetEcoQoS) { 'ecoqos' } else { 'system-managed' }
+            status = if ($excluded) { 'preserved' } else { 'applied' }
         }
     }
     catch {
         [pscustomobject]@{
             pid = [int] $process.ProcessId
             parentPid = [int] $process.ParentProcessId
+            role = $role
             mode = $Mode
             status = 'failed'
             error = $_.Exception.Message

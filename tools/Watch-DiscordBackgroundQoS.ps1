@@ -44,8 +44,9 @@ do {
     $minimized = $windowHandle -eq [IntPtr]::Zero -or [DiscordWindowStateNative]::IsIconic($windowHandle)
     $desiredMode = if ($minimized) { 'ecoqos' } else { 'system-managed' }
     if ($desiredMode -ne $lastMode) {
-        $qosOutput = & $qosScript -RootPid $RootPid -ProcessName $ProcessName -Mode $desiredMode | Out-String
-        if ($LASTEXITCODE -ne 0) {
+        $qosOutput = & $qosScript -RootPid $RootPid -ProcessName $ProcessName -Mode $desiredMode -ExcludeRole @('gpu-process', 'utility/audio.mojom.AudioService') | Out-String
+        $qosSucceeded = $?
+        if (-not $qosSucceeded) {
             throw "QoS transition to $desiredMode failed for root PID $RootPid. $($qosOutput.Trim())"
         }
         [pscustomobject]@{
