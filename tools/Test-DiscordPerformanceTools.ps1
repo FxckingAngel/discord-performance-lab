@@ -359,7 +359,7 @@ try {
         }
     }
     $vanillaLauncherSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Launch-DiscordVanillaDiagnostic.ps1') -Raw
-    foreach ($requiredField in @('--vanilla', '--start-inactive', '--user-data-dir=', '--remote-debugging-port=', 'does not stop')) {
+    foreach ($requiredField in @('--vanilla', '--multi-instance', '--start-inactive', '--user-data-dir=', '--remote-debugging-port=', 'does not stop')) {
         if ($vanillaLauncherSource -notmatch [regex]::Escape($requiredField)) {
             throw "Vanilla diagnostic launcher does not preserve $requiredField."
         }

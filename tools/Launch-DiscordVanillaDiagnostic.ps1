@@ -26,6 +26,7 @@ if ($active.Count -eq 0) {
 New-Item -ItemType Directory -Path $resolvedProfile -Force | Out-Null
 $arguments = @(
     '--vanilla'
+    '--multi-instance'
     '--start-inactive'
     "--user-data-dir=$resolvedProfile"
     "--remote-debugging-port=$Port"

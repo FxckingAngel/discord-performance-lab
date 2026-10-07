@@ -18,12 +18,12 @@ An API is not reported as available until its native implementation works in the
 
 ## Compatibility matrix
 
-The official Electron environment must be observed locally with read-only diagnostics and compared with the WebView2 environment before implementation. Public documentation describes platform behavior, but it does not prove which current Discord frontend checks are active, so unknown cells remain unknown until measured.
+The official Electron environment must be observed locally with read-only diagnostics and compared with the WebView2 environment before implementation. A separate vanilla control on 2026-10-07 confirmed the current `DiscordNative` group names; it did not establish which groups the tested route calls. Public documentation describes platform behavior, but it does not prove which current Discord frontend checks are active, so unknown cells remain unknown until measured.
 
 | Discord desktop capability | Official Electron environment | Track B equivalent | Implemented? | Performance cost |
 | --- | --- | --- | --- | --- |
-| Runtime and platform identification | Electron 42.11.10 with Chromium and Electron runtime signals | Native WebView2 runtime plus an explicitly documented, minimal environment surface | No | Not measured |
-| Preload-exposed globals | Must be enumerated from the stock client under a disposable diagnostic launch | No preload bridge in the prototype | No | Not measured |
+| Runtime and platform identification | Electron 42.11.10 with Discord desktop UA and `DiscordNative` | Native WebView2 runtime plus the matching UA; WebView2 user-agent data remains distinct | UA only; no native surface | Measured in probe |
+| Preload-exposed globals | `DiscordNative` groups observed in the vanilla control; Electron globals absent at page scope | No preload bridge in the prototype | No | Not measured |
 | Window controls and state | Electron BrowserWindow and native window state | Diagnostic-only WebView2 message bridge to WinForms state/actions, source-restricted | Implemented diagnostically; not exposed in normal shell; Discord use unverified | No measurable cost in isolated bridge runs |
 | Custom titlebar and drag region | Electron frame/titlebar configuration | Native WinForms titlebar, drag region, and window buttons | Implemented in shell; visual parity unverified | Included in shell process; measurement pending |
 | Desktop notifications | Electron/OS notification integration | WebView2 permission and Windows notification integration, subject to supported behavior | No | Not measured |
@@ -61,7 +61,7 @@ The same diagnostic mode also observes WebView2 `DownloadStarting` and `ScreenCa
 
 The read-only probe is `tools/Invoke-DiscordEnvironmentProbe.mjs`. It requires a loopback CDP endpoint created for a controlled diagnostic launch. It records only sanitized aggregate environment facts and global-name presence; it does not serialize native object values or page data.
 
-The installed PTB package on the test machine is Vencord-patched. For a separate environment-only control, `tools/Launch-DiscordVanillaDiagnostic.ps1` can launch that executable with the locally supported `--vanilla` switch, a separate user-data directory, and a loopback CDP port. It refuses to proceed when the executable is not already present and never stops or reuses the active Discord profile. This control is for desktop-capability inspection only; it is not a pristine performance baseline until the loaded package and version are independently verified.
+The installed PTB package on the test machine is Vencord-patched. For a separate environment-only control, `tools/Launch-DiscordVanillaDiagnostic.ps1` launches the original package path with the locally supported `--vanilla` and `--multi-instance` switches, a separate user-data directory, and a loopback CDP port. It refuses to proceed when the executable is not already present and never stops or reuses the active Discord profile. This control is for desktop-capability inspection only; it is not a pristine performance baseline until the loaded package and version are independently verified. The observed capability surface is recorded in [the vanilla capability probe](benchmarks/track-b-vanilla-capability-probe-2026-10-07.md).
 
 For a controlled official-client capability-use trace, use `tools/Probe-DiscordNativeMethodCalls.mjs <port> <seconds> <output>`. It reloads the diagnostic page, wraps only callable properties under `DiscordNative`, and records unique method names plus counts. It never records arguments, return values, page content, URLs, cookies, tokens, or native object values. Run it only against a disposable controlled diagnostic session, not the ordinary live client.
 
