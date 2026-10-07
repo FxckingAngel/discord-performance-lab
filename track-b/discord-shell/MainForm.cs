@@ -15,7 +15,7 @@ public sealed class MainForm : Form
     private const int WmNclButtonDown = 0x00A1;
     private const int HtCaption = 2;
     private const string DiscordWebApp = "https://discord.com/app";
-    private const string DiagnosticOfficialUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.1223 Chrome/148.0.7778.280 Electron/42.11.10 Safari/537.36";
+    private const string DesktopIdentityUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.1223 Chrome/148.0.7778.280 Electron/42.11.10 Safari/537.36";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
     private readonly bool diagnosticBlank;
     private readonly bool diagnosticDiscord;
@@ -27,6 +27,9 @@ public sealed class MainForm : Form
     private readonly bool diagnosticCapabilityEvents;
     private readonly bool diagnosticAuthenticatedCapabilityEvents;
     private readonly bool diagnosticAuthenticatedNoBridges;
+    private CoreWebView2Environment? webViewEnvironment;
+    private string? webViewUserDataFolder;
+    private bool webViewProcessInfoCaptured;
     private string? capabilityEventLogPath;
     private readonly Panel titleBar = new() { Dock = DockStyle.Top, Height = 32 };
     private readonly Label titleLabel = new() { AutoEllipsis = true, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
@@ -182,6 +185,9 @@ public sealed class MainForm : Form
             var environment = await CoreWebView2Environment.CreateAsync(
                 userDataFolder: userDataFolder,
                 options: options);
+            webViewEnvironment = environment;
+            webViewUserDataFolder = userDataFolder;
+            environment.ProcessInfosChanged += OnWebViewProcessInfosChanged;
             await webView.EnsureCoreWebView2Async(environment);
             UpdateWebViewVisibility();
             if (diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents)
@@ -216,10 +222,9 @@ public sealed class MainForm : Form
             {
                 webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
             }
-            if (diagnosticUserAgent)
-            {
-                webView.CoreWebView2.Settings.UserAgent = DiagnosticOfficialUserAgent;
-            }
+            // Identify the shell as Discord Desktop without claiming unsupported native capabilities.
+            // This changes the client runtime identity only; it does not alter auth, permissions, or protocol behavior.
+            webView.CoreWebView2.Settings.UserAgent = DesktopIdentityUserAgent;
             if (enableWindowBridge || enableHardwareBridge)
             {
                 var bridgeScript = @"
@@ -287,7 +292,7 @@ public sealed class MainForm : Form
         webView.Visible = WindowState != FormWindowState.Minimized;
     }
 
-    private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    private async void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         if (!e.IsSuccess)
         {
@@ -317,6 +322,19 @@ public sealed class MainForm : Form
                     ? "Korone's Discord Shell (Environment Probe)"
                     : "Korone's Discord Shell (Prototype)";
             titleLabel.Text = Text;
+        }
+        if (e.IsSuccess && webViewEnvironment is not null && webViewUserDataFolder is not null && !webViewProcessInfoCaptured)
+        {
+            webViewProcessInfoCaptured = true;
+            await WriteWebViewProcessInfoAsync(webViewEnvironment, webViewUserDataFolder);
+        }
+    }
+
+    private void OnWebViewProcessInfosChanged(object? sender, object e)
+    {
+        if (webViewEnvironment is not null && webViewUserDataFolder is not null)
+        {
+            _ = WriteWebViewProcessInfoAsync(webViewEnvironment, webViewUserDataFolder);
         }
     }
 
@@ -373,6 +391,49 @@ public sealed class MainForm : Form
         catch
         {
             // Diagnostics must never affect the Discord page or native shell.
+        }
+    }
+
+    private static async Task WriteWebViewProcessInfoAsync(CoreWebView2Environment environment, string userDataFolder)
+    {
+        try
+        {
+            var diagnosticsDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "KoroneDiscordShell",
+                "Diagnostics");
+            Directory.CreateDirectory(diagnosticsDirectory);
+            var processes = environment.GetProcessInfos();
+            var extendedProcesses = await environment.GetProcessExtendedInfosAsync();
+            var rows = new List<object>();
+            foreach (var process in processes)
+            {
+                var extended = extendedProcesses.FirstOrDefault(item => item.ProcessInfo.ProcessId == process.ProcessId);
+                var activeFrameCount = 0;
+                if (extended is not null)
+                {
+                    activeFrameCount = extended.AssociatedFrameInfos.Count;
+                }
+                rows.Add(new
+                {
+                    processId = process.ProcessId,
+                    kind = process.Kind.ToString(),
+                    activeFrameCount,
+                });
+            }
+            File.WriteAllText(
+                Path.Combine(diagnosticsDirectory, "webview-process-info.json"),
+                JsonSerializer.Serialize(new
+                {
+                    capturedAt = DateTime.UtcNow,
+                    processCount = rows.Count,
+                    userDataFolderName = Path.GetFileName(userDataFolder),
+                    processes = rows,
+                }));
+        }
+        catch
+        {
+            // Diagnostic process metadata must never affect page startup.
         }
     }
 

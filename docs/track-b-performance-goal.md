@@ -12,7 +12,7 @@ The shell must also meet the separate [visual parity requirement](track-b-visual
 
 It must also provide a minimal, audited [desktop compatibility layer](track-b-desktop-compatibility.md). Discord's frontend must recognize only desktop capabilities that Track B genuinely implements underneath it. Capability reporting cannot be used to spoof unsupported Electron APIs or security state.
 
-The design target is approximately **250 MiB of total settled idle private/unique resident RAM and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable. The ordinary summed working set remains a required secondary metric, but shared resident pages must not be counted repeatedly when judging the primary physical-RAM target.
+The design target is approximately **250 MiB of total settled idle private working set / unique private resident RAM and 0.2% total idle CPU** on the current comparison machine. This is a target for the whole Track B application, not only its main executable. Private bytes/commit is an additional diagnostic metric, not a second 250 MiB acceptance requirement. The ordinary summed working set and derived shareable working set remain required secondary metrics, but shared resident pages must not be counted repeatedly when judging the primary physical-RAM target.
 
 ## Current workflow status
 
@@ -20,7 +20,9 @@ The design target is approximately **250 MiB of total settled idle private/uniqu
 
 **Authenticated Track B checkpoint: CAPTURED; official same-route A/B pairing and parity validation pending**
 
-The settled resource target has now repeated in the current build: two consecutive 600-second observations measured 243.64 MiB median and 244.05 MiB p95 private bytes, 153.87 MiB median and 166.45 MiB p95 private working set, and 0.001% median/p95 CPU across seven processes. This validates the resource target for that prepared session, but it does not close the functional or visual-parity gates.
+An earlier prepared-session result measured 243.64 MiB median and 244.05 MiB p95 private bytes, 153.87 MiB median and 166.45 MiB p95 private working set, and 0.001% median/p95 CPU across seven processes. This is retained as historical diagnostic evidence, but it does not validate the current general client because the state was not shown to be a fully initialized equivalent Discord workload and private bytes are not the primary RAM KPI.
+
+Later rebuilt-shell captures supersede that prepared-session result for current-state reporting. The repeated blank-shell floor measured 74.05 MiB median private working set and 145.64 MiB median private bytes. A later authenticated-no-bridge capture measured 608.82 MiB median private working set and 778.18 MiB median private bytes, with 341.91 MiB renderer private working set. A 30-second live-shell capture measured 427.4 MiB complete-tree private working set. These later captures were not manually verified same-route acceptance benchmarks, but they show that the earlier low prepared-session result is state-dependent and must not be treated as the current general Track B pass.
 
 The authenticated benchmark is a manual UI checkpoint, not a blocked project goal. Use `tools/Invoke-TrackBManualCheckpoint.ps1` to launch or reuse Track B, then manually log in, navigate to the requested channel or DM, leave the state ready, and type `READY`. The script then measures the existing Track B process tree without UI automation. Official Discord does not need to be closed for this workflow.
 
@@ -32,6 +34,14 @@ The minimized-WebView visibility candidate is documented separately in [Experime
 
 A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.95 MiB median private working set and 0.072% median total CPU, but its private-bytes median was 331.29 MiB and its p95 private working set was 266.93 MiB. This is encouraging runtime-floor evidence only; it does not satisfy the authenticated same-channel acceptance gate.
 
+## Fully initialized benchmark gate
+
+No Track B result counts toward acceptance merely because the Discord URL loaded. Before measurement, the benchmark must record a stable renderer PID, a synchronized WebView2 process inventory, a manually confirmed exact Discord route, a visibly loaded frontend, completed navigation/session restoration, a stable process count, and an unchanged route for the full settle and measurement interval. The checkpoint must confirm the intended Discord state without recording message, account, token, or command-line content. Incomplete states such as the earlier approximately 113 MiB authenticated diagnostic are initialization evidence only.
+
+## Official reference policy
+
+The current PTB installation is Vencord-patched. Its measurements must be labeled **Official Discord + Vencord** and must not be used to publish an exact Electron or desktop-container tax. Before calculating that delta, establish a pristine Official Discord reference using the same account, exact route, frontend state, window and display, activity, duration, and machine conditions as Track B. Historical results remain in the repository, but non-comparable or incompletely initialized results are explicitly superseded for acceptance decisions.
+
 ## Target levels
 
 | Level | Settled idle private/unique resident RAM, full tree | Total idle CPU | Required behavior |
@@ -42,6 +52,23 @@ A 10-minute unauthenticated natural-idle diagnostic on 2026-10-06 reached a 221.
 | Design target | about 250 MiB | about 0.2% | Preserve normal functionality and avoid artificial trimming |
 
 These levels are judged after the same account is logged in, the same static channel is visible, the window has settled for the same duration, and the same background conditions are present. Record total working set, private working set, native shareable working set when Windows exposes it, and private bytes/commit separately. On this machine no native shared-working-set counter is exposed, so the harness labels `total working set - private working set` as a derived estimate only. A login page or unauthenticated web profile cannot pass the gate.
+
+## Workload performance matrix
+
+Settled idle is only one acceptance workload. Track B must also remain lighter than pristine Official Discord during normal use without disabling visible behavior. Do not set active-workload RAM limits until same-workload pristine Official Discord baselines exist:
+
+| Workload | Required measurement and functional scope |
+| --- | --- |
+| Active DM/text messaging | Typing, sending, editing, reacting, navigation, private working set, total working set, private bytes, CPU median/p95, responsiveness, and functional pass/fail |
+| Channel navigation and sustained history scrolling | Same route sequence and scroll duration in both clients, with memory growth/reclamation and responsiveness |
+| Media-heavy channel | Visible GIFs, stickers, images, and embeds remain enabled; measure memory growth, GPU activity, CPU, reclamation after leaving the view, and functional pass/fail |
+| Voice connected quiet and active conversation | Audio, microphone processing, chat, notifications, memory, CPU, GPU where applicable, latency, and functional pass/fail |
+| Video call | RAM, CPU, GPU, frame stability, latency, device controls, and functional pass/fail separately from idle |
+| Screen sharing | Capture quality, encoder/GPU/CPU cost, latency, controls, and functional pass/fail separately from idle |
+| Notifications | Receive and open notifications while preserving normal behavior, with resource and functional measurements |
+| Gaming with Discord in the background | Same game, display, account state, background conditions, and official-versus-Track-B comparison |
+
+Maintain a workload matrix covering idle, active texting, scrolling, media-heavy channels, voice idle, active voice, video, screen sharing, and gaming in the background. Every official-versus-Track-B comparison reports complete-tree private working set, private bytes, CPU median/p95, GPU usage, process count, startup or settle time where relevant, responsiveness, and functional pass/fail. Video and screen sharing are not compared directly against idle because their workloads are fundamentally different.
 
 ## Measurement and comparison contract
 
@@ -65,7 +92,7 @@ Every result records:
 - UI responsiveness;
 - functional pass/fail.
 
-For each metric, report the absolute difference and percentage improvement over official Discord:
+For each metric, report the absolute difference and percentage improvement over pristine Official Discord. Existing PTB/Vencord measurements must be labeled Official Discord + Vencord and cannot isolate an Electron/desktop-container delta:
 
 `improvementPercent = (officialValue - trackBValue) / officialValue * 100`
 
@@ -84,6 +111,8 @@ The target must not be reached by:
 - bypassing Discord security, authentication, authorization, entitlements, sandboxing, or protocol behavior.
 
 The reduction must come from genuinely needing fewer resources in the shell and its runtime.
+
+Official Discord may be used as the actively used comparison target, but it must not be restarted or stopped during testing without the user's confirmation. Track B test-shell restarts remain allowed for engineering diagnostics.
 
 ## Feature goal
 

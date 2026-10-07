@@ -1,7 +1,11 @@
 [CmdletBinding()]
 param(
-    [string] $ToolsPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'tools')
+    [string] $ToolsPath
 )
+
+if ([string]::IsNullOrWhiteSpace($ToolsPath)) {
+    $ToolsPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'tools'
+}
 
 $resolvedToolsPath = (Resolve-Path -LiteralPath $ToolsPath -ErrorAction Stop).Path
 $scripts = @(Get-ChildItem -LiteralPath $resolvedToolsPath -Filter '*.ps1' -File | Where-Object Name -ne (Split-Path -Leaf $PSCommandPath))
@@ -37,6 +41,8 @@ $functionalCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBFunctiona
 $visualCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBVisualCheckpoint.ps1'
 $acceptanceGateTool = Join-Path $resolvedToolsPath 'Test-TrackBAcceptance.ps1'
 $memoryCheckpointTool = Join-Path $resolvedToolsPath 'Invoke-TrackBMemoryAttributionCheckpoint.ps1'
+$rendererLedgerTool = Join-Path $resolvedToolsPath 'Summarize-TrackBRendererMemoryLedger.ps1'
+$cdpTestTool = Join-Path $resolvedToolsPath 'Test-DiscordPhase2Cdp.ps1'
 $featureProbeTool = Join-Path $resolvedToolsPath 'Probe-DiscordFeatureSupport.mjs'
 $screenshotCompareTool = Join-Path $resolvedToolsPath 'Compare-DiscordScreenshots.py'
 $shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
@@ -65,6 +71,46 @@ try {
     }
     if (-not (Test-Path -LiteralPath $acceptanceGateTool -PathType Leaf)) {
         throw 'Track B acceptance gate tool is missing.'
+    }
+    if (-not (Test-Path -LiteralPath $rendererLedgerTool -PathType Leaf)) {
+        throw 'Renderer memory ledger tool is missing.'
+    }
+    $cdpTestSource = Get-Content -LiteralPath $cdpTestTool -Raw
+    foreach ($requiredField in @('[string]::IsNullOrWhiteSpace($OutputPath)', 'phase2-cdp-test-')) {
+        if ($cdpTestSource -notmatch [regex]::Escape($requiredField)) {
+            throw "CDP diagnostic probe does not provide a default output path: $requiredField"
+        }
+    }
+    $ledgerResidentPath = Join-Path $tempRoot 'ledger-resident.json'
+    $ledgerVirtualPath = Join-Path $tempRoot 'ledger-virtual.json'
+    $ledgerOutputPath = Join-Path $tempRoot 'ledger-output.json'
+    [pscustomobject]@{
+        processId = 101
+        memory = [pscustomobject]@{
+            residentValidBytes = 300MB
+            privateWritableResidentBytes = 200MB
+            privateExecutableResidentBytes = 1MB
+            privateOtherResidentBytes = 2MB
+            mappedResidentBytes = 40MB
+            imageResidentBytes = 57MB
+            committedBytes = 500MB
+        }
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ledgerResidentPath -Encoding utf8
+    [pscustomobject]@{
+        processes = @([pscustomobject]@{
+            pid = 101
+            role = 'renderer'
+            privateWritableCommittedBytes = 250MB
+            privateExecutableCommittedBytes = 2MB
+            privateOtherProtectionCommittedBytes = 3MB
+            mappedCommittedBytes = 100MB
+            imageCommittedBytes = 145MB
+        })
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ledgerVirtualPath -Encoding utf8
+    & (Get-Command pwsh.exe).Source -NoProfile -File $rendererLedgerTool -ResidentTypesPath $ledgerResidentPath -VirtualTypesPath $ledgerVirtualPath -OutputPath $ledgerOutputPath | Out-Null
+    $ledgerResult = Get-Content -Raw -LiteralPath $ledgerOutputPath | ConvertFrom-Json
+    if ($ledgerResult.resident.privateWritableMiB -ne 200 -or $ledgerResult.committed.privateWritableMiB -ne 250 -or $ledgerResult.boundaries.privateWritableCommittedBeyondResidentMiB -ne 50) {
+        throw 'Renderer memory ledger did not preserve nested resident fields or committed-minus-resident boundary.'
     }
     $memoryCheckpointSource = Get-Content -LiteralPath $memoryCheckpointTool -Raw
     foreach ($requiredField in @('READY', 'Measure-DiscordPhase2Attribution.ps1', 'Invoke-DiscordPhase2CdpDiagnostics.mjs', 'diagnostic-authenticated-no-bridges')) {
@@ -96,6 +142,12 @@ try {
     }
     if ($shellSource -notmatch 'partial DiscordNative object') {
         throw 'Normal shell bridge gating does not document the blank-window regression.'
+    }
+    if ($shellSource -notmatch 'DesktopIdentityUserAgent' -or $shellSource -notmatch 'Settings\.UserAgent = DesktopIdentityUserAgent') {
+        throw 'Normal shell does not apply the audited Discord Desktop identity signal.'
+    }
+    if ($shellSource -match 'if \(diagnosticUserAgent\)\s*\{\s*webView\.CoreWebView2\.Settings\.UserAgent') {
+        throw 'Desktop identity is still limited to the diagnostic UA mode.'
     }
     $phase2Source = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
     if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
@@ -139,9 +191,130 @@ try {
         }
     }
     $cdpDiagnosticsSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase2CdpDiagnostics.mjs') -Raw
-    foreach ($requiredField in @('imageNaturalPixelCount', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters', 'sampleStatus', 'available')) {
+    foreach ($requiredField in @('imageNaturalPixelCount', 'animatedImageHintCount', 'playingVideoCount', 'videoReadyStateCounts', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters', 'sampleStatus', 'available', 'reloadBeforeSampling', 'Page.reload')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP diagnostics do not report $requiredField."
+        }
+    }
+    $traceSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Capture-TrackBCdpTrace.mjs') -Raw
+    if ($traceSource -notmatch 'eventRatesPerSecond') {
+        throw 'CDP trace does not normalize selected activity counts per second.'
+    }
+    foreach ($requiredField in @('redacted-url-or-path', 'No page text, URLs, cookies, tokens, heap objects')) {
+        if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
+            throw "CDP diagnostics do not enforce $requiredField."
+        }
+    }
+    $traceWrapperSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBUnverifiedCdpTrace.ps1') -Raw
+    foreach ($requiredField in @('expectedCdpPort', 'diagnostic-blank', '9223', '9230')) {
+        if ($traceWrapperSource -notmatch [regex]::Escape($requiredField)) {
+            throw "CDP trace wrapper does not preserve $requiredField."
+        }
+    }
+    $minimizedCheckpointSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBMinimizedCheckpoint.ps1') -Raw
+    if ($minimizedCheckpointSource -notmatch 'if \(-not \$\?\)') {
+        throw 'Minimized checkpoint does not use the measurement command success status.'
+    }
+    $featureCheckpointSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBFeatureScenarioCheckpoint.ps1') -Raw
+    if (([regex]::Matches($featureCheckpointSource, 'if \(-not \$\?\)').Count) -lt 2) {
+        throw 'Feature scenario checkpoint does not use success status for its child tools.'
+    }
+    $phase21ScenarioSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase21Scenario.ps1') -Raw
+    foreach ($requiredField in @('RequireReadyEachRepetition', 'Prepare $Scenario repetition', 'Manual checkpoint was not confirmed', 'requireReadyEachRepetition')) {
+        if ($phase21ScenarioSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Phase 2.1 scenario runner does not preserve $requiredField."
+        }
+    }
+    $residentTypesSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-TrackBResidentMemoryTypes.ps1') -Raw
+    foreach ($requiredField in @('RegionBucket', 'privateWritableRegionCount', 'privateWritable16MiBOrLargerResidentBytes', 'privateWritableResidentBucketsMiB', 'GetLargestPrivateWritableRegions', 'largestPrivateWritableRegions', 'allocationBaseGroups', 'allocationBase', 'residentBytes', 'protect')) {
+        if ($residentTypesSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Resident memory classifier does not preserve $requiredField."
+        }
+    }
+    $regionCorrelationTool = Join-Path $resolvedToolsPath 'Correlate-TrackBResidentRegions.ps1'
+    if (-not (Test-Path -LiteralPath $regionCorrelationTool -PathType Leaf)) {
+        throw 'Resident-region module correlation tool is missing.'
+    }
+    $regionCorrelationSource = Get-Content -LiteralPath $regionCorrelationTool -Raw
+    foreach ($requiredField in @('largestPrivateWritableRegions', 'Get-Process.Modules', 'moduleMatchedRegionCount')) {
+        if ($regionCorrelationSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Resident-region module correlation does not preserve $requiredField."
+        }
+    }
+    $rendererLedgerJoinTool = Join-Path $resolvedToolsPath 'Summarize-TrackBRendererAttributionLedger.ps1'
+    if (-not (Test-Path -LiteralPath $rendererLedgerJoinTool -PathType Leaf)) {
+        throw 'Renderer attribution ledger join tool is missing.'
+    }
+    $rendererLedgerJoinSource = Get-Content -LiteralPath $rendererLedgerJoinTool -Raw
+    foreach ($requiredField in @('privateWritableResidentMinusV8UsedMiB', 'nativeSampledMiB', 'backingStorageMiB', 'Sanitized aggregate join')) {
+        if ($rendererLedgerJoinSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Renderer attribution ledger does not preserve $requiredField."
+        }
+    }
+    $wprHeapSnapshotTool = Join-Path $resolvedToolsPath 'Invoke-TrackBWprHeapSnapshot.ps1'
+    if (-not (Test-Path -LiteralPath $wprHeapSnapshotTool -PathType Leaf)) {
+        throw 'WPR heap snapshot helper is missing.'
+    }
+    $wprHeapSnapshotSource = Get-Content -LiteralPath $wprHeapSnapshotTool -Raw
+    foreach ($requiredField in @('HeapSnapshot', 'snapshotconfig', 'singlesnapshot', 'cleanup', 'requires an elevated')) {
+        if ($wprHeapSnapshotSource -notmatch [regex]::Escape($requiredField)) {
+            throw "WPR heap snapshot helper does not preserve $requiredField."
+        }
+    }
+    $wprResidentSetDecoder = Join-Path $resolvedToolsPath 'Decode-TrackBWprResidentSet.ps1'
+    if (-not (Test-Path -LiteralPath $wprResidentSetDecoder -PathType Leaf)) {
+        throw 'WPR resident-set decoder is missing.'
+    }
+    $wprResidentSetSource = Get-Content -LiteralPath $wprResidentSetDecoder -Raw
+    foreach ($requiredField in @('resident-set categories', 'private working-set', 'ProcessTreeManifestPath', 'rawTraceRetainedPrivate')) {
+        if ($wprResidentSetSource -notmatch [regex]::Escape($requiredField)) {
+            throw "WPR resident-set decoder does not preserve $requiredField."
+        }
+    }
+    $wprScenarioCapture = Join-Path $resolvedToolsPath 'Invoke-TrackBWprScenarioHeapCapture.ps1'
+    if (-not (Test-Path -LiteralPath $wprScenarioCapture -PathType Leaf)) {
+        throw 'WPR scenario heap-capture wrapper is missing.'
+    }
+    $wprScenarioSource = Get-Content -LiteralPath $wprScenarioCapture -Raw
+    foreach ($requiredField in @('static-server-text', 'media-heavy', 'Type READY', 'rendererPid', 'DecodeSymbols', 'decodedOwnershipPath', 'rawTraceRetainedPrivate')) {
+        if ($wprScenarioSource -notmatch [regex]::Escape($requiredField)) {
+            throw "WPR scenario heap-capture wrapper does not preserve $requiredField."
+        }
+    }
+    $wprScenarioCompare = Join-Path $resolvedToolsPath 'Compare-TrackBWprScenarioPair.ps1'
+    if (-not (Test-Path -LiteralPath $wprScenarioCompare -PathType Leaf)) {
+        throw 'WPR scenario comparison tool is missing.'
+    }
+    $wprScenarioCompareSource = Get-Content -LiteralPath $wprScenarioCompare -Raw
+    foreach ($requiredField in @('StaticCaptureDirectory', 'MediaCaptureDirectory', 'familyDeltas', 'rawTracesRetainedPrivate')) {
+        if ($wprScenarioCompareSource -notmatch [regex]::Escape($requiredField)) {
+            throw "WPR scenario comparison does not preserve $requiredField."
+        }
+    }
+    $wprVirtualAllocationCapture = Join-Path $resolvedToolsPath 'Invoke-TrackBWprVirtualAllocationCapture.ps1'
+    if (-not (Test-Path -LiteralPath $wprVirtualAllocationCapture -PathType Leaf)) {
+        throw 'WPR virtual-allocation capture tool is missing.'
+    }
+    $wprVirtualAllocationSource = Get-Content -LiteralPath $wprVirtualAllocationCapture -Raw
+    foreach ($requiredField in @('VirtualAllocation', 'ProcessId', 'rawTraceRetainedPrivate', 'requires an elevated')) {
+        if ($wprVirtualAllocationSource -notmatch [regex]::Escape($requiredField)) {
+            throw "WPR virtual-allocation capture does not preserve $requiredField."
+        }
+    }
+    $wprVirtualAllocationSummary = Join-Path $resolvedToolsPath 'Summarize-TrackBWprVirtualAlloc.ps1'
+    if (-not (Test-Path -LiteralPath $wprVirtualAllocationSummary -PathType Leaf)) {
+        throw 'WPR virtual-allocation sanitizer is missing.'
+    }
+    $wprVirtualAllocationSummarySource = Get-Content -LiteralPath $wprVirtualAllocationSummary -Raw
+    foreach ($requiredField in @('chromium-partitionalloc', 'v8-jit-code', 'double-counted', 'rawOutputRetainedPrivate')) {
+        if ($wprVirtualAllocationSummarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "WPR virtual-allocation sanitizer does not preserve $requiredField."
+        }
+    }
+    $scenarioSummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-TrackBFeatureScenarioCaptures.ps1') -Raw
+    foreach ($requiredField in @('privateWritableRegionCount', 'privateWritable4MiBTo16MiBResidentMiB', 'privateWritable16MiBOrLargerResidentMiB')) {
+        if ($scenarioSummarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "Feature-scenario summary does not preserve $requiredField."
         }
     }
     $checkpointSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBMemoryAttributionCheckpoint.ps1') -Raw
@@ -150,9 +323,101 @@ try {
             throw "Memory attribution checkpoint does not preserve a caller-supplied scenario label: $requiredField."
         }
     }
+    $lifecycleTool = Join-Path $resolvedToolsPath 'Invoke-TrackBLifecycleAttribution.ps1'
+    $lifecycleSummaryTool = Join-Path $resolvedToolsPath 'Summarize-TrackBLifecycleAttribution.ps1'
+    foreach ($requiredPath in @($lifecycleTool, $lifecycleSummaryTool)) {
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "Lifecycle attribution tool is missing: $requiredPath"
+        }
+    }
+    $lifecycleSource = Get-Content -LiteralPath $lifecycleTool -Raw
+    foreach ($requiredField in @(
+        'webview-created-endpoint-ready',
+        'discord-url-loading',
+        'login-session-restored',
+        'application-shell-visible',
+        'target-route-loaded',
+        'settled-30-seconds',
+        'settled-60-seconds',
+        'settled-5-minutes',
+        'Type READY',
+        'renderer-memory-types.json',
+        'Get-DescendantProcesses'
+    )) {
+        if ($lifecycleSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Lifecycle attribution does not preserve $requiredField."
+        }
+    }
+    $lifecycleSummarySource = Get-Content -LiteralPath $lifecycleSummaryTool -Raw
+    foreach ($requiredField in @('rendererPrivateWorkingSetMedianMiB', 'v8UsedMiB', 'domNodeCount', 'policy')) {
+        if ($lifecycleSummarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "Lifecycle summary does not preserve $requiredField."
+        }
+    }
+    $frontendCdpTool = Join-Path $resolvedToolsPath 'Invoke-TrackBDiscordFrontendCdp.ps1'
+    if (-not (Test-Path -LiteralPath $frontendCdpTool -PathType Leaf)) {
+        throw 'Unauthenticated Discord frontend CDP tool is missing.'
+    }
+    $frontendCdpSource = Get-Content -LiteralPath $frontendCdpTool -Raw
+    foreach ($requiredField in @('--diagnostic-discord', '9224', 'heap', 'renderer-resident-types.json', 'rendererPidCrossCheck', 'policy')) {
+        if ($frontendCdpSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Frontend CDP tool does not preserve $requiredField."
+        }
+    }
+    $navigationTool = Join-Path $resolvedToolsPath 'Invoke-TrackBDiscordFrontendNavigation.ps1'
+    $navigationProbe = Join-Path $resolvedToolsPath 'Probe-TrackBDiscordFrontendNavigation.mjs'
+    foreach ($requiredPath in @($navigationTool, $navigationProbe)) {
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "Frontend navigation probe is missing: $requiredPath"
+        }
+    }
+    $navigationProbeSource = Get-Content -LiteralPath $navigationProbe -Raw
+    foreach ($requiredField in @('about:blank', 'discord-loaded-before-transition', 'blank-same-renderer-after-navigation', 'discord-restored-after-navigation')) {
+        if ($navigationProbeSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Frontend navigation probe does not preserve $requiredField."
+        }
+    }
+    $allocationCompareTool = Join-Path $resolvedToolsPath 'Compare-TrackBAllocationBaseGroups.ps1'
+    if (-not (Test-Path -LiteralPath $allocationCompareTool -PathType Leaf)) {
+        throw 'Allocation-base group comparison tool is missing.'
+    }
+    $allocationCompareSource = Get-Content -LiteralPath $allocationCompareTool -Raw
+    foreach ($requiredField in @('Rank-based aggregate comparison', 'allocationBaseGroups', 'deltaResidentMiB')) {
+        if ($allocationCompareSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Allocation-base comparison does not preserve $requiredField."
+        }
+    }
+    $blankBoundaryTool = Join-Path $resolvedToolsPath 'Invoke-TrackBBlankResidentBoundary.ps1'
+    if (-not (Test-Path -LiteralPath $blankBoundaryTool -PathType Leaf)) {
+        throw 'Blank resident boundary tool is missing.'
+    }
+    $blankBoundarySource = Get-Content -LiteralPath $blankBoundaryTool -Raw
+    foreach ($requiredField in @('--diagnostic-blank', 'renderer-resident-types.json', 'did not close normally')) {
+        if ($blankBoundarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "Blank resident boundary does not preserve $requiredField."
+        }
+    }
+    foreach ($name in @('Invoke-TrackBCanonicalBaseline.ps1', 'Summarize-TrackBCanonicalBaseline.ps1')) {
+        $path = Join-Path $resolvedToolsPath $name
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Canonical baseline tool is missing: $name" }
+    }
+    $canonicalSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBCanonicalBaseline.ps1') -Raw
+    foreach ($requiredField in @('same authenticated account', 'Type READY', 'track-b-canonical-authenticated-static', 'Repetitions')) {
+        if ($canonicalSource -notmatch [regex]::Escape($requiredField)) { throw "Canonical baseline runner does not preserve $requiredField." }
+    }
+    $canonicalSummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-TrackBCanonicalBaseline.ps1') -Raw
+    foreach ($requiredField in @('median', 'p95', 'minimum', 'maximum', 'standardDeviation', 'privateWorkingSetMedianMiB')) {
+        if ($canonicalSummarySource -notmatch [regex]::Escape($requiredField)) { throw "Canonical baseline summary does not preserve $requiredField." }
+    }
     foreach ($requiredField in @('selfBytes', 'topFunctions')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP heap sampling does not report $requiredField."
+        }
+    }
+    $phase2SummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-DiscordPhase2Attribution.ps1') -Raw
+    foreach ($requiredField in @('byte-based Measure-DiscordProcessTree output', 'workingSetMiB', 'privateWorkingSetMiB')) {
+        if ($phase2SummarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "Phase 2 summarizer does not preserve $requiredField."
         }
     }
     $scenarioCompareSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Compare-TrackBScenarioAttribution.ps1') -Raw

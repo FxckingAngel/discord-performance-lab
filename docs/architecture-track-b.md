@@ -24,7 +24,7 @@ The first proof of concept is intentionally small:
 
 The prototype is in `track-b/discord-shell`. It does not copy the official Discord profile or attempt to migrate credentials. A separate profile is a deliberate rollback and privacy boundary.
 
-Track B's explicit design target is approximately 250 MiB total settled idle private/unique resident RAM and 0.2% total idle CPU for the complete process tree. Summed working set remains a secondary metric, with shared resident pages kept separate where Windows exposes them. The minimum acceptable gate is under 500 MiB private/unique resident RAM and under 1% CPU with a responsive UI and no major feature loss. The full acceptance contract and feature requirements are in [Track B performance goal](track-b-performance-goal.md). Visual parity is a separate gate documented in [Track B visual parity requirement](track-b-visual-parity.md), and the native capability boundary is documented in [Track B desktop compatibility layer](track-b-desktop-compatibility.md).
+Track B's explicit design target is approximately 250 MiB total settled idle private working set / unique private resident RAM and 0.2% total idle CPU for the complete process tree. Private bytes/commit is reported separately and is not a second 250 MiB acceptance requirement. Summed working set and derived shareable working set remain secondary metrics, with shared resident pages kept separate where Windows exposes them. The minimum acceptable gate is under 500 MiB private resident RAM and under 1% CPU with a responsive UI and no major feature loss. The full acceptance contract and feature requirements are in [Track B performance goal](track-b-performance-goal.md). Visual parity is a separate gate documented in [Track B visual parity requirement](track-b-visual-parity.md), and the native capability boundary is documented in [Track B desktop compatibility layer](track-b-desktop-compatibility.md).
 
 ## Comparison contract
 
@@ -43,13 +43,17 @@ Every comparison counts the full process tree:
 | Handles and threads | pending | pending |
 | Responsive | pending | pending |
 
+The table above is the original comparison contract. Current rebuilt-shell evidence is now available for Track B but is not an acceptance pass: the latest automated five-repeat unverified run measured 357.27 MiB median private working set and 0.033% median CPU, while the authenticated no-bridge capture measured a higher state-dependent footprint. Same-route pristine-official A/B parity and full functional validation remain pending.
+
 The first milestone is architectural evidence, not feature completeness. The shell must first beat the under-500 MiB minimum on the same logged-in static-channel workload. If it cannot, the project must investigate the process/runtime ownership before investing heavily in native compatibility work.
 
 ## Runtime-floor gate
 
-The diagnostic-only blank-page capture on 2026-10-06 measured 380.7 MiB working set and 147.5 MiB private memory across seven WebView2-shell processes. This is not a Discord benchmark, but it is a lower-bound warning: the WebView2 runtime and native host consume most of the 250 MiB design budget before Discord loads. The current Discord-loaded unauthenticated shell measured 836.2 MiB working set and 557.7 MiB private memory.
+The diagnostic-only blank-page capture on 2026-10-06 measured 380.7 MiB working set and 147.5 MiB private bytes across seven WebView2-shell processes. This is not a Discord benchmark or a private-working-set acceptance result. Later same-build blank measurements were lower, so this historical capture is a runtime-floor observation rather than a fixed floor claim. The current Discord-loaded unauthenticated shell measured 836.2 MiB working set and 557.7 MiB private bytes.
 
-WebView2 remains eligible for the under-500 MiB minimum only if the authenticated same-channel workload clears that gate without feature loss. The approximately 250 MiB design target requires either a measured reduction in runtime overhead that preserves normal behavior or a different safe shell architecture with a lower full-tree floor. Do not hide this gap with working-set trimming, disabled hardware acceleration, removed media, or security changes.
+WebView2 remains eligible for the under-500 MiB minimum only if the authenticated same-channel workload clears that gate without feature loss. The latest state-dependent rebuilt-shell captures do not establish that result. The approximately 250 MiB design target requires either a measured reduction in runtime overhead that preserves normal behavior or a different safe shell architecture with a lower full-tree floor. Do not hide this gap with working-set trimming, disabled hardware acceleration, removed media, or security changes.
+
+The current Track A installation is documented as Vencord-patched. Existing official comparisons therefore represent Official Discord + Vencord and cannot isolate an Electron tax. A pristine official reference is required before publishing that comparison.
 
 ## Compatibility layer policy
 

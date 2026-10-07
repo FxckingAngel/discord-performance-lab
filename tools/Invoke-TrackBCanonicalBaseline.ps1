@@ -1,0 +1,103 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)] [int] $RootPid,
+    [ValidateRange(5, 3600)] [int] $SettleSeconds = 30,
+    [ValidateRange(5, 3600)] [int] $DurationSeconds = 60,
+    [ValidateRange(1, 60)] [int] $IntervalSeconds = 5,
+    [ValidateRange(5, 10)] [int] $Repetitions = 5,
+    [switch] $SkipManualCheckpoint,
+    [ValidateNotNullOrEmpty()] [string] $OutputDirectory = (Join-Path (Get-Location) ('artifacts/track-b-canonical-baseline-' + (Get-Date -Format 'yyyyMMdd-HHmmss')))
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+# PowerShell script invocations do not initialize LASTEXITCODE. Keep the
+# existing child-tool checks valid under strict mode.
+$global:LASTEXITCODE = 0
+$measure = Join-Path $PSScriptRoot 'Measure-DiscordPhase2Attribution.ps1'
+$summary = Join-Path $PSScriptRoot 'Summarize-DiscordPhase2Attribution.ps1'
+$roleMap = Join-Path $PSScriptRoot 'Get-DiscordPhase2RoleMap.ps1'
+$resident = Join-Path $PSScriptRoot 'Measure-TrackBResidentMemoryTypes.ps1'
+$webViewJoin = Join-Path $PSScriptRoot 'Join-TrackBWebViewProcessInfo.ps1'
+$webViewInfoSource = Join-Path $env:LOCALAPPDATA 'KoroneDiscordShell/Diagnostics/webview-process-info.json'
+foreach ($path in @($measure, $summary, $roleMap, $resident, $webViewJoin)) { if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required baseline tool was not found: $path" } }
+$root = Get-Process -Id $RootPid -ErrorAction Stop
+if (-not $root.Responding) { throw "Track B root PID $RootPid is not responding." }
+New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+
+$verification = 'manual-canonical-route'
+if ($SkipManualCheckpoint) {
+    $verification = 'automated-unverified-route'
+    Write-Host 'Manual route checkpoint skipped. Results are diagnostic only and cannot serve as final same-route acceptance evidence.'
+}
+else {
+    Write-Host 'Prepare the exact canonical state manually:'
+    Write-Host '- same authenticated account and exact static DM or text channel'
+    Write-Host '- no voice, video, screen share, GIF, video, or visible media activity'
+    Write-Host '- same foreground window size and 1920x1080 60 Hz display'
+    Write-Host '- leave the route untouched for every repetition'
+    $confirmation = Read-Host 'Type READY after the canonical state is visible'
+    if ($confirmation -cne 'READY') { throw 'Canonical baseline was not manually confirmed. No repetitions were measured.' }
+}
+
+$repetitionsData = [System.Collections.Generic.List[object]]::new()
+for ($index = 1; $index -le $Repetitions; $index++) {
+    $repeat = Join-Path $OutputDirectory ("repeat-{0:D2}" -f $index)
+    New-Item -ItemType Directory -Force -Path $repeat | Out-Null
+    Start-Sleep -Seconds $SettleSeconds
+    $current = Get-Process -Id $RootPid -ErrorAction Stop
+    if (-not $current.Responding) { throw "Track B root stopped responding before repetition $index." }
+    $treePath = Join-Path $repeat 'process-tree.json'
+    $summaryPath = Join-Path $repeat 'process-tree-summary.json'
+    $roleMapPath = Join-Path $repeat 'role-map-local.json'
+    $webViewInfoPath = Join-Path $repeat 'webview-process-info.json'
+    $webViewJoinPath = Join-Path $repeat 'webview-process-join.json'
+    & $roleMap -RootPid $RootPid -ProcessName 'KoroneDiscordShell' -OutputPath $roleMapPath | Out-Null
+    & $measure -RootPid $RootPid -ProcessName 'KoroneDiscordShell' -DurationSeconds $DurationSeconds -IntervalSeconds $IntervalSeconds -Scenario 'track-b-canonical-authenticated-static' -OutputPath $treePath | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Canonical process capture failed for repetition $index." }
+    & $summary -InputPath $treePath -OutputPath $summaryPath | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Canonical summary failed for repetition $index." }
+    if (Test-Path -LiteralPath $webViewInfoSource -PathType Leaf) {
+        Copy-Item -LiteralPath $webViewInfoSource -Destination $webViewInfoPath -Force
+        & $webViewJoin -ProcessTreePath $treePath -WebViewProcessInfoPath $webViewInfoPath -OutputPath $webViewJoinPath | Out-Null
+    }
+    $summaryData = Get-Content -Raw -LiteralPath $summaryPath | ConvertFrom-Json
+    $renderer = $summaryData.processes | Where-Object role -eq 'renderer' | Select-Object -First 1
+    $residentPath = Join-Path $repeat 'renderer-resident-types.json'
+    $rendererPid = if ($renderer) { [int]$renderer.pid } else { 0 }
+    $residentCaptured = $false
+    if ($rendererPid -gt 0) {
+        try {
+            & $resident -ProcessId $rendererPid -Role renderer -OutputPath $residentPath | Out-Null
+            $residentCaptured = ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $residentPath -PathType Leaf))
+            if (-not $residentCaptured) {
+                Write-Warning "Renderer resident-memory classification was unavailable for repetition $index (PID $rendererPid). The process may have changed during the read-only map walk."
+            }
+        } catch {
+            Write-Warning "Renderer resident-memory classification failed for repetition $index (PID $rendererPid): $($_.Exception.Message)"
+        }
+    }
+    $repetitionsData.Add([pscustomobject]@{
+        repetition = $index
+        settleSeconds = $SettleSeconds
+        durationSeconds = $DurationSeconds
+        processSummaryPath = (Resolve-Path -LiteralPath $summaryPath).Path
+        roleMapPath = (Resolve-Path -LiteralPath $roleMapPath).Path
+        webViewProcessInfoPath = if (Test-Path -LiteralPath $webViewInfoPath) { (Resolve-Path -LiteralPath $webViewInfoPath).Path } else { $null }
+        webViewProcessJoinPath = if (Test-Path -LiteralPath $webViewJoinPath) { (Resolve-Path -LiteralPath $webViewJoinPath).Path } else { $null }
+        rendererResidentPath = if ($residentCaptured) { (Resolve-Path -LiteralPath $residentPath).Path } else { $null }
+        rendererPid = $rendererPid
+    })
+}
+[pscustomobject]@{
+    schemaVersion = 1
+    result = 'CAPTURED'
+    scenario = 'track-b-canonical-authenticated-static'
+    rootPid = $RootPid
+    repetitions = @($repetitionsData)
+    settleSeconds = $SettleSeconds
+    durationSeconds = $DurationSeconds
+    intervalSeconds = $IntervalSeconds
+    verification = $verification
+    policy = 'Fixed-state repetitions. Manual route confirmation is required for acceptance; automated mode is diagnostic only. No account content, command lines, or heap objects are published.'
+} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDirectory 'manifest.json') -Encoding utf8
