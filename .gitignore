@@ -2,6 +2,10 @@ benchmarks/raw/*
 !benchmarks/raw/.gitkeep
 benchmarks/summaries/*
 !benchmarks/summaries/.gitkeep
+benchmarks/private/*
+artifacts/*
+.dotnet/
+dotnet-install.ps1
 *.etl
 *.blg
 *.dmp
