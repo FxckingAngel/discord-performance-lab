@@ -18,6 +18,7 @@ public sealed class MainForm : Form
     private const string DesktopIdentityUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) discord/1.0.1223 Chrome/148.0.7778.280 Electron/42.11.10 Safari/537.36";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
     private readonly bool diagnosticBlank;
+    private readonly bool normalShell;
     private readonly bool diagnosticDiscord;
     private readonly bool diagnosticUserAgent;
     private readonly bool diagnosticDesktopHints;
@@ -39,8 +40,9 @@ public sealed class MainForm : Form
     private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
     private readonly NotifyIcon trayIcon = new() { Icon = SystemIcons.Application, Visible = true, Text = "Discord" };
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticDesktopHints, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
+    public MainForm(bool normalShell, bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticDesktopHints, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
     {
+        this.normalShell = normalShell;
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
         this.diagnosticUserAgent = diagnosticUserAgent;
@@ -231,7 +233,7 @@ public sealed class MainForm : Form
             // Identify the shell as Discord Desktop without claiming unsupported native capabilities.
             // This changes the client runtime identity only; it does not alter auth, permissions, or protocol behavior.
             webView.CoreWebView2.Settings.UserAgent = DesktopIdentityUserAgent;
-            if (diagnosticDesktopHints)
+            if (normalShell || diagnosticDesktopHints)
             {
                 var userAgentOverride = JsonSerializer.Serialize(new
                 {

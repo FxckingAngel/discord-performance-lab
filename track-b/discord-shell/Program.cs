@@ -58,7 +58,7 @@ internal static class Program
         }
         try
         {
-            Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticDesktopHints, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents, diagnosticAuthenticatedCapabilityEvents, diagnosticAuthenticatedNoBridges));
+            Application.Run(new MainForm(args.Length == 0, diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticDesktopHints, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents, diagnosticAuthenticatedCapabilityEvents, diagnosticAuthenticatedNoBridges));
         }
         finally
         {

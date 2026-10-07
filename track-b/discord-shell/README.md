@@ -29,7 +29,9 @@ For a separate unauthenticated environment probe against the actual Discord rout
 
 For a diagnostic-only UA experiment, use `KoroneDiscordShell.exe --diagnostic-official-ua`. It uses a separate `UserAgentProbeUserData` profile, reports the observed official Discord UA, and exposes loopback CDP port 9225. The normal shell now uses the same audited identity signal, but this does not add `DiscordNative` or any native capability and is not by itself full desktop compatibility.
 
-For a diagnostic-only client-hints experiment, use `KoroneDiscordShell.exe --diagnostic-desktop-hints`. It uses a separate `DesktopHintsProbeUserData` profile, exposes loopback CDP port 9233, and applies the locally observed vanilla Discord brand metadata through WebView2's DevTools Protocol before navigation. This mode changes only environment-identification signals. It does not add `DiscordNative`, Electron globals, authentication behavior, permissions, entitlements, or protocol handling. It is not enabled in the normal shell until environment, visual, and functional checks pass.
+The normal shell applies the audited Discord Desktop user-agent string and matching client-hints metadata through WebView2's DevTools Protocol. This changes only environment-identification signals. It does not add `DiscordNative`, Electron globals, authentication behavior, permissions, entitlements, or protocol handling.
+
+For an isolated client-hints comparison, use `KoroneDiscordShell.exe --diagnostic-desktop-hints`. It uses a separate `DesktopHintsProbeUserData` profile and exposes loopback CDP port 9233.
 
 For the first native capability test, use `KoroneDiscordShell.exe --diagnostic-window-bridge`. It uses a separate `WindowBridgeProbeUserData` profile and loopback CDP port 9226. Only native window actions are exposed, and every message is restricted to the five implemented actions. This mode is diagnostic until behavior and resource cost are accepted.
 
