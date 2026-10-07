@@ -219,6 +219,11 @@ try {
     if (([regex]::Matches($featureCheckpointSource, 'if \(-not \$\?\)').Count) -lt 2) {
         throw 'Feature scenario checkpoint does not use success status for its child tools.'
     }
+    foreach ($requiredField in @('$settledDirectory', "'measurement.json'", "'process-tree.json'", 'Copy-Item -LiteralPath $treePath')) {
+        if ($featureCheckpointSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Feature scenario checkpoint does not preserve the settled output contract: $requiredField"
+        }
+    }
     foreach ($scenarioName in @('active-text', 'channel-navigation', 'scrolling', 'media-heavy', 'voice-idle', 'active-voice', 'video', 'screen-sharing', 'notifications', 'gaming-background')) {
         if ($featureCheckpointSource -notmatch [regex]::Escape($scenarioName)) {
             throw "Feature scenario checkpoint does not expose the workload scenario: $scenarioName"

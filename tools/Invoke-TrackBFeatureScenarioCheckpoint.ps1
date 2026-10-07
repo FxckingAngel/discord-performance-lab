@@ -76,6 +76,8 @@ if ($RequireSettled) {
     if (-not $?) { throw 'Settled process-tree capture failed.' }
     $treePath = Join-Path $settledDirectory 'measurement.json'
     $settleResultPath = Join-Path $settledDirectory 'settle-result.json'
+    # Keep the settled source and expose the same root-level input contract used by the feature summarizer.
+    Copy-Item -LiteralPath $treePath -Destination (Join-Path $OutputDirectory 'process-tree.json') -Force
 }
 else {
     & $measureTool -ProcessName $ProcessName -RootPid $root.Id -DurationSeconds $DurationSeconds -IntervalSeconds $IntervalSeconds -Scenario $Scenario -OutputPath $treePath | Out-Null
