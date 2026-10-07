@@ -25,3 +25,16 @@ The same running Track B shell was sampled for six observations at one-second in
 | CPU | 0.042% | 0.083% |
 
 The window remained visible, responsive, and at 1920 x 1080 / 60 Hz. This is still an unverified route/workload observation, not an acceptance benchmark. The contaminated 16-process result is excluded from Track B baselines.
+
+## Corrected 60-second follow-up
+
+After the fix, a separate 60-second capture produced 13 samples and retained exactly eight Track B processes:
+
+| Metric | Median | p95 |
+| --- | ---: | ---: |
+| Complete-tree private working set | 368.99 MiB | 395.61 MiB |
+| Renderer private working set | 280.46 MiB | not separately summarized here |
+| GPU private working set | 32.59 MiB | not separately summarized here |
+| CPU | 0.031% | 0.367% |
+
+The lower median does not establish an optimization. The spread between median and p95 confirms that the canonical route/workload and a longer repeated baseline are still required before accepting small memory changes.
