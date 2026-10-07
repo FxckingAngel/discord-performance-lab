@@ -84,9 +84,15 @@ try {
         }
     }
     $lifecycleSource = Get-Content -LiteralPath $lifecycleTool -Raw
-    foreach ($requiredField in @('[switch] $Automatic', 'Capture-Checkpoint $checkpoint.label $checkpoint.instruction -SkipReady', 'Automatic unverified')) {
+    foreach ($requiredField in @('[switch] $Automatic', "mode = if (`$Automatic) { 'automatic-unverified' } else { 'manual-checkpoint' }", 'Capture-Checkpoint $checkpoint.label $checkpoint.instruction -SkipReady', 'Automatic unverified')) {
         if ($lifecycleSource -notmatch [regex]::Escape($requiredField)) {
             throw "Lifecycle attribution does not preserve automatic unverified checkpoints: $requiredField"
+        }
+    }
+    $lifecycleSummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-TrackBLifecycleAttribution.ps1') -Raw
+    foreach ($requiredField in @("[string]`$manifest.mode -eq 'automatic-unverified'", 'Automatic timed checkpoints are unverified')) {
+        if ($lifecycleSummarySource -notmatch [regex]::Escape($requiredField)) {
+            throw "Lifecycle summary does not preserve automatic-mode limitations: $requiredField"
         }
     }
     $cdpTestSource = Get-Content -LiteralPath $cdpTestTool -Raw

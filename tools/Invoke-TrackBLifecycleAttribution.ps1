@@ -154,6 +154,7 @@ try {
     [pscustomobject]@{
         result = 'PASS'
         schemaVersion = 1
+        mode = if ($Automatic) { 'automatic-unverified' } else { 'manual-checkpoint' }
         policy = 'Lifecycle attribution only. Raw process, CDP, and virtual-memory artifacts remain local/private; no account content or heap objects are exported.'
         outputDirectory = (Resolve-Path -LiteralPath $OutputDirectory).Path
         checkpoints = @($checkpointResults)

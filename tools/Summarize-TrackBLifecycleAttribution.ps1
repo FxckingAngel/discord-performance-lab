@@ -11,6 +11,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
+$automatic = [string]$manifest.mode -eq 'automatic-unverified'
 $rows = foreach ($checkpoint in @($manifest.checkpoints)) {
     $processSummary = Get-Content -Raw -LiteralPath $checkpoint.processSummaryPath | ConvertFrom-Json
     $cdp = Get-Content -Raw -LiteralPath $checkpoint.cdpPath | ConvertFrom-Json
@@ -43,7 +44,12 @@ $result = [pscustomobject]@{
     sourceManifest = (Resolve-Path -LiteralPath $ManifestPath).Path
     policy = 'Sanitized lifecycle aggregates only. Raw process, CDP, and virtual-memory artifacts remain local/private.'
     rows = @($rows)
-    limitation = 'Checkpoint values describe the manually confirmed state at each label. They do not prove that a single route or workload was held constant unless the operator followed the checkpoint instructions.'
+    limitation = if ($automatic) {
+        'Automatic timed checkpoints are unverified. They do not prove that Discord reached a fully initialized route or that a workload was held constant.'
+    }
+    else {
+        'Checkpoint values describe the manually confirmed state at each label. They do not prove that a single route or workload was held constant unless the operator followed the checkpoint instructions.'
+    }
 }
 $parent = Split-Path -Parent $OutputPath
 if ($parent) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
