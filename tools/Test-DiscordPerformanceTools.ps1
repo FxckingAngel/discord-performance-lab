@@ -186,6 +186,12 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $resolvedToolsPath 'Launch-TrackBAuthenticatedNoBridges.ps1') -PathType Leaf)) {
         throw 'Authenticated no-bridge launcher is missing.'
     }
+    $friendsNavigationSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Navigate-TrackBFriends.mjs') -Raw
+    foreach ($requiredToken in @('discord.com/channels/@me', 'discord-channels', 'targetOrigin', 'raw URLs')) {
+        if ($friendsNavigationSource -notmatch [regex]::Escape($requiredToken)) {
+            throw "Friends route checkpoint is missing $requiredToken."
+        }
+    }
     $phase2Source = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
     if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
         throw 'Phase 2 attribution must enumerate all processes before walking the rooted tree.'
