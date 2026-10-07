@@ -24,7 +24,7 @@ The official Electron environment must be observed locally with read-only diagno
 | --- | --- | --- | --- | --- |
 | Runtime and platform identification | Electron 42.11.10 with Chromium and Electron runtime signals | Native WebView2 runtime plus an explicitly documented, minimal environment surface | No | Not measured |
 | Preload-exposed globals | Must be enumerated from the stock client under a disposable diagnostic launch | No preload bridge in the prototype | No | Not measured |
-| Window controls and state | Electron BrowserWindow and native window state | WebView2 message bridge to WinForms state/actions, source-restricted in normal mode | Implemented in normal shell; Discord use unverified | No measurable cost in isolated bridge runs |
+| Window controls and state | Electron BrowserWindow and native window state | Diagnostic-only WebView2 message bridge to WinForms state/actions, source-restricted | Implemented diagnostically; not exposed in normal shell; Discord use unverified | No measurable cost in isolated bridge runs |
 | Custom titlebar and drag region | Electron frame/titlebar configuration | Native WinForms titlebar, drag region, and window buttons | Implemented in shell; visual parity unverified | Included in shell process; measurement pending |
 | Desktop notifications | Electron/OS notification integration | WebView2 permission and Windows notification integration, subject to supported behavior | No | Not measured |
 | Media devices and permissions | Chromium media APIs with Electron permission handling | WebView2 media permissions and native device selection | No | Not measured |
@@ -33,7 +33,7 @@ The official Electron environment must be observed locally with read-only diagno
 | Drag and drop | Browser events plus Electron window behavior | WebView2 events plus native shell handling where required | No | Not measured |
 | Global keybinds and push-to-talk | Electron globalShortcut or Discord-supported desktop path | Native Windows registration with explicit cleanup and conflict handling | No | Not measured |
 | Screen/window capture | Electron/Chromium capture path and desktop capture picker | WebView2 capture support plus native picker only after an end-to-end test | No | Not measured |
-| Tray and startup | Electron Tray and startup integration | Native tray icon with show/restore and exit actions; startup registration not implemented | Tray implemented in shell; Discord use and startup behavior unverified | Not isolated |
+| Tray and startup | Electron Tray and startup integration | Native tray icon with show/restore and exit actions; startup registration not implemented | Shell behavior only; Discord use and startup behavior unverified | Not isolated |
 | Rich Presence/game integration | Electron/Discord-supported desktop integration | Only a supported, separately tested native equivalent | No | Not measured |
 | Session persistence | Electron profile and storage | Isolated WebView2 user-data folder with normal interactive login | Prototype only | Included in tree |
 
@@ -93,7 +93,7 @@ The diagnostic-only `--diagnostic-window-bridge` mode now exposes exactly five w
 
 On 2026-10-06, the bridge was exercised over loopback CDP with `minimize` and `restore`. Both calls returned `called`; the root process remained responsive with its diagnostic window handle intact after the sequence. This verifies message delivery and native dispatch, not Discord feature compatibility. The bridge remains disabled in normal mode, and no window action has been marked as supported by the Discord frontend yet.
 
-The diagnostic-only `--diagnostic-hardware-bridge` mode exposes `DiscordNative.hardware.getDisplayCount` as a promise-backed call. The native response is the current `Screen.AllScreens.Length` value, with no display names, coordinates, or user data returned to the page. Three local-blank runs measured 368.40 MiB median / 379.47 MiB p95 summed working set, 145.75 MiB median private bytes, and 0.020% median total CPU across seven processes. This was within the previously measured blank runtime floor, so no measurable aggregate cost is attributed to the bridge at this sample length. The two tested capabilities are now enabled in the normal shell, with the same source restriction, but Discord feature use remains unverified.
+The diagnostic-only `--diagnostic-hardware-bridge` mode exposes `DiscordNative.hardware.getDisplayCount` as a promise-backed call. The native response is the current `Screen.AllScreens.Length` value, with no display names, coordinates, or user data returned to the page. Three local-blank runs measured 368.40 MiB median / 379.47 MiB p95 summed working set, 145.75 MiB median private bytes, and 0.020% median total CPU across seven processes. This was within the previously measured blank runtime floor, so no measurable aggregate cost is attributed to the bridge at this sample length. The window and hardware bridges remain diagnostic-only; they are not exposed in the normal shell, and Discord feature use remains unverified.
 
 ## Measured Electron API shape
 
