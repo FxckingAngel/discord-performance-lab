@@ -25,6 +25,7 @@ function Read-ScenarioCapture {
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     $scenario = [string] $manifest.scenario
     if ([string]::IsNullOrWhiteSpace($scenario)) { $scenario = [string] $tree.scenario }
+    $operatorAction = $manifest.operatorAction
     $finalSample = $tree.samples[-1]
     $residentRows = foreach ($entry in @($manifest.rows | Where-Object captured)) {
         $capture = Get-Content -LiteralPath ([string] $entry.outputPath) -Raw | ConvertFrom-Json
@@ -74,6 +75,8 @@ function Read-ScenarioCapture {
     [pscustomobject]@{
         scenario = $scenario
         directory = (Resolve-Path -LiteralPath $Directory).Path
+        functionalStatus = if ($operatorAction) { [string] $operatorAction.functionalStatus } else { 'UNTESTED' }
+        operatorActionDurationSeconds = if ($operatorAction) { [double] $operatorAction.durationSeconds } else { 0 }
         finalSample = [pscustomobject] $sampleTotals
         residentRows = @($residentRows)
     }
@@ -89,7 +92,12 @@ function Sum-Property {
 $captures = @($InputDirectory | ForEach-Object { Read-ScenarioCapture $_ })
 $categoryProperties = @('residentMiB', 'privateWritableMiB', 'privateExecutableMiB', 'privateOtherMiB', 'privateWritableSharedFlagMiB', 'privateExecutableSharedFlagMiB', 'privateOtherSharedFlagMiB', 'mappedMiB', 'imageMiB', 'committedMiB', 'reservedMiB', 'committedPrivateWritableMiB', 'committedPrivateExecutableMiB', 'committedPrivateOtherMiB', 'committedMappedMiB', 'committedImageMiB', 'privateWritableRegionCount', 'privateWritableUnder64KiBRegionCount', 'privateWritable64KiBTo1MiBRegionCount', 'privateWritable1MiBTo4MiBRegionCount', 'privateWritable4MiBTo16MiBRegionCount', 'privateWritable16MiBOrLargerRegionCount', 'privateWritableUnder64KiBResidentMiB', 'privateWritable64KiBTo1MiBResidentMiB', 'privateWritable1MiBTo4MiBResidentMiB', 'privateWritable4MiBTo16MiBResidentMiB', 'privateWritable16MiBOrLargerResidentMiB')
 $scenarioSummaries = foreach ($capture in $captures) {
-    $totals = [ordered]@{ scenario = $capture.scenario; directory = $capture.directory }
+    $totals = [ordered]@{
+        scenario = $capture.scenario
+        directory = $capture.directory
+        functionalStatus = $capture.functionalStatus
+        operatorActionDurationSeconds = $capture.operatorActionDurationSeconds
+    }
     foreach ($property in $categoryProperties) { $totals[$property] = Sum-Property $capture.residentRows $property }
     $totals['rendererRows'] = @($capture.residentRows | Where-Object role -eq 'renderer').Count
     $totals['gpuRows'] = @($capture.residentRows | Where-Object role -eq 'gpu-process').Count

@@ -16,6 +16,12 @@ param(
 
     [switch] $RequireSettled,
 
+    [ValidateSet('PASS', 'FAIL', 'UNTESTED')]
+    [string] $FunctionalStatus = 'UNTESTED',
+
+    [ValidateRange(0, 86400)]
+    [double] $OperatorActionDurationSeconds = 0,
+
     [ValidateRange(2, 30)]
     [int] $StableSamples = 6,
 
@@ -69,6 +75,7 @@ Write-Host 'Prepare the requested state manually. Do not send messages or change
 Write-Host 'Leave the window at the requested route, call state, media state, and display configuration.'
 $confirmation = Read-Host 'Type READY to begin measurement'
 if ($confirmation -cne 'READY') { throw 'Manual checkpoint was not confirmed. No measurement was started.' }
+$checkpointConfirmedAt = (Get-Date).ToUniversalTime().ToString('o')
 
 if ($RequireSettled) {
     $settledDirectory = Join-Path $OutputDirectory 'settled'
@@ -85,6 +92,7 @@ else {
 }
 
 $tree = Get-Content -LiteralPath $treePath -Raw | ConvertFrom-Json
+$measurementStartedAt = (Get-Date).ToUniversalTime().ToString('o')
 $virtualResult = & $virtualTool -RootPid $root.Id -ProcessName $ProcessName -OutputPath $virtualTypesPath
 if (-not $?) { throw 'Virtual-memory classification failed.' }
 $final = @($tree.samples[-1].processes)
@@ -123,6 +131,13 @@ foreach ($process in $final) {
     virtualTypesPath = (Resolve-Path -LiteralPath $virtualTypesPath).Path
     requireSettled = [bool]$RequireSettled
     settleResultPath = if ($settleResultPath) { (Resolve-Path -LiteralPath $settleResultPath).Path } else { $null }
+    operatorAction = [ordered]@{
+        functionalStatus = $FunctionalStatus
+        durationSeconds = $OperatorActionDurationSeconds
+        checkpointConfirmedAt = $checkpointConfirmedAt
+        measurementStartedAt = $measurementStartedAt
+        source = 'operator-supplied; no account content collected'
+    }
 } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $residentManifestPath -Encoding utf8
 
 [pscustomobject]@{
@@ -135,4 +150,6 @@ foreach ($process in $final) {
     residentCaptureCount = @($rows | Where-Object captured).Count
     residentFailureCount = @($rows | Where-Object { -not $_.captured }).Count
     startedByScript = $startedByScript
+    functionalStatus = $FunctionalStatus
+    operatorActionDurationSeconds = $OperatorActionDurationSeconds
 } | ConvertTo-Json -Depth 4

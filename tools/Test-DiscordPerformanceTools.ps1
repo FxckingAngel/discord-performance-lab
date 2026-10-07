@@ -249,6 +249,11 @@ try {
             throw "Feature scenario checkpoint does not expose the workload scenario: $scenarioName"
         }
     }
+    foreach ($requiredField in @("ValidateSet('PASS', 'FAIL', 'UNTESTED')", '$FunctionalStatus = ''UNTESTED''', '$OperatorActionDurationSeconds', 'operatorAction', 'functionalStatus', 'durationSeconds')) {
+        if ($featureCheckpointSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Feature scenario checkpoint does not preserve operator-qualified workload metadata: $requiredField"
+        }
+    }
     $phase21ScenarioSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase21Scenario.ps1') -Raw
     foreach ($requiredField in @('RequireReadyEachRepetition', 'Prepare $Scenario repetition', 'Manual checkpoint was not confirmed', 'requireReadyEachRepetition')) {
         if ($phase21ScenarioSource -notmatch [regex]::Escape($requiredField)) {
@@ -348,7 +353,7 @@ try {
         }
     }
     $scenarioSummarySource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Summarize-TrackBFeatureScenarioCaptures.ps1') -Raw
-    foreach ($requiredField in @('privateWritableRegionCount', 'privateWritable4MiBTo16MiBResidentMiB', 'privateWritable16MiBOrLargerResidentMiB')) {
+    foreach ($requiredField in @('privateWritableRegionCount', 'privateWritable4MiBTo16MiBResidentMiB', 'privateWritable16MiBOrLargerResidentMiB', 'functionalStatus', 'operatorActionDurationSeconds')) {
         if ($scenarioSummarySource -notmatch [regex]::Escape($requiredField)) {
             throw "Feature-scenario summary does not preserve $requiredField."
         }

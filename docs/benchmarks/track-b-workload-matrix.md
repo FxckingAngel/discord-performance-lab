@@ -19,3 +19,5 @@ The idle floor is not the whole product acceptance target. Each workload must pr
 The approximately 250 MiB design target applies to settled idle private working set. Do not establish arbitrary active-workload RAM limits before trustworthy same-workload pristine Official Discord baselines. Video and screen sharing require separate GPU, frame-stability, latency, encoder, and responsiveness analysis rather than an idle comparison.
 
 No workload may pass by disabling visible GIFs, stickers, media, voice, video, notifications, or screen sharing. Diagnostic static states are not production optimizations.
+
+Action-qualified workload captures must record an operator-supplied functional status (`PASS`, `FAIL`, or `UNTESTED`) and the duration of the exercised action. The harness stores only that metadata; it does not collect account content. A workload is not a functional pass when the action was not exercised or the status remains `UNTESTED`.
