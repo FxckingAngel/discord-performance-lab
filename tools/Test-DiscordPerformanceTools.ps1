@@ -211,7 +211,7 @@ try {
         }
     }
     $cdpDiagnosticsSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase2CdpDiagnostics.mjs') -Raw
-    foreach ($requiredField in @('imageNaturalPixelCount', 'animatedImageHintCount', 'playingVideoCount', 'videoReadyStateCounts', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters', 'sampleStatus', 'available', 'reloadBeforeSampling', 'Page.reload')) {
+    foreach ($requiredField in @('imageNaturalPixelCount', 'animatedImageHintCount', 'playingVideoCount', 'videoReadyStateCounts', 'videoPixelCount', 'canvasPixelCount', 'nativeAllocationCategories', 'domCounters', 'routeFingerprint', 'routeClass', 'sampleStatus', 'available', 'reloadBeforeSampling', 'Page.reload')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP diagnostics do not report $requiredField."
         }
@@ -220,7 +220,7 @@ try {
     if ($traceSource -notmatch 'eventRatesPerSecond') {
         throw 'CDP trace does not normalize selected activity counts per second.'
     }
-    foreach ($requiredField in @('redacted-url-or-path', 'No page text, URLs, cookies, tokens, heap objects')) {
+    foreach ($requiredField in @('redacted-url-or-path', 'No page text, paths, cookies, tokens, heap objects')) {
         if ($cdpDiagnosticsSource -notmatch [regex]::Escape($requiredField)) {
             throw "CDP diagnostics do not enforce $requiredField."
         }

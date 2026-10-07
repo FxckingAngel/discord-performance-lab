@@ -12,6 +12,21 @@ const list = await (await fetch(`${base}/json/list`)).json();
 const target = list.find((entry) => entry.type === 'page' && entry.webSocketDebuggerUrl);
 if (!target) throw new Error('No page target with a WebSocket debugger URL was found.');
 
+function classifyRoute(rawUrl) {
+  try {
+    const parsed = new URL(String(rawUrl || ''));
+    const path = parsed.pathname.toLowerCase();
+    if (path === '/login' || path.startsWith('/login/')) return 'login';
+    if (path === '/register' || path.startsWith('/register/')) return 'register';
+    if (path === '/settings' || path.startsWith('/settings/')) return 'settings';
+    if (path === '/app' || path.startsWith('/app/')) return 'discord-app';
+    if (path.startsWith('/channels/')) return 'discord-channels';
+    return 'other';
+  } catch {
+    return 'unknown';
+  }
+}
+
 async function openChannel(url) {
   const socket = await new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
@@ -237,9 +252,15 @@ const result = {
   endpoint: `127.0.0.1:${port}`,
   targetType: target.type,
   targetCount: list.length,
+  routeFingerprint: {
+    routeClass: classifyRoute(target.url),
+    targetOrigin: (() => {
+      try { return new URL(String(target.url || '')).origin; } catch { return null; }
+    })(),
+  },
   reloadBeforeSampling,
   browserTargetAvailable: browserChannel !== null,
-  policy: 'Aggregate-only diagnostic. No page text, URLs, cookies, tokens, heap objects, or raw profiles are written.',
+  policy: 'Aggregate-only diagnostic. No page text, paths, cookies, tokens, heap objects, or raw profiles are written. Route metadata is reduced to an allowlisted class and origin.',
 };
 
 try {
