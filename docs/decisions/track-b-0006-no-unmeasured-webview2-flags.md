@@ -24,6 +24,10 @@ Microsoft's WebView2 documentation describes `AdditionalBrowserArguments` as a b
 
 Source: [CoreWebView2EnvironmentOptions documentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2environmentoptions?view=webview2-winrt-1.0.1343.22)
 
+## Current-state supersession
+
+The checkpoint above is historical and state-specific. Later rebuilt-shell measurements are the current reporting authority: repeated blank-shell private working set was 74.05 MiB median, authenticated no-bridge private working set was 608.82 MiB median, and a later live settled shell was 412.94 MiB median with the renderer at about 303 MiB private working set. These later results do not invalidate the no-unmeasured-flags decision, but they do leave the approximately 250 MiB target unresolved and prevent the earlier near-target session from being treated as a general pass.
+
 ## Consequence
 
-WebView2 remains a viable Track B candidate under the current approximate RAM target. The target is not lowered, and the 5.80 MiB private-bytes near-miss remains open. Further work should prioritize authenticated feature parity, allocation attribution, and a measured native/runtime change rather than random scheduling or Chromium flags.
+WebView2 remains an investigated candidate, not a validated architecture. The target is not lowered. Further work should prioritize authenticated feature parity, allocation attribution, and a measured native/runtime comparison rather than random scheduling or Chromium flags.

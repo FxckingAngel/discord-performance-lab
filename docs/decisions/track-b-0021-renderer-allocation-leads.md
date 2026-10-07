@@ -20,3 +20,9 @@ The next renderer investigation should examine message/state parsing, unpacking,
 Do not change Discord's frontend, patch the bundle, or remove message history based on this table. Allocation-sampling self bytes are not retained size and cannot be subtracted from renderer private working set. No optimization is accepted until the ownership, lifetime, functionality impact, and complete-tree memory effect are measured.
 
 Raw CDP artifacts remain private under `artifacts/`.
+
+## Later long-settle sample
+
+The 2026-10-07 Verified long-settle diagnostic independently sampled `unpack`, `onMessage`, `GUILD_MEMBER_UPDATE`, and several minified helper names. The largest individual sampled site was approximately 0.19 MiB, with `unpack` at approximately 0.10 MiB. These values are sampled self bytes from a short allocation window, not retained sizes and not renderer resident-memory ownership.
+
+This strengthens the choice of parsing/state-retention as the next investigation lead without identifying a removable allocation. Any future change must establish object lifetime, preserve message and server behavior, and reduce complete-tree private resident memory in a controlled comparison.

@@ -1,11 +1,16 @@
 [CmdletBinding()]
 param(
     [ValidateNotNullOrEmpty()]
-    [string] $ExecutablePath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'track-b/discord-shell/bin/Verified/KoroneDiscordShell.exe'),
+    [string] $ExecutablePath,
 
     [ValidateRange(1, 60)]
     [int] $StartupTimeoutSeconds = 15
 )
+
+$toolRoot = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    $ExecutablePath = Join-Path (Split-Path -Parent $toolRoot) 'track-b/discord-shell/bin/Verified/KoroneDiscordShell.exe'
+}
 
 $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath -ErrorAction Stop).Path
 Add-Type @'
@@ -42,6 +47,7 @@ $scenarios = @(
     [pscustomobject]@{ argument = '--diagnostic-blank'; expectedTitle = 'Runtime Baseline' },
     [pscustomobject]@{ argument = '--diagnostic-capability-events'; expectedTitle = 'Capability Events Probe' }
 )
+$processInfoPath = Join-Path $env:LOCALAPPDATA 'KoroneDiscordShell/Diagnostics/webview-process-info.json'
 $results = foreach ($scenario in $scenarios) {
     $process = Start-Process -FilePath $resolvedExecutable -ArgumentList $scenario.argument -PassThru
     try {
@@ -60,6 +66,24 @@ $results = foreach ($scenario in $scenarios) {
         if ($observed.MainWindowTitle -notmatch [regex]::Escape($scenario.expectedTitle)) {
             throw "Unexpected window title '$($observed.MainWindowTitle)' for $($scenario.argument)."
         }
+        $processInfo = $null
+        $processInfoDeadline = [DateTime]::UtcNow.AddSeconds(5)
+        do {
+            if (Test-Path -LiteralPath $processInfoPath -PathType Leaf) {
+                try {
+                    $candidate = Get-Content -LiteralPath $processInfoPath -Raw | ConvertFrom-Json
+                    if (@($candidate.processes | Where-Object { $_.kind -and $null -ne $_.activeFrameCount }).Count -gt 0) {
+                        $processInfo = $candidate
+                        break
+                    }
+                }
+                catch {
+                    # The diagnostic snapshot may still be replacing the file.
+                }
+            }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $processInfoDeadline)
+        if (-not $processInfo) { throw "WebView2 process/frame diagnostic was not captured for $($scenario.argument)." }
         $descendantProcesses = @(Get-DescendantProcesses -RootPid $process.Id)
 
         [pscustomobject]@{
@@ -67,6 +91,8 @@ $results = foreach ($scenario in $scenarios) {
             pid = $observed.Id
             responding = $observed.Responding
             title = $observed.MainWindowTitle
+            webViewProcessCount = @($processInfo.processes).Count
+            webViewFrameCountFieldsPresent = $true
             descendantsBeforeClose = $descendantProcesses.Count
             passed = $true
         }
@@ -100,10 +126,12 @@ $results = foreach ($scenario in $scenarios) {
 }
 
 $normalRoots = @(Get-CimInstance Win32_Process | Where-Object {
-    $_.Name -eq 'KoroneDiscordShell.exe' -and $_.ExecutablePath -eq $resolvedExecutable
+    $_.Name -eq 'KoroneDiscordShell.exe' -and
+    ([string]::IsNullOrWhiteSpace([string] $_.CommandLine) -or [string] $_.CommandLine -notmatch '--diagnostic-')
 })
 if ($normalRoots.Count -gt 0) {
-    throw "Normal single-instance smoke test requires no existing verified shell roots. Existing PIDs: $($normalRoots.ProcessId -join ', ')."
+    $paths = @($normalRoots | ForEach-Object { if ($_.ExecutablePath) { $_.ExecutablePath } else { '<path unavailable>' } } | Select-Object -Unique)
+    throw "Normal single-instance smoke test requires no existing ordinary shell roots. Existing PIDs: $($normalRoots.ProcessId -join ', '). Paths: $($paths -join '; ')."
 }
 
 $firstNormal = Start-Process -FilePath $resolvedExecutable -PassThru

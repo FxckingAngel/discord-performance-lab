@@ -21,31 +21,52 @@ function Get-Percentile {
 function Get-OptionalSum {
     param([object[]] $Rows, [string] $Property)
 
-    $values = @($Rows | ForEach-Object { $_.$Property } | Where-Object { $_ -ne $null })
+    $values = @($Rows | ForEach-Object {
+        $propertyValue = $_.PSObject.Properties[$Property]
+        if ($null -ne $propertyValue) { $propertyValue.Value }
+    } | Where-Object { $_ -ne $null })
     if ($values.Count -eq 0) { return $null }
     return [math]::Round((@($values | Measure-Object -Sum).Sum), 3)
 }
 
 $input = Get-Content -Raw -LiteralPath $InputPath | ConvertFrom-Json
+$firstProcess = $null
+foreach ($sample in @($input.samples)) {
+    foreach ($process in @($sample.processes)) {
+        if ($null -ne $process) { $firstProcess = $process; break }
+    }
+    if ($null -ne $firstProcess) { break }
+}
+if ($null -eq $firstProcess) { throw 'The attribution input contains no process rows.' }
+$propertyNames = @($firstProcess.PSObject.Properties | ForEach-Object Name)
+if ('workingSetMiB' -notin $propertyNames -and 'workingSetBytes' -in $propertyNames) {
+    throw 'This summarizer requires Measure-DiscordPhase2Attribution output with MiB fields. The input is byte-based Measure-DiscordProcessTree output; use its byte-aware reporting path instead.'
+}
+foreach ($requiredProperty in @('workingSetMiB', 'privateWorkingSetMiB', 'privateMemoryMiB')) {
+    if ($requiredProperty -notin $propertyNames) { throw "The attribution input is missing required field: $requiredProperty" }
+}
 $windowStates = @($input.samples | ForEach-Object { $_.windowState } | Where-Object { $_ -ne $null })
 $roleSamples = foreach ($sample in @($input.samples)) {
     foreach ($group in @($sample.processes | Where-Object role | Group-Object role)) {
-        $valid = @($group.Group | Where-Object { $_.status -ne 'unavailable' })
+        $valid = @($group.Group | Where-Object {
+            $statusProperty = $_.PSObject.Properties['status']
+            $null -eq $statusProperty -or $statusProperty.Value -ne 'unavailable'
+        })
         if ($valid.Count -eq 0) { continue }
         [pscustomobject]@{
             role = $group.Name
             timestamp = $sample.timestamp
             processCount = $valid.Count
-            workingSetMiB = [math]::Round((@($valid | Measure-Object workingSetMiB -Sum).Sum), 3)
+            workingSetMiB = Get-OptionalSum -Rows $valid -Property 'workingSetMiB'
             privateWorkingSetMiB = Get-OptionalSum -Rows $valid -Property 'privateWorkingSetMiB'
             workingSetShareableMiB = Get-OptionalSum -Rows $valid -Property 'workingSetShareableMiB'
-            privateMemoryMiB = [math]::Round((@($valid | Measure-Object privateMemoryMiB -Sum).Sum), 3)
-            cpuPercentOfTotal = [math]::Round((@($valid | Where-Object cpuPercentOfTotal -ne $null | Measure-Object cpuPercentOfTotal -Sum).Sum), 3)
-            pageFaultsPerSecond = [math]::Round((@($valid | Where-Object pageFaultsPerSecond -ne $null | Measure-Object pageFaultsPerSecond -Sum).Sum), 3)
-            ioReadBytesPerSecond = [math]::Round((@($valid | Where-Object ioReadBytesPerSecond -ne $null | Measure-Object ioReadBytesPerSecond -Sum).Sum), 3)
-            ioWriteBytesPerSecond = [math]::Round((@($valid | Where-Object ioWriteBytesPerSecond -ne $null | Measure-Object ioWriteBytesPerSecond -Sum).Sum), 3)
-            handles = [math]::Round((@($valid | Measure-Object handles -Sum).Sum), 3)
-            threads = [math]::Round((@($valid | Measure-Object threads -Sum).Sum), 3)
+            privateMemoryMiB = Get-OptionalSum -Rows $valid -Property 'privateMemoryMiB'
+            cpuPercentOfTotal = Get-OptionalSum -Rows $valid -Property 'cpuPercentOfTotal'
+            pageFaultsPerSecond = Get-OptionalSum -Rows $valid -Property 'pageFaultsPerSecond'
+            ioReadBytesPerSecond = Get-OptionalSum -Rows $valid -Property 'ioReadBytesPerSecond'
+            ioWriteBytesPerSecond = Get-OptionalSum -Rows $valid -Property 'ioWriteBytesPerSecond'
+            handles = Get-OptionalSum -Rows $valid -Property 'handles'
+            threads = Get-OptionalSum -Rows $valid -Property 'threads'
         }
     }
 }
@@ -74,7 +95,10 @@ $roles = foreach ($group in @($roleSamples | Group-Object role)) {
     }
 }
 $processSamples = foreach ($sample in @($input.samples)) {
-    foreach ($process in @($sample.processes | Where-Object { $_.status -ne 'unavailable' -and $null -ne $_.pid })) {
+    foreach ($process in @($sample.processes | Where-Object {
+        $statusProperty = $_.PSObject.Properties['status']
+        ($null -eq $statusProperty -or $statusProperty.Value -ne 'unavailable') -and $null -ne $_.pid
+    })) {
         [pscustomobject]@{
             pid = [int] $process.pid
             parentPid = if ($null -ne $process.parentPid) { [int] $process.parentPid } else { $null }
@@ -123,7 +147,10 @@ $processes = foreach ($group in @($processSamples | Group-Object pid)) {
     }
 }
 $treeSamples = foreach ($sample in @($input.samples)) {
-    $valid = @($sample.processes | Where-Object { $_.status -ne 'unavailable' })
+    $valid = @($sample.processes | Where-Object {
+        $statusProperty = $_.PSObject.Properties['status']
+        $null -eq $statusProperty -or $statusProperty.Value -ne 'unavailable'
+    })
     if ($valid.Count -eq 0) { continue }
     [pscustomobject]@{
         timestamp = $sample.timestamp

@@ -88,10 +88,10 @@ function summarize(events) {
     if (Number.isFinite(event.dur)) durations.set(name, (durations.get(name) ?? 0) + event.dur);
     if (typeof event.ph === 'string') phases.set(event.ph, (phases.get(event.ph) ?? 0) + 1);
     if (name === 'memory_dump' || name === 'periodic_interval') {
-      const dumps = event.args?.dumps;
-      if (dumps && typeof dumps === 'object') {
+      const argumentsObject = event.args;
+      if (argumentsObject && typeof argumentsObject === 'object') {
         memoryDumpEventCount++;
-        addMemoryDumpScalars(dumps);
+        addMemoryDumpScalars(argumentsObject, ['args']);
       }
     }
   }
@@ -161,6 +161,11 @@ try {
   ]);
   result.dataLossOccurred = Boolean(completion?.dataLossOccurred);
   result.summary = summarize(traceEvents);
+  const traceDuration = Math.max(1, Number(durationSeconds));
+  result.summary.eventRatesPerSecond = Object.fromEntries(
+    Object.entries(result.summary.selectedCounts)
+      .map(([name, count]) => [name, count / traceDuration]),
+  );
 } finally {
   socket.close();
 }

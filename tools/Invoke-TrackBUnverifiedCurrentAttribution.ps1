@@ -3,6 +3,9 @@ param(
     [Parameter(Mandatory = $true)]
     [switch] $AllowNormalShellRestart,
 
+    [ValidateNotNullOrEmpty()]
+    [string] $ExecutablePath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'track-b/discord-shell/bin/Verified/KoroneDiscordShell.exe'),
+
     [ValidateSet('--diagnostic-authenticated-no-bridges', '--diagnostic-blank')]
     [string] $DiagnosticArgument = '--diagnostic-authenticated-no-bridges',
 
@@ -16,6 +19,8 @@ param(
     [int] $SettleSeconds = 60,
 
     [switch] $CollectGarbage,
+
+    [switch] $ReloadBeforeCapture,
 
     [ValidateRange(1, 60)]
     [int] $IntervalSeconds = 5,
@@ -35,7 +40,12 @@ if (-not $AllowNormalShellRestart) {
     throw 'This diagnostic closes and restores the normal shell. Pass -AllowNormalShellRestart explicitly.'
 }
 
-$resolvedExecutable = (Resolve-Path (Join-Path (Split-Path -Parent $PSScriptRoot) 'track-b/discord-shell/bin/Verified/KoroneDiscordShell.exe') -ErrorAction Stop).Path
+$expectedCdpPort = if ($DiagnosticArgument -eq '--diagnostic-blank') { 9223 } else { 9230 }
+if ($CdpPort -ne $expectedCdpPort) {
+    throw "$DiagnosticArgument exposes loopback CDP on port $expectedCdpPort. Pass -CdpPort $expectedCdpPort."
+}
+
+$resolvedExecutable = (Resolve-Path $ExecutablePath -ErrorAction Stop).Path
 $node = Get-Command node.exe -ErrorAction Stop
 $powershell = Get-Command pwsh.exe -ErrorAction Stop
 $measureScript = Join-Path $PSScriptRoot 'Measure-DiscordPhase2Attribution.ps1'
@@ -61,6 +71,8 @@ $heapRawPath = Join-Path $OutputDirectory 'private.heapsnapshot'
 $heapSummaryPath = Join-Path $OutputDirectory 'heap-summary.json'
 $residentDirectory = Join-Path $OutputDirectory 'resident-types'
 $residentManifestPath = Join-Path $OutputDirectory 'resident-types.json'
+$webViewProcessInfoPath = Join-Path $env:LOCALAPPDATA 'KoroneDiscordShell/Diagnostics/webview-process-info.json'
+$webViewProcessInfoOutputPath = Join-Path $OutputDirectory 'webview-process-info.json'
 $diagnosticProcess = $null
 $measureProcess = $null
 
@@ -117,6 +129,7 @@ try {
     )
     $cdpArguments = @($cdpScript, "$CdpPort", "$DurationSeconds", $cdpPath)
     if ($CollectGarbage) { $cdpArguments += '--collect-garbage' }
+    if ($ReloadBeforeCapture) { $cdpArguments += '--reload-before-sampling' }
     & $node.Source @cdpArguments
     if ($LASTEXITCODE -ne 0) { throw "CDP diagnostics failed with exit code $LASTEXITCODE." }
     if ($CaptureHeapSnapshot) {
@@ -161,6 +174,9 @@ try {
         }
         $residentManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $residentManifestPath -Encoding utf8
     }
+    if (Test-Path -LiteralPath $webViewProcessInfoPath -PathType Leaf) {
+        Copy-Item -LiteralPath $webViewProcessInfoPath -Destination $webViewProcessInfoOutputPath -Force
+    }
 
     [pscustomobject]@{
         result = 'CAPTURED'
@@ -168,9 +184,11 @@ try {
         durationSeconds = $DurationSeconds
         settleSeconds = $SettleSeconds
         collectGarbage = [bool] $CollectGarbage
+        reloadBeforeCapture = [bool] $ReloadBeforeCapture
         diagnosticArgument = $DiagnosticArgument
         cdpPort = $CdpPort
         residentTypesPath = if ($CaptureResidentTypes) { (Resolve-Path -LiteralPath $residentManifestPath).Path } else { $null }
+        webViewProcessInfoPath = if (Test-Path -LiteralPath $webViewProcessInfoOutputPath -PathType Leaf) { (Resolve-Path -LiteralPath $webViewProcessInfoOutputPath).Path } else { $null }
         processTreePath = (Resolve-Path $processTreePath).Path
         cdpPath = (Resolve-Path $cdpPath).Path
         heapSummaryPath = if ($CaptureHeapSnapshot) { (Resolve-Path $heapSummaryPath).Path } else { $null }

@@ -3,6 +3,15 @@ param(
     [Parameter(Mandatory = $true)]
     [switch] $AllowNormalShellRestart,
 
+    [ValidateSet('--diagnostic-authenticated-no-bridges', '--diagnostic-blank')]
+    [string] $DiagnosticArgument = '--diagnostic-authenticated-no-bridges',
+
+    [ValidateSet(9223, 9230)]
+    [int] $CdpPort = 9230,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $ExecutablePath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'track-b/discord-shell/bin/Verified/KoroneDiscordShell.exe'),
+
     [ValidateRange(1, 60)]
     [int] $DurationSeconds = 20,
 
@@ -17,7 +26,12 @@ if (-not $AllowNormalShellRestart) {
     throw 'This diagnostic closes and restores the normal shell. Pass -AllowNormalShellRestart explicitly.'
 }
 
-$resolvedExecutable = (Resolve-Path (Join-Path (Split-Path -Parent $PSScriptRoot) 'track-b/discord-shell/bin/Verified/KoroneDiscordShell.exe') -ErrorAction Stop).Path
+$expectedCdpPort = if ($DiagnosticArgument -eq '--diagnostic-blank') { 9223 } else { 9230 }
+if ($CdpPort -ne $expectedCdpPort) {
+    throw "$DiagnosticArgument exposes loopback CDP on port $expectedCdpPort. Pass -CdpPort $expectedCdpPort."
+}
+
+$resolvedExecutable = (Resolve-Path $ExecutablePath -ErrorAction Stop).Path
 $node = Get-Command node.exe -ErrorAction Stop
 $traceScript = Join-Path $PSScriptRoot 'Capture-TrackBCdpTrace.mjs'
 if (-not (Test-Path -LiteralPath $traceScript -PathType Leaf)) {
@@ -47,12 +61,12 @@ try {
         throw 'A normal Track B shell root remains after the requested close.'
     }
 
-    $diagnosticProcess = Start-Process -FilePath $resolvedExecutable -ArgumentList '--diagnostic-authenticated-no-bridges' -PassThru
+    $diagnosticProcess = Start-Process -FilePath $resolvedExecutable -ArgumentList $DiagnosticArgument -PassThru
     $ready = $false
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
     do {
         try {
-            $targets = @(Invoke-RestMethod -Uri 'http://127.0.0.1:9230/json/list' -TimeoutSec 1)
+            $targets = @(Invoke-RestMethod -Uri "http://127.0.0.1:$CdpPort/json/list" -TimeoutSec 1)
             if (@($targets | Where-Object { $_.type -eq 'page' -and $_.webSocketDebuggerUrl }).Count -gt 0) {
                 $ready = $true
                 break
@@ -69,11 +83,13 @@ try {
         Start-Sleep -Seconds $SettleSeconds
     }
 
-    & $node.Source $traceScript 9230 $DurationSeconds $OutputPath
+    & $node.Source $traceScript $CdpPort $DurationSeconds $OutputPath
     if ($LASTEXITCODE -ne 0) { throw "CDP trace failed with exit code $LASTEXITCODE." }
     [pscustomobject]@{
         result = 'CAPTURED'
         verification = 'unverified-route-and-workload'
+        diagnosticArgument = $DiagnosticArgument
+        cdpPort = $CdpPort
         durationSeconds = $DurationSeconds
         settleSeconds = $SettleSeconds
         outputPath = (Resolve-Path -LiteralPath $OutputPath).Path

@@ -22,6 +22,8 @@ param(
 
     [ValidateNotNullOrEmpty()]
     [string] $ProcessName = 'DiscordPTB'
+
+    , [switch] $RequireReadyEachRepetition
 )
 
 $attributionTool = Join-Path $PSScriptRoot 'Measure-DiscordPhase2Attribution.ps1'
@@ -72,6 +74,10 @@ $manifest = [System.Collections.Generic.List[object]]::new()
 for ($repetition = 1; $repetition -le $Repetitions; $repetition++) {
     $repeatDirectory = Join-Path $OutputDirectory ("repeat-{0:D2}" -f $repetition)
     New-Item -ItemType Directory -Path $repeatDirectory -Force | Out-Null
+    if ($RequireReadyEachRepetition) {
+        $confirmation = Read-Host "Prepare $Scenario repetition $repetition, then type READY"
+        if ($confirmation -cne 'READY') { throw "Manual checkpoint was not confirmed for repetition $repetition." }
+    }
     $window = Get-WindowMetadata -ProcessId $RootPid
     $display = Get-DisplayMetadata
     $roleMapPath = Join-Path $repeatDirectory 'role-map-local.json'
@@ -99,6 +105,7 @@ $manifestPath = Join-Path $OutputDirectory 'manifest.json'
     durationSeconds = $DurationSeconds
     intervalSeconds = $IntervalSeconds
     rootPid = $RootPid
+    requireReadyEachRepetition = [bool] $RequireReadyEachRepetition
     warning = 'Scenario state is supplied by the operator. Confirm the channel, call, media, and window state before starting each repetition.'
     repetitionsData = @($manifest)
 } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $manifestPath -Encoding utf8

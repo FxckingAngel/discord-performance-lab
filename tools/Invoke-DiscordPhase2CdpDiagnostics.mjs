@@ -4,6 +4,7 @@ const port = Number(process.argv[2] ?? 9222);
 const durationSeconds = Math.max(1, Math.min(60, Number(process.argv[3] ?? 10)));
 const outputPath = process.argv[4];
 const collectGarbage = process.argv.includes('--collect-garbage');
+const reloadBeforeSampling = process.argv.includes('--reload-before-sampling');
 if (!outputPath) throw new Error('Output path is required.');
 
 const base = `http://127.0.0.1:${port}`;
@@ -11,36 +12,55 @@ const list = await (await fetch(`${base}/json/list`)).json();
 const target = list.find((entry) => entry.type === 'page' && entry.webSocketDebuggerUrl);
 if (!target) throw new Error('No page target with a WebSocket debugger URL was found.');
 
-const socket = await new Promise((resolve, reject) => {
-  const ws = new WebSocket(target.webSocketDebuggerUrl);
-  ws.addEventListener('open', () => resolve(ws));
-  ws.addEventListener('error', (event) => reject(new Error(`CDP WebSocket error: ${event.message ?? 'unknown'}`)));
-});
-let nextId = 1;
-const pending = new Map();
-socket.addEventListener('message', (event) => {
-  const message = JSON.parse(String(event.data));
-  if (!message.id || !pending.has(message.id)) return;
-  const { resolve, reject } = pending.get(message.id);
-  pending.delete(message.id);
-  if (message.error) reject(new Error(`${message.error.code}: ${message.error.message}`));
-  else resolve(message.result ?? {});
-});
-
-function command(method, params = {}) {
-  return new Promise((resolve, reject) => {
-    const id = nextId++;
-    pending.set(id, { resolve, reject });
-    socket.send(JSON.stringify({ id, method, params }));
+async function openChannel(url) {
+  const socket = await new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.addEventListener('open', () => resolve(ws));
+    ws.addEventListener('error', (event) => reject(new Error(`CDP WebSocket error: ${event.message ?? 'unknown'}`)));
   });
+  let nextId = 1;
+  const pending = new Map();
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(String(event.data));
+    if (!message.id || !pending.has(message.id)) return;
+    const { resolve, reject } = pending.get(message.id);
+    pending.delete(message.id);
+    if (message.error) reject(new Error(`${message.error.code}: ${message.error.message}`));
+    else resolve(message.result ?? {});
+  });
+  return {
+    socket,
+    command(method, params = {}) {
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        pending.set(id, { resolve, reject });
+        socket.send(JSON.stringify({ id, method, params }));
+      });
+    },
+  };
 }
 
-async function optionalCommand(method, params = {}) {
+const pageChannel = await openChannel(target.webSocketDebuggerUrl);
+const socket = pageChannel.socket;
+const command = pageChannel.command;
+let browserChannel = null;
+try {
+  const version = await (await fetch(`${base}/json/version`)).json();
+  if (version.webSocketDebuggerUrl) browserChannel = await openChannel(version.webSocketDebuggerUrl);
+} catch {
+  browserChannel = null;
+}
+
+async function optionalCommandOn(channel, method, params = {}) {
   try {
-    return { available: true, result: await command(method, params) };
+    return { available: true, result: await channel.command(method, params) };
   } catch (error) {
     return { available: false, error: String(error.message ?? error) };
   }
+}
+
+async function optionalCommand(method, params = {}) {
+  return optionalCommandOn(pageChannel, method, params);
 }
 
 function metricMap(metrics) {
@@ -62,7 +82,10 @@ function summarizeProfile(profile) {
     if (!Number.isFinite(bytes) || bytes <= 0) continue;
     selfBytes += bytes;
     const frame = node.callFrame ?? {};
-    const name = String(frame.functionName || frame.url || '(anonymous)');
+    const rawName = String(frame.functionName || frame.url || '(anonymous)');
+    const name = /^(?:[a-z]+:|\/\/|[a-z]:[\\/])/i.test(rawName)
+      ? '(redacted-url-or-path)'
+      : rawName.slice(0, 120);
     functionBytes.set(name, (functionBytes.get(name) ?? 0) + bytes);
   }
   const topFunctions = [...functionBytes.entries()]
@@ -214,12 +237,22 @@ const result = {
   endpoint: `127.0.0.1:${port}`,
   targetType: target.type,
   targetCount: list.length,
+  reloadBeforeSampling,
+  browserTargetAvailable: browserChannel !== null,
   policy: 'Aggregate-only diagnostic. No page text, URLs, cookies, tokens, heap objects, or raw profiles are written.',
 };
 
 try {
+  const browserSamplingStart = browserChannel
+    ? await optionalCommandOn(browserChannel, 'Memory.startSampling', { samplingInterval: 32768, suppressRandomness: true })
+    : { available: false, error: 'Browser CDP target unavailable.' };
   await command('Runtime.enable');
   await command('Performance.enable');
+  if (reloadBeforeSampling) {
+    await command('Page.enable');
+    await command('Page.reload', { ignoreCache: false });
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
   result.heapUsage = (await optionalCommand('Runtime.getHeapUsage')).result ?? null;
   if (collectGarbage) {
     const before = result.heapUsage;
@@ -249,16 +282,31 @@ try {
     ? summarizeNativeMemoryProfile(browserNativeMemory.result.profile)
     : unavailableNativeMemory(browserNativeMemory.error);
   const aggregate = await optionalCommand('Runtime.evaluate', {
-    expression: `(() => ({
+    expression: `(() => {
+      const images = Array.from(document.images);
+      const videos = Array.from(document.getElementsByTagName('video'));
+      const animatedImageHintCount = images.filter((image) => {
+        const source = String(image.currentSrc || '').toLowerCase();
+        return /\\.(?:gif|apng)(?:$|[?#])/.test(source) || source.startsWith('data:image/gif');
+      }).length;
+      return ({
       domNodeCount: document.getElementsByTagName('*').length,
       frameCount: window.top === window ? window.frames.length + 1 : null,
-      imageElementCount: document.images.length,
-      imageNaturalPixelCount: Array.from(document.images).reduce((sum, image) => sum + (image.naturalWidth * image.naturalHeight), 0),
-      videoElementCount: document.getElementsByTagName('video').length,
-      videoPixelCount: Array.from(document.getElementsByTagName('video')).reduce((sum, video) => sum + (video.videoWidth * video.videoHeight), 0),
+      imageElementCount: images.length,
+      imageNaturalPixelCount: images.reduce((sum, image) => sum + (image.naturalWidth * image.naturalHeight), 0),
+      animatedImageHintCount,
+      videoElementCount: videos.length,
+      playingVideoCount: videos.filter((video) => !video.paused && !video.ended && video.readyState >= 2).length,
+      videoReadyStateCounts: videos.reduce((counts, video) => {
+        const key = String(video.readyState);
+        counts[key] = (counts[key] || 0) + 1;
+        return counts;
+      }, {}),
+      videoPixelCount: videos.reduce((sum, video) => sum + (video.videoWidth * video.videoHeight), 0),
       canvasElementCount: document.getElementsByTagName('canvas').length,
       canvasPixelCount: Array.from(document.getElementsByTagName('canvas')).reduce((sum, canvas) => sum + (canvas.width * canvas.height), 0)
-    }))()`,
+      });
+    })()`,
     returnByValue: true,
     awaitPromise: false,
   });
@@ -298,8 +346,22 @@ try {
   } else {
     result.heapSampling = { error: started.error };
   }
+  if (browserSamplingStart.available) {
+    const browserProfile = await optionalCommandOn(browserChannel, 'Memory.getSamplingProfile');
+    const browserStop = await optionalCommandOn(browserChannel, 'Memory.stopSampling');
+    result.browserNativeMemorySampling = browserProfile.available
+      ? {
+        ...summarizeNativeMemoryProfile(browserProfile.result.profile),
+        sourceMethod: 'browser-target-Memory.getSamplingProfile',
+        stopSampling: browserStop.available ? summarizeNativeMemoryProfile(browserStop.result.profile) : unavailableNativeMemory(browserStop.error),
+      }
+      : unavailableNativeMemory(browserProfile.error);
+  } else {
+    result.browserNativeMemorySampling = unavailableNativeMemory(browserSamplingStart.error);
+  }
 } finally {
   socket.close();
+  if (browserChannel) browserChannel.socket.close();
 }
 
 await fs.writeFile(outputPath, JSON.stringify(result, null, 2), 'utf8');

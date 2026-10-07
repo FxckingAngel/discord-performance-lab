@@ -118,6 +118,22 @@ Rank opportunities by resident/private memory ownership, sustained CPU samples, 
 
 No Phase 2 optimization is accepted from a single trace or a 2–4% change. The first target is an explanation of the renderer's large footprint and the wakeup sources that sustain it.
 
+## Current Track B evidence: 2026-10-07
+
+The latest unverified-route attribution measured 403.65 MiB complete-tree private working set median and 0.084% median CPU. The renderer accounted for 300.14 MiB private working set, 0.084% median CPU, 59 median page faults per second, and 2,451 page faults per second at p95. A matched blank-versus-loaded diagnostic comparison measured 69.72 MiB versus 416.69 MiB private working set, leaving an approximately 347 MiB loaded delta. V8 used heap was approximately 102 MiB, so the remaining renderer delta cannot be called JavaScript memory.
+
+## Lifecycle attribution gate
+
+The current settled baseline is approximately 310.18 MiB complete-tree private working set, 254.92 MiB renderer private working set, and 0.016% median CPU. CPU is below the current idle target and is not the active optimization bottleneck. The next renderer subgoal is approximately 195 MiB private working set, which would leave the non-renderer footprint near the 250 MiB complete-tree target.
+
+Short steady-state VirtualAllocation traces are interval evidence only. They cannot explain allocations acquired before the trace began. The next attribution question is therefore when the renderer acquires its retained footprint. `tools/Invoke-TrackBLifecycleAttribution.ps1` records synchronized process-tree, aggregate CDP, and renderer virtual-memory checkpoints from WebView endpoint readiness through Discord load, session restoration, application-shell visibility, a manually confirmed static route, and settled 30-second, 60-second, and five-minute states. Raw artifacts remain private. The blank runtime floor remains a separate `--diagnostic-blank` measurement.
+
+For each checkpoint, compare renderer private working set and private bytes with V8 used/backing storage, DOM/frame counts, GPU memory, and the private-writable allocation-base groups. A group that appears during Discord load and changes with a media route is Discord-dependent evidence. A group that appears during WebView initialization and remains fixed across blank, static, and media states is runtime-floor evidence. Neither result alone authorizes a renderer change; the first optimization still requires a repeatable, attribution-backed A/B.
+
+`Measure-TrackBResidentMemoryTypes.ps1` now emits `allocationBaseGroups` directly alongside the detailed region list. These groups are a per-process resident correlation view, not allocator ownership and not cross-process unique-RAM accounting.
+
+The loaded aggregate trace recorded sustained animation-frame, paint, style/layout, timer, and microtask activity while the blank trace did not. The current interpretation is a renderer-owned workload involving retained Discord state and Blink/compositor/native work. It is not yet safe to attribute the allocation to one removable feature. The next acceptance-quality gate is three repeated manually confirmed static-channel captures paired with three media-heavy captures, retaining per-renderer PIDs and the aggregate CDP media fields.
+
 ## Sources
 
 - [WPR command-line options](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/wpr-command-line-options)

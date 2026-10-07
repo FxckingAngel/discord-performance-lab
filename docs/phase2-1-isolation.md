@@ -13,8 +13,11 @@ Run each scenario three times after Discord has settled. Ten minutes is the defa
   -DurationSeconds 600 `
   -IntervalSeconds 5 `
   -Repetitions 3 `
+  -RequireReadyEachRepetition `
   -OutputDirectory .\benchmarks\raw\phase2-1\static-text-channel
 ```
+
+`-RequireReadyEachRepetition` pauses before every repetition and requires the literal `READY` after the operator has restored the exact scenario state. Use it for the static-versus-media gate so route, viewport, call, and media state are explicitly rechecked between runs.
 
 Use these scenario labels:
 
@@ -55,7 +58,7 @@ The diagnostic client must use read-only CDP domains and keep all deep artifacts
 - `HeapProfiler.startSampling` and `HeapProfiler.takeHeapSnapshot` only on a disposable private run;
 - `Tracing.start` only for short diagnostic windows, with sanitized aggregate findings extracted locally.
 
-The current diagnostic implementation is `Invoke-DiscordPhase2CdpDiagnostics.ps1`. During a loopback-only launch it collects `Runtime.getHeapUsage`, supported `Performance.getMetrics` values, aggregate DOM/image/video/canvas/frame counts, and a sanitized allocation-sampling summary. The allocation profile itself is never written. Run it only while the temporary debugging port is active:
+The current diagnostic implementation is `Invoke-DiscordPhase2CdpDiagnostics.ps1`. During a loopback-only launch it collects `Runtime.getHeapUsage`, supported `Performance.getMetrics` values, aggregate DOM/image/video/canvas/frame counts, sanitized animated-image hints, playing-video count, video ready-state counts, and a sanitized allocation-sampling summary. The allocation profile itself is never written. Run it only while the temporary debugging port is active:
 
 ```powershell
 .\tools\Invoke-DiscordPhase2CdpDiagnostics.ps1 `
@@ -74,6 +77,8 @@ Compare the CDP V8 result with the preserved per-renderer process result using `
 ```
 
 Do not call `Runtime.evaluate` to read message contents, tokens, local storage, cookies, or account state. Do not publish heap snapshots or trace payloads. Do not enable a debugging port in the normal launcher. A CDP endpoint is a local control surface, so it must be closed after each run and treated as a diagnostic exception, not a product feature.
+
+The current controlled evidence is recorded in [the blank-versus-loaded CDP/native comparison](benchmarks/track-b-blank-vs-loaded-cdp-native-2026-10-07.md) and [the blank-versus-loaded renderer trace](benchmarks/track-b-blank-vs-loaded-cdp-trace-2026-10-07.md). Those runs show that the loaded renderer adds approximately 293 MiB of private writable resident memory over the blank renderer floor and performs sustained layout, paint, timer, and animation work. They are unverified-route diagnostics, not acceptance results. The next acceptance-quality comparison must use the manual READY workflow above with a static route and a media-heavy route.
 
 The attribution report must keep these buckets separate:
 

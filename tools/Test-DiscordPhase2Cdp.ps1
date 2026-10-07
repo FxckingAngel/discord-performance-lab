@@ -9,6 +9,10 @@ param(
     [int[]] $Ports = @(9222, 9229, 8315)
 )
 
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = Join-Path (Split-Path -Parent $PSScriptRoot) ('artifacts/phase2-cdp-test-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
+}
+
 $processes = @(Get-CimInstance Win32_Process -Filter "Name='$ProcessName.exe'")
 $commandLines = @($processes | Select-Object -ExpandProperty CommandLine)
 $portResults = foreach ($port in $Ports) {
