@@ -180,6 +180,12 @@ try {
     if (-not (Test-Path -LiteralPath $desktopHintsLauncher -PathType Leaf)) {
         throw 'Desktop-hints diagnostic launcher is missing.'
     }
+    if (-not (Test-Path -LiteralPath (Join-Path $resolvedToolsPath 'Launch-TrackBNormal.ps1') -PathType Leaf)) {
+        throw 'Normal Track B launcher is missing.'
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $resolvedToolsPath 'Launch-TrackBAuthenticatedNoBridges.ps1') -PathType Leaf)) {
+        throw 'Authenticated no-bridge launcher is missing.'
+    }
     $phase2Source = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
     if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
         throw 'Phase 2 attribution must enumerate all processes before walking the rooted tree.'
