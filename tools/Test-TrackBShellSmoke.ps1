@@ -105,20 +105,24 @@ $results = foreach ($scenario in $scenarios) {
         if (Get-Process -Id $process.Id -ErrorAction SilentlyContinue) {
             throw "Smoke process $($process.Id) did not exit after its normal close action."
         }
-        Start-Sleep -Seconds 1
-        $remainingDescendants = foreach ($child in $descendantProcesses) {
-            $current = Get-CimInstance Win32_Process -Filter "ProcessId=$([int] $child.ProcessId)" -ErrorAction SilentlyContinue
-            if ($current -and
-                [string] $current.Name -eq [string] $child.Name -and
-                [string] $current.CommandLine -eq [string] $child.CommandLine -and
-                [string] $current.CreationDate -eq [string] $child.CreationDate) {
-                $currentParent = Get-CimInstance Win32_Process -Filter "ProcessId=$([int] $current.ParentProcessId)" -ErrorAction SilentlyContinue
-                if ([int] $current.ParentProcessId -ne [int] $process.Id -and -not $currentParent) {
-                    continue
+        $shutdownDeadline = [DateTime]::UtcNow.AddSeconds(30)
+        do {
+            $remainingDescendants = foreach ($child in $descendantProcesses) {
+                $current = Get-CimInstance Win32_Process -Filter "ProcessId=$([int] $child.ProcessId)" -ErrorAction SilentlyContinue
+                if ($current -and
+                    [string] $current.Name -eq [string] $child.Name -and
+                    [string] $current.CommandLine -eq [string] $child.CommandLine -and
+                    [string] $current.CreationDate -eq [string] $child.CreationDate) {
+                    $currentParent = Get-CimInstance Win32_Process -Filter "ProcessId=$([int] $current.ParentProcessId)" -ErrorAction SilentlyContinue
+                    if ([int] $current.ParentProcessId -ne [int] $process.Id -and -not $currentParent) {
+                        continue
+                    }
+                    $current
                 }
-                $current
             }
-        }
+            if ($remainingDescendants.Count -eq 0) { break }
+            Start-Sleep -Milliseconds 250
+        } while ([DateTime]::UtcNow -lt $shutdownDeadline)
         if ($remainingDescendants.Count -gt 0) {
             throw "Smoke process $($process.Id) left $($remainingDescendants.Count) helper process(es) alive: $((@($remainingDescendants | Select-Object -ExpandProperty ProcessId) -join ', '))."
         }
