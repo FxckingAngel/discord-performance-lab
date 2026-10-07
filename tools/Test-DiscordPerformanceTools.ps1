@@ -46,6 +46,7 @@ $cdpTestTool = Join-Path $resolvedToolsPath 'Test-DiscordPhase2Cdp.ps1'
 $featureProbeTool = Join-Path $resolvedToolsPath 'Probe-DiscordFeatureSupport.mjs'
 $screenshotCompareTool = Join-Path $resolvedToolsPath 'Compare-DiscordScreenshots.py'
 $smokeTool = Join-Path $resolvedToolsPath 'Test-TrackBShellSmoke.ps1'
+$lifecycleTool = Join-Path $resolvedToolsPath 'Invoke-TrackBLifecycleAttribution.ps1'
 $shellSourcePath = Join-Path (Split-Path -Parent $resolvedToolsPath) 'track-b/discord-shell/MainForm.cs'
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('discord-performance-lab-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
@@ -80,6 +81,12 @@ try {
     foreach ($requiredField in @('$shutdownDeadline = [DateTime]::UtcNow.AddSeconds(30)', 'Start-Sleep -Milliseconds 250')) {
         if ($smokeSource -notmatch [regex]::Escape($requiredField)) {
             throw "Shell smoke test does not allow bounded helper shutdown time: $requiredField"
+        }
+    }
+    $lifecycleSource = Get-Content -LiteralPath $lifecycleTool -Raw
+    foreach ($requiredField in @('[switch] $Automatic', 'Capture-Checkpoint $checkpoint.label $checkpoint.instruction -SkipReady', 'Automatic unverified')) {
+        if ($lifecycleSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Lifecycle attribution does not preserve automatic unverified checkpoints: $requiredField"
         }
     }
     $cdpTestSource = Get-Content -LiteralPath $cdpTestTool -Raw

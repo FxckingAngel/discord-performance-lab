@@ -6,7 +6,9 @@ param(
     [ValidateRange(5, 60)]
     [int] $CheckpointSeconds = 5,
     [ValidateNotNullOrEmpty()]
-    [string] $OutputDirectory = (Join-Path (Get-Location) ('artifacts/track-b-lifecycle-' + (Get-Date -Format 'yyyyMMdd-HHmmss')))
+    [string] $OutputDirectory = (Join-Path (Get-Location) ('artifacts/track-b-lifecycle-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))),
+
+    [switch] $Automatic
 )
 
 Set-StrictMode -Version Latest
@@ -59,11 +61,13 @@ function Get-DescendantProcesses {
 }
 
 function Capture-Checkpoint {
-    param([string] $Label, [string] $Instruction)
+    param([string] $Label, [string] $Instruction, [switch] $SkipReady)
 
     Write-Host $Instruction
-    $confirmation = Read-Host 'Type READY when this checkpoint is visible and settled'
-    if ($confirmation -cne 'READY') { throw "Checkpoint '$Label' was not confirmed. No capture was started." }
+    if (-not $SkipReady) {
+        $confirmation = Read-Host 'Type READY when this checkpoint is visible and settled'
+        if ($confirmation -cne 'READY') { throw "Checkpoint '$Label' was not confirmed. No capture was started." }
+    }
 
     $safeLabel = ($Label -replace '[^A-Za-z0-9_-]', '-')
     $checkpointDir = Join-Path $OutputDirectory $safeLabel
@@ -121,14 +125,31 @@ try {
     $process = Start-Process -FilePath $resolvedExecutable -ArgumentList '--diagnostic-authenticated' -PassThru
     if (-not (Wait-Endpoint)) { throw "Track B lifecycle CDP endpoint did not become ready on port $Port." }
 
-    Capture-Checkpoint 'webview-created-endpoint-ready' 'The diagnostic WebView is running. Leave it untouched for the runtime-floor checkpoint.'
-    Capture-Checkpoint 'discord-url-loading' 'Begin loading Discord or reload it now, then wait until the loading transition is visible.'
-    Capture-Checkpoint 'login-session-restored' 'Allow normal session restoration or log in manually if needed. Do not automate credentials.'
-    Capture-Checkpoint 'application-shell-visible' 'Leave the Discord application shell visible without navigating further.'
-    Capture-Checkpoint 'target-route-loaded' 'Navigate manually to the exact static test DM or channel and leave it visible.'
-    Capture-Checkpoint 'settled-30-seconds' 'Leave the confirmed route untouched for at least 30 seconds.'
-    Capture-Checkpoint 'settled-60-seconds' 'Continue leaving the confirmed route untouched for at least 60 seconds.'
-    Capture-Checkpoint 'settled-5-minutes' 'Continue leaving the confirmed route untouched for five minutes.'
+    if ($Automatic) {
+        $automaticCheckpoints = @(
+            [pscustomobject]@{ label = 'endpoint-ready'; delaySeconds = 0; instruction = 'Automatic unverified endpoint-ready checkpoint.' },
+            [pscustomobject]@{ label = 'startup-5-seconds'; delaySeconds = 5; instruction = 'Automatic unverified five-second startup checkpoint.' },
+            [pscustomobject]@{ label = 'startup-15-seconds'; delaySeconds = 10; instruction = 'Automatic unverified fifteen-second startup checkpoint.' },
+            [pscustomobject]@{ label = 'startup-30-seconds'; delaySeconds = 15; instruction = 'Automatic unverified thirty-second startup checkpoint.' },
+            [pscustomobject]@{ label = 'startup-60-seconds'; delaySeconds = 30; instruction = 'Automatic unverified one-minute startup checkpoint.' },
+            [pscustomobject]@{ label = 'settled-3-minutes'; delaySeconds = 120; instruction = 'Automatic unverified three-minute checkpoint.' },
+            [pscustomobject]@{ label = 'settled-5-minutes'; delaySeconds = 120; instruction = 'Automatic unverified five-minute checkpoint.' }
+        )
+        foreach ($checkpoint in $automaticCheckpoints) {
+            if ($checkpoint.delaySeconds -gt 0) { Start-Sleep -Seconds $checkpoint.delaySeconds }
+            Capture-Checkpoint $checkpoint.label $checkpoint.instruction -SkipReady
+        }
+    }
+    else {
+        Capture-Checkpoint 'webview-created-endpoint-ready' 'The diagnostic WebView is running. Leave it untouched for the runtime-floor checkpoint.'
+        Capture-Checkpoint 'discord-url-loading' 'Begin loading Discord or reload it now, then wait until the loading transition is visible.'
+        Capture-Checkpoint 'login-session-restored' 'Allow normal session restoration or log in manually if needed. Do not automate credentials.'
+        Capture-Checkpoint 'application-shell-visible' 'Leave the Discord application shell visible without navigating further.'
+        Capture-Checkpoint 'target-route-loaded' 'Navigate manually to the exact static test DM or channel and leave it visible.'
+        Capture-Checkpoint 'settled-30-seconds' 'Leave the confirmed route untouched for at least 30 seconds.'
+        Capture-Checkpoint 'settled-60-seconds' 'Continue leaving the confirmed route untouched for at least 60 seconds.'
+        Capture-Checkpoint 'settled-5-minutes' 'Continue leaving the confirmed route untouched for five minutes.'
+    }
 
     [pscustomobject]@{
         result = 'PASS'
