@@ -18,6 +18,7 @@ The following evidence remains useful for history or diagnosis but must not be p
 | --- | --- | --- |
 | Approximately 113 MiB authenticated diagnostic state | Initialization diagnostic only | Two documents, about 1,084 DOM nodes, no images/canvases, and much smaller V8 state; not fully initialized Discord |
 | Older approximately 160–180 MiB private-working-set reports | Verify individually before citation | Route, frontend initialization, and workload equivalence were not consistently established |
+| Five-run manual canonical baseline at 386.53 MiB median private working set | Historical manual-route evidence, not current acceptance | The route checkpoint was recorded, but the capture predates the synchronized per-repetition WebView2 inventory join and therefore does not satisfy the current fully initialized gate |
 | Earlier approximately 243 MiB private-bytes prepared-session result | Historical, state-specific | Private bytes are not the primary RAM KPI and the state was not proven equivalent to the current fully initialized workload |
 | Official Discord comparisons from the current PTB installation | Official Discord + Vencord | The installation is Vencord-patched and cannot isolate an Electron or desktop-container tax |
 | Blank or unauthenticated WebView2 results | Runtime/feasibility diagnostics | They do not represent normal authenticated Discord use |
