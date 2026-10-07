@@ -169,6 +169,13 @@ try {
     if ($shellSource -match 'if \(diagnosticUserAgent\)\s*\{\s*webView\.CoreWebView2\.Settings\.UserAgent') {
         throw 'Desktop identity is still limited to the diagnostic UA mode.'
     }
+    $programSource = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $shellSourcePath) 'Program.cs') -Raw
+    if ($programSource -notmatch 'diagnostic-desktop-hints') {
+        throw 'Desktop-hints diagnostic mode is not wired into the shell entry point.'
+    }
+    if ($shellSource -notmatch 'Network\.setUserAgentOverride' -or $shellSource -notmatch 'userAgentMetadata') {
+        throw 'Desktop-hints diagnostic mode does not set the evidence-backed client-hints surface.'
+    }
     $phase2Source = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
     if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
         throw 'Phase 2 attribution must enumerate all processes before walking the rooted tree.'

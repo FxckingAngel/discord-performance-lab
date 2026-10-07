@@ -20,6 +20,7 @@ public sealed class MainForm : Form
     private readonly bool diagnosticBlank;
     private readonly bool diagnosticDiscord;
     private readonly bool diagnosticUserAgent;
+    private readonly bool diagnosticDesktopHints;
     private readonly bool diagnosticWindowBridge;
     private readonly bool diagnosticHardwareBridge;
     private readonly bool diagnosticBridgePair;
@@ -38,11 +39,12 @@ public sealed class MainForm : Form
     private readonly Button closeButton = new() { Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat, Text = "×", Width = 42, TabStop = false, AccessibleName = "Close" };
     private readonly NotifyIcon trayIcon = new() { Icon = SystemIcons.Application, Visible = true, Text = "Discord" };
 
-    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
+    public MainForm(bool diagnosticBlank, bool diagnosticDiscord, bool diagnosticUserAgent, bool diagnosticDesktopHints, bool diagnosticWindowBridge, bool diagnosticHardwareBridge, bool diagnosticBridgePair, bool diagnosticAuthenticated, bool diagnosticCapabilityEvents, bool diagnosticAuthenticatedCapabilityEvents, bool diagnosticAuthenticatedNoBridges)
     {
         this.diagnosticBlank = diagnosticBlank;
         this.diagnosticDiscord = diagnosticDiscord;
         this.diagnosticUserAgent = diagnosticUserAgent;
+        this.diagnosticDesktopHints = diagnosticDesktopHints;
         this.diagnosticWindowBridge = diagnosticWindowBridge;
         this.diagnosticHardwareBridge = diagnosticHardwareBridge;
         this.diagnosticBridgePair = diagnosticBridgePair;
@@ -54,6 +56,8 @@ public sealed class MainForm : Form
             ? "Korone's Discord Shell (Runtime Baseline)"
             : diagnosticUserAgent
                 ? "Korone's Discord Shell (User-Agent Probe)"
+                : diagnosticDesktopHints
+                    ? "Korone's Discord Shell (Desktop Hints Probe)"
                 : diagnosticWindowBridge
                     ? "Korone's Discord Shell (Window Bridge Probe)"
                 : diagnosticHardwareBridge
@@ -160,6 +164,8 @@ public sealed class MainForm : Form
                     ? "RuntimeBaselineUserData"
                     : diagnosticUserAgent
                         ? "UserAgentProbeUserData"
+                    : diagnosticDesktopHints
+                        ? "DesktopHintsProbeUserData"
                         : diagnosticWindowBridge
                             ? "WindowBridgeProbeUserData"
                         : diagnosticHardwareBridge
@@ -178,8 +184,8 @@ public sealed class MainForm : Form
                         ? "EnvironmentProbeUserData"
                         : "WebView2UserData");
             Directory.CreateDirectory(userDataFolder);
-            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticAuthenticatedNoBridges ? 9230 : diagnosticCapabilityEvents ? 9231 : diagnosticAuthenticatedCapabilityEvents ? 9232 : 9228;
-            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticAuthenticatedNoBridges || diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents
+            var diagnosticPort = diagnosticBlank ? 9223 : diagnosticDiscord ? 9224 : diagnosticUserAgent ? 9225 : diagnosticDesktopHints ? 9233 : diagnosticWindowBridge ? 9226 : diagnosticHardwareBridge ? 9227 : diagnosticBridgePair ? 9229 : diagnosticAuthenticatedNoBridges ? 9230 : diagnosticCapabilityEvents ? 9231 : diagnosticAuthenticatedCapabilityEvents ? 9232 : 9228;
+            var options = diagnosticBlank || diagnosticDiscord || diagnosticUserAgent || diagnosticDesktopHints || diagnosticWindowBridge || diagnosticHardwareBridge || diagnosticBridgePair || diagnosticAuthenticated || diagnosticAuthenticatedNoBridges || diagnosticCapabilityEvents || diagnosticAuthenticatedCapabilityEvents
                 ? new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = $"--remote-debugging-port={diagnosticPort}" }
                 : null;
             var environment = await CoreWebView2Environment.CreateAsync(
@@ -225,6 +231,36 @@ public sealed class MainForm : Form
             // Identify the shell as Discord Desktop without claiming unsupported native capabilities.
             // This changes the client runtime identity only; it does not alter auth, permissions, or protocol behavior.
             webView.CoreWebView2.Settings.UserAgent = DesktopIdentityUserAgent;
+            if (diagnosticDesktopHints)
+            {
+                var userAgentOverride = JsonSerializer.Serialize(new
+                {
+                    userAgent = DesktopIdentityUserAgent,
+                    acceptLanguage = "en-US,en",
+                    platform = "Windows",
+                    userAgentMetadata = new
+                    {
+                        brands = new[]
+                        {
+                            new { brand = "Not/A)Brand", version = "99" },
+                            new { brand = "Chromium", version = "148" },
+                        },
+                        fullVersionList = new[]
+                        {
+                            new { brand = "Not/A)Brand", version = "99.0.0.0" },
+                            new { brand = "Chromium", version = "148.0.7778.280" },
+                        },
+                        platform = "Windows",
+                        platformVersion = "10.0.0",
+                        architecture = "x86",
+                        model = "",
+                        mobile = false,
+                        bitness = "64",
+                        wow64 = false,
+                    },
+                });
+                await webView.CoreWebView2.CallDevToolsProtocolMethodAsync("Network.setUserAgentOverride", userAgentOverride);
+            }
             if (enableWindowBridge || enableHardwareBridge)
             {
                 var bridgeScript = @"

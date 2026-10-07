@@ -41,6 +41,7 @@ internal static class Program
         var diagnosticBlank = args.Length == 1 && string.Equals(args[0], "--diagnostic-blank", StringComparison.Ordinal);
         var diagnosticDiscord = args.Length == 1 && string.Equals(args[0], "--diagnostic-discord", StringComparison.Ordinal);
         var diagnosticUserAgent = args.Length == 1 && string.Equals(args[0], "--diagnostic-official-ua", StringComparison.Ordinal);
+        var diagnosticDesktopHints = args.Length == 1 && string.Equals(args[0], "--diagnostic-desktop-hints", StringComparison.Ordinal);
         var diagnosticWindowBridge = args.Length == 1 && string.Equals(args[0], "--diagnostic-window-bridge", StringComparison.Ordinal);
         var diagnosticHardwareBridge = args.Length == 1 && string.Equals(args[0], "--diagnostic-hardware-bridge", StringComparison.Ordinal);
         var diagnosticBridgePair = args.Length == 1 && string.Equals(args[0], "--diagnostic-bridge-pair", StringComparison.Ordinal);
@@ -57,7 +58,7 @@ internal static class Program
         }
         try
         {
-            Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents, diagnosticAuthenticatedCapabilityEvents, diagnosticAuthenticatedNoBridges));
+            Application.Run(new MainForm(diagnosticBlank, diagnosticDiscord, diagnosticUserAgent, diagnosticDesktopHints, diagnosticWindowBridge, diagnosticHardwareBridge, diagnosticBridgePair, diagnosticAuthenticated, diagnosticCapabilityEvents, diagnosticAuthenticatedCapabilityEvents, diagnosticAuthenticatedNoBridges));
         }
         finally
         {
