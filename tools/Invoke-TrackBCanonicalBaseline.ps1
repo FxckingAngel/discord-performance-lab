@@ -19,7 +19,7 @@ $summary = Join-Path $PSScriptRoot 'Summarize-DiscordPhase2Attribution.ps1'
 $roleMap = Join-Path $PSScriptRoot 'Get-DiscordPhase2RoleMap.ps1'
 $resident = Join-Path $PSScriptRoot 'Measure-TrackBResidentMemoryTypes.ps1'
 $webViewJoin = Join-Path $PSScriptRoot 'Join-TrackBWebViewProcessInfo.ps1'
-$webViewInfoSource = Join-Path $env:LOCALAPPDATA 'KoroneDiscordShell/Diagnostics/webview-process-info.json'
+$webViewInfoDirectory = Join-Path $env:LOCALAPPDATA 'KoroneDiscordShell/Diagnostics'
 foreach ($path in @($measure, $summary, $roleMap, $resident, $webViewJoin)) { if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required baseline tool was not found: $path" } }
 $root = Get-Process -Id $RootPid -ErrorAction Stop
 if (-not $root.Responding) { throw "Track B root PID $RootPid is not responding." }
@@ -57,8 +57,25 @@ for ($index = 1; $index -le $Repetitions; $index++) {
     if ($LASTEXITCODE -ne 0) { throw "Canonical process capture failed for repetition $index." }
     & $summary -InputPath $treePath -OutputPath $summaryPath | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Canonical summary failed for repetition $index." }
-    if (Test-Path -LiteralPath $webViewInfoSource -PathType Leaf) {
-        Copy-Item -LiteralPath $webViewInfoSource -Destination $webViewInfoPath -Force
+    $treeForInventory = Get-Content -Raw -LiteralPath $treePath | ConvertFrom-Json
+    $treePids = @($treeForInventory.samples[-1].processes | ForEach-Object { [int]$_.pid })
+    $inventoryCandidate = $null
+    $inventoryOverlap = -1
+    foreach ($candidate in @(Get-ChildItem -LiteralPath $webViewInfoDirectory -Filter 'webview-process-info*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)) {
+        try {
+            $candidateData = Get-Content -Raw -LiteralPath $candidate.FullName | ConvertFrom-Json
+            $candidatePids = @($candidateData.processes | ForEach-Object { [int]$_.processId })
+            $overlap = @($candidatePids | Where-Object { $treePids -contains $_ }).Count
+            if ($overlap -gt $inventoryOverlap) {
+                $inventoryCandidate = $candidate
+                $inventoryOverlap = $overlap
+            }
+        } catch {
+            # Ignore a partially written inventory and continue with other profiles.
+        }
+    }
+    if ($inventoryCandidate -and $inventoryOverlap -gt 0) {
+        Copy-Item -LiteralPath $inventoryCandidate.FullName -Destination $webViewInfoPath -Force
         & $webViewJoin -ProcessTreePath $treePath -WebViewProcessInfoPath $webViewInfoPath -OutputPath $webViewJoinPath | Out-Null
     }
     $summaryData = Get-Content -Raw -LiteralPath $summaryPath | ConvertFrom-Json
@@ -89,6 +106,27 @@ for ($index = 1; $index -le $Repetitions; $index++) {
         rendererPid = $rendererPid
     })
 }
+$summaryRows = @($repetitionsData | ForEach-Object { Get-Content -Raw -LiteralPath $_.processSummaryPath | ConvertFrom-Json })
+$rendererPids = @($repetitionsData | Where-Object { [int]$_.rendererPid -gt 0 } | ForEach-Object { [int]$_.rendererPid } | Sort-Object -Unique)
+$processCountStable = (@($summaryRows | Where-Object { [int]$_.processTree.processCountMedian -ne [int]$_.processTree.processCountP95 }).Count -eq 0)
+$webViewInventorySynchronized = (@($repetitionsData | Where-Object {
+    if ([string]::IsNullOrWhiteSpace([string]$_.webViewProcessJoinPath)) { return $true }
+    $join = Get-Content -Raw -LiteralPath $_.webViewProcessJoinPath | ConvertFrom-Json
+    return [bool]$join.rendererPidMatch
+}).Count -eq $Repetitions)
+$initializedGate = [pscustomobject]@{
+    manualRouteConfirmed = -not $SkipManualCheckpoint
+    rendererPidStable = ($rendererPids.Count -eq 1)
+    rendererPid = if ($rendererPids.Count -eq 1) { $rendererPids[0] } else { $null }
+    processCountStable = $processCountStable
+    webViewInventorySynchronized = $webViewInventorySynchronized
+    frontendAndRouteVisiblyConfirmed = -not $SkipManualCheckpoint
+    routeUnchangedDuringCapture = -not $SkipManualCheckpoint
+    passed = (-not $SkipManualCheckpoint) -and ($rendererPids.Count -eq 1) -and $processCountStable -and $webViewInventorySynchronized
+}
+if (-not $SkipManualCheckpoint -and -not $initializedGate.passed) {
+    throw 'Fully initialized benchmark gate failed: renderer PID, process count, or WebView2 inventory was not stable and synchronized.'
+}
 [pscustomobject]@{
     schemaVersion = 1
     result = 'CAPTURED'
@@ -99,5 +137,6 @@ for ($index = 1; $index -le $Repetitions; $index++) {
     durationSeconds = $DurationSeconds
     intervalSeconds = $IntervalSeconds
     verification = $verification
+    initializedGate = $initializedGate
     policy = 'Fixed-state repetitions. Manual route confirmation is required for acceptance; automated mode is diagnostic only. No account content, command lines, or heap objects are published.'
 } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDirectory 'manifest.json') -Encoding utf8

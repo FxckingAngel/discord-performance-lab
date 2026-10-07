@@ -430,6 +430,19 @@ public sealed class MainForm : Form
                     userDataFolderName = Path.GetFileName(userDataFolder),
                     processes = rows,
                 }));
+            var profileName = Path.GetFileName(userDataFolder);
+            if (!string.IsNullOrWhiteSpace(profileName))
+            {
+                File.WriteAllText(
+                    Path.Combine(diagnosticsDirectory, $"webview-process-info-{profileName}.json"),
+                    JsonSerializer.Serialize(new
+                    {
+                        capturedAt = DateTime.UtcNow,
+                        processCount = rows.Count,
+                        userDataFolderName = profileName,
+                        processes = rows,
+                    }));
+            }
         }
         catch
         {
