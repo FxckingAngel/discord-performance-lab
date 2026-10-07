@@ -65,6 +65,8 @@ The installed PTB package on the test machine is Vencord-patched. For a separate
 
 The complete 33-group, method-count inventory is recorded in [the vanilla capability surface](benchmarks/track-b-vanilla-capability-surface-2026-10-07.md). It is the current source for deciding which native groups can be implemented safely; it is not a list of APIs that Track B should blindly reproduce.
 
+`tools/Extract-DiscordPreloadContract.mjs` provides a repeatable static check against a locally extracted `mainScreenPreload.js`. It emits only the `DiscordNative` group names and IPC event names, plus source size. It is intended to keep the implementation matrix tied to the actual desktop preload while keeping the installed package, arguments, and account state out of the repository.
+
 For a controlled official-client capability-use trace, use `tools/Probe-DiscordNativeMethodCalls.mjs <port> <seconds> <output>`. It reloads the diagnostic page, wraps only callable properties under `DiscordNative`, and records unique method names plus counts. It never records arguments, return values, page content, URLs, cookies, tokens, or native object values. Run it only against a disposable controlled diagnostic session, not the ordinary live client.
 
 The 2026-10-06 controlled trace found every observed `DiscordNative` group to be non-configurable and non-writable in the page world. The probe therefore recorded zero wrapped groups and zero calls. It did not bypass those descriptors, replace the native object, or inject an alternate implementation. This is a diagnostic limitation, not evidence that the groups are unused. Future capability-use evidence must come from behavior-level tests or a supported host-side diagnostic boundary.

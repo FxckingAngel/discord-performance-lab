@@ -364,6 +364,16 @@ try {
             throw "Environment probe does not preserve complete native group enumeration: $requiredField"
         }
     }
+    $preloadContractTool = Join-Path $resolvedToolsPath 'Extract-DiscordPreloadContract.mjs'
+    if (-not (Test-Path -LiteralPath $preloadContractTool -PathType Leaf)) {
+        throw 'Discord preload contract extractor is missing.'
+    }
+    $preloadContractSource = Get-Content -LiteralPath $preloadContractTool -Raw
+    foreach ($requiredField in @('DiscordNative', 'IPCEvents', 'sourceBytes', 'account data', 'tokens')) {
+        if ($preloadContractSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Discord preload contract extractor does not preserve $requiredField."
+        }
+    }
     $vanillaLauncherSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Launch-DiscordVanillaDiagnostic.ps1') -Raw
     foreach ($requiredField in @('--vanilla', '--multi-instance', '--start-inactive', '--user-data-dir=', '--remote-debugging-port=', 'does not stop')) {
         if ($vanillaLauncherSource -notmatch [regex]::Escape($requiredField)) {
