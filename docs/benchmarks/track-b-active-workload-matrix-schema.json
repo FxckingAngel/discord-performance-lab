@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/FxckingAngel/discord-performance-lab/blob/project/bootstrap/docs/benchmarks/track-b-active-workload-matrix-schema.json",
+  "title": "Track B active-workload benchmark matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "matrixId", "controlPolicy", "workloads", "requiredMetrics"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "matrixId": { "type": "string", "pattern": "^track-b-active-workload-[0-9]{8}-[0-9]{6}$" },
+    "controlPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["officialMode", "officialRestartAllowed", "trackBRestartAllowed", "rawArtifactsPrivate", "sameMachineRequired"],
+      "properties": {
+        "officialMode": { "const": "read-only-stock-reference" },
+        "officialRestartAllowed": { "const": false },
+        "trackBRestartAllowed": { "const": true },
+        "rawArtifactsPrivate": { "const": true },
+        "sameMachineRequired": { "const": true }
+      }
+    },
+    "requiredMetrics": {
+      "type": "array",
+      "const": [
+        "completeTreePrivateWorkingSetMiB",
+        "completeTreeWorkingSetMiB",
+        "completeTreePrivateBytesMiB",
+        "completeTreeCpuMedianPercent",
+        "completeTreeCpuP95Percent",
+        "gpuUsage",
+        "gpuMemoryMiB",
+        "processCount",
+        "responsiveness",
+        "functionalStatus"
+      ]
+    },
+    "workloads": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/workload" }
+    },
+    "comparisonRecords": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/comparisonRecord" }
+    }
+  },
+  "$defs": {
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "manualPreparation", "actionRequired", "sameStateAcrossBuilds"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["settled-idle", "active-text", "channel-navigation", "scrolling", "media-heavy", "voice-idle", "active-voice", "video", "screen-sharing", "notifications", "gaming-background"]
+        },
+        "label": { "type": "string", "minLength": 1 },
+        "manualPreparation": { "type": "string", "minLength": 1 },
+        "actionRequired": { "type": "boolean" },
+        "sameStateAcrossBuilds": { "const": true },
+        "notes": { "type": "string" }
+      }
+    },
+    "comparisonRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workloadId", "build", "readiness", "environment", "metrics", "action", "functional"],
+      "properties": {
+        "workloadId": { "type": "string" },
+        "build": { "enum": ["OfficialDiscord", "TrackB"] },
+        "readiness": { "$ref": "#/$defs/readiness" },
+        "environment": { "$ref": "#/$defs/environment" },
+        "metrics": { "$ref": "#/$defs/metrics" },
+        "action": { "$ref": "#/$defs/action" },
+        "functional": { "$ref": "#/$defs/functional" },
+        "mediaQuality": { "$ref": "#/$defs/mediaQuality" }
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manualCheckpoint", "frontendInitialized", "routeStable", "processInventorySynchronized", "windowResponsive"],
+      "properties": {
+        "manualCheckpoint": { "const": true },
+        "frontendInitialized": { "const": true },
+        "routeStable": { "const": true },
+        "processInventorySynchronized": { "const": true },
+        "windowResponsive": { "const": true },
+        "sanitizedStateDescription": { "type": "string" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sameMachine", "sameDisplay", "windowDimensions", "displayRefreshRateHz"],
+      "properties": {
+        "sameMachine": { "const": true },
+        "sameDisplay": { "const": true },
+        "windowDimensions": { "type": "string", "minLength": 1 },
+        "displayRefreshRateHz": { "type": "number", "exclusiveMinimum": 0 },
+        "displayScalingPercent": { "type": "number", "exclusiveMinimum": 0 },
+        "sameAccount": { "const": true },
+        "sameNetworkState": { "const": true },
+        "sanitizedRouteFingerprint": { "type": "string", "minLength": 1 },
+        "sanitizedCallStateFingerprint": { "type": "string", "minLength": 1 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completeTreePrivateWorkingSetMiB", "completeTreeWorkingSetMiB", "completeTreePrivateBytesMiB", "completeTreeCpuMedianPercent", "completeTreeCpuP95Percent", "gpuUsage", "gpuMemoryMiB", "processCount", "responsiveness"],
+      "properties": {
+        "completeTreePrivateWorkingSetMiB": { "$ref": "#/$defs/summaryMetric" },
+        "completeTreeWorkingSetMiB": { "$ref": "#/$defs/summaryMetric" },
+        "completeTreePrivateBytesMiB": { "$ref": "#/$defs/summaryMetric" },
+        "completeTreeCpuMedianPercent": { "type": "number", "minimum": 0 },
+        "completeTreeCpuP95Percent": { "type": "number", "minimum": 0 },
+        "gpuUsage": { "type": ["number", "string"] },
+        "gpuMemoryMiB": { "type": ["number", "string"] },
+        "processCount": { "type": "integer", "minimum": 1 },
+        "responsiveness": { "enum": ["RESPONSIVE", "UNRESPONSIVE", "UNTESTED"] }
+      }
+    },
+    "summaryMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["median", "p95"],
+      "properties": {
+        "median": { "type": "number", "minimum": 0 },
+        "p95": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "status", "durationSeconds"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "status": { "enum": ["PASS", "FAIL", "UNTESTED"] },
+        "durationSeconds": { "type": "number", "minimum": 0 },
+        "sanitizedNote": { "type": "string" }
+      }
+    },
+    "functional": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "UNTESTED"] },
+        "sanitizedNote": { "type": "string" }
+      }
+    },
+    "mediaQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceResolutionComparable", "rasterQualityComparable", "hardwareAccelerationEnabled", "visualQualityComparable"],
+      "properties": {
+        "sourceResolutionComparable": { "const": true },
+        "rasterQualityComparable": { "const": true },
+        "hardwareAccelerationEnabled": { "const": true },
+        "visualQualityComparable": { "const": true },
+        "sanitizedNote": { "type": "string" }
+      }
+    }
+  }
+}

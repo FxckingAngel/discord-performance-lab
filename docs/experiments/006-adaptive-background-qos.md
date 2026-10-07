@@ -1,0 +1,52 @@
+# Experiment 006: adaptive background QoS
+
+## Status
+
+Prototype utility; transition and functional acceptance pending.
+
+## Change
+
+`tools/Watch-DiscordBackgroundQoS.ps1 -BackgroundIdleConfirmed` watches one observed Discord root PID. It applies the existing EcoQoS control only while the main window is minimized or has no window handle, and returns the process tree to system-managed QoS when the window is restored. The explicit confirmation is required for direct watcher use as well as launcher use.
+
+`tools/Launch-DiscordPerformanceProfile.ps1 -Profile adaptive -BackgroundIdleConfirmed` starts stock Discord and attaches this watcher automatically. The confirmation is required because a minimized Discord window can still have an active call or media session. The launcher reports both the Discord PID and watcher PID so the private profile can be inspected and stopped cleanly.
+
+Run once to evaluate the current state:
+
+```powershell
+.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -Once -BackgroundIdleConfirmed
+```
+
+Run continuously with a two-second poll interval:
+
+```powershell
+.\tools\Watch-DiscordBackgroundQoS.ps1 -RootPid 12345 -PollIntervalSeconds 2 -BackgroundIdleConfirmed
+```
+
+## Boundary
+
+The watcher changes only Windows process QoS for the selected Discord tree. It does not inject code, patch Discord files, alter network behavior, access credentials, or terminate processes. It deliberately treats a visible foreground window as system-managed so the previously observed foreground CPU regression is not promoted to normal active use.
+
+While minimized, the watcher preserves system-managed QoS for the `gpu-process` and `utility/audio.mojom.AudioService` roles. This keeps graphics acceleration and voice/audio scheduling outside the adaptive throttle boundary.
+
+## Acceptance plan
+
+1. Validate foreground-to-background and background-to-foreground transitions with the rooted benchmark.
+2. Repeat idle, text, media, voice, video, notifications, accessibility, and cleanup checks.
+3. Confirm the watcher exits cleanly when the root process ends.
+4. Keep the profile private until transition behavior and functional checks pass.
+
+## Live transition check
+
+On 2026-10-06, the visible Discord PTB window was minimized without restarting the client. A one-shot watcher run detected `minimizedOrHidden: true`, applied EcoQoS to the non-media roles, and preserved system-managed QoS for the GPU and audio roles. The window was then restored; after the UI returned, the accessibility tree still exposed the active voice connection, camera control, and message composer. A second one-shot watcher run detected `minimizedOrHidden: false` and restored system-managed QoS for the whole tree. The client remained stock, responsive, and at six processes. This validates the transition mechanics, not yet the long-running resource or full functional gates.
+
+## Minimized active-use probe
+
+The same session was then measured while minimized with the media-safe QoS policy selected. Over 16.195 seconds, the rooted tree remained at six processes and recorded 1,127.63 MiB median working set, 1,133.00 MiB median private memory, and 0.999% CPU. Voice and media remained active during the probe, while the GPU and audio roles stayed system-managed. Because this was a single active-use sample without a paired stock run, it is transition evidence only and is not treated as a new performance improvement. Restoring the window and running the watcher again returned all six processes to system-managed QoS.
+
+## Continuous loop check
+
+The watcher was also run continuously with a one-second poll interval. It emitted `system-managed` while the window was visible, `ecoqos` for non-media roles while the window was minimized, and `system-managed` after the window was restored. The watcher was then stopped cleanly. A final profile check showed the stock command line, six processes, and a responsive main window.
+
+## Paired minimized active-use gate
+
+The media-safe adaptive policy was compared with stock system-managed QoS in the same minimized session while voice and media remained active. Stock recorded 0.770% CPU, 1,076.71 MiB median working set, and 1,083.77 MiB median private memory. Adaptive recorded 7.588% CPU, 1,101.89 MiB working set, and 1,132.06 MiB private memory. Process count stayed at six. The comparison failed the five-percent regression gate, driven by an 885.455% CPU regression and a 5.743% private-memory p95 regression. Adaptive is rejected for minimized active use and must only be considered after active voice, video, and media work has ended. This does not replace the earlier background-idle result for the separate EcoQoS launch profile.

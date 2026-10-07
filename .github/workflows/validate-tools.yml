@@ -1,0 +1,28 @@
+name: Validate benchmark tools
+
+on:
+  push:
+    branches: [main, project/bootstrap]
+  pull_request:
+
+jobs:
+  powershell-parse:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Parse PowerShell tools
+        shell: pwsh
+        run: ./tools/Test-DiscordPerformanceTools.ps1
+
+  build-track-b-shell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore shell
+        run: dotnet restore ./track-b/discord-shell/KoroneDiscordShell.csproj
+      - name: Build shell
+        run: dotnet build ./track-b/discord-shell/KoroneDiscordShell.csproj --configuration Release --no-restore
