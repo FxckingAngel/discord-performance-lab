@@ -358,6 +358,12 @@ try {
             throw "Feature-scenario summary does not preserve $requiredField."
         }
     }
+    $vanillaLauncherSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Launch-DiscordVanillaDiagnostic.ps1') -Raw
+    foreach ($requiredField in @('--vanilla', '--start-inactive', '--user-data-dir=', '--remote-debugging-port=', 'does not stop')) {
+        if ($vanillaLauncherSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Vanilla diagnostic launcher does not preserve $requiredField."
+        }
+    }
     $checkpointSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBMemoryAttributionCheckpoint.ps1') -Raw
     foreach ($requiredField in @('[string] $Scenario', "'-Scenario', `$Scenario")) {
         if ($checkpointSource -notmatch [regex]::Escape($requiredField)) {
