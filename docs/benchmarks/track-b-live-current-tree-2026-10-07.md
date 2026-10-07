@@ -38,4 +38,18 @@ Raw capture: `artifacts/track-b-live-current-20261007-014226/`.
 
 The renderer remains the dominant private-resident owner. CPU is already below the 0.2% median target in this observation. The memory result is approximately 145.7 MiB above the overall private-working-set target, but it cannot be used as an optimization claim because the route and workload were not manually verified.
 
+## Renderer resident-page classification
+
+The renderer PID was `34356` during the final classification. Its private-writable resident memory was **286.00 MiB**, against **328.48 MiB** committed private-writable memory. The largest resident allocation-base families were:
+
+| Allocation base family | Resident | Committed |
+| --- | ---: | ---: |
+| `0x21200000000` | 79.38 MiB | 80.75 MiB |
+| `0x24E800000000` | 42.30 MiB | 43.88 MiB |
+| `0x2A2000000000` | 19.15 MiB | 19.56 MiB |
+| `0x5E0C00000000` | 10.66 MiB | 11.25 MiB |
+| `0x7FFEC31C0000` | 9.13 MiB | 10.00 MiB |
+
+The first three families account for approximately **140.82 MiB** resident. These are correlation groups from `VirtualQueryEx` and `QueryWorkingSetEx`, not allocator ownership labels. They do not justify calling the memory Blink, media, compositor, or application state until a workload differential or stack attribution identifies the owner.
+
 No renderer behavior, visible media behavior, authentication behavior, network protocol, or security setting was changed. The result is evidence for the existing renderer-memory attribution work, not permission to disable Discord functionality or apply a speculative runtime switch.
