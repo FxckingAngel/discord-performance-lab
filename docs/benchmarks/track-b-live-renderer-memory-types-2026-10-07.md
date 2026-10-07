@@ -26,8 +26,20 @@ The reported reserved address space was approximately 3.53 TiB. It is virtual ad
 - Regions from 4 MiB to 16 MiB accounted for 58.68 MiB.
 - Regions 16 MiB or larger accounted for 43.76 MiB across three regions.
 
+The largest allocation-base groups in the same capture were:
+
+| Allocation base | Regions | Resident | Committed |
+| --- | ---: | ---: | ---: |
+| `0x2DE00000000` | 11 | 73.06 MiB | 74.00 MiB |
+| `0x3AE400000000` | 7 | 24.93 MiB | 26.38 MiB |
+| `0x2B9800000000` | 5 | 19.16 MiB | 19.57 MiB |
+| `0x2CE200000000` | 2 | 9.56 MiB | 9.75 MiB |
+| `0x7FFEC31C0000` | 1 | 9.09 MiB | 10.25 MiB |
+
+These are process-local allocation-base addresses. They are not stable identities across renderer lifetimes because of address-space layout randomization. The first three groups account for approximately 117.16 MiB resident in this capture, but their owners remain unknown.
+
 ## Interpretation
 
-This confirms that the current renderer's private-resident gap is predominantly private-writable native memory, not executable code pages. It does not identify the allocator or owner of those pages. The region-size distribution alone cannot distinguish Discord application state, Blink structures, image/media backing, compositor resources, or WebView2 runtime arenas.
+This confirms that the current renderer's private-resident gap is predominantly private-writable native memory, not executable code pages. It does not identify the allocator or owner of those pages. The region-size distribution and allocation-base grouping alone cannot distinguish Discord application state, Blink structures, image/media backing, compositor resources, or WebView2 runtime arenas. The groups must be tracked across lifecycle and workload transitions or joined to allocation-stack evidence before they can be treated as optimization targets.
 
 No renderer behavior was changed. The next attribution step must correlate these region families with lifecycle and workload transitions, or with a decoded allocation-stack source, before any cache or renderer optimization is selected.
