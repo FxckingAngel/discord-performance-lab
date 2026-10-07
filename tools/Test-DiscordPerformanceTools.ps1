@@ -219,6 +219,11 @@ try {
     if (([regex]::Matches($featureCheckpointSource, 'if \(-not \$\?\)').Count) -lt 2) {
         throw 'Feature scenario checkpoint does not use success status for its child tools.'
     }
+    foreach ($scenarioName in @('active-text', 'channel-navigation', 'scrolling', 'media-heavy', 'voice-idle', 'active-voice', 'video', 'screen-sharing', 'notifications', 'gaming-background')) {
+        if ($featureCheckpointSource -notmatch [regex]::Escape($scenarioName)) {
+            throw "Feature scenario checkpoint does not expose the workload scenario: $scenarioName"
+        }
+    }
     $phase21ScenarioSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordPhase21Scenario.ps1') -Raw
     foreach ($requiredField in @('RequireReadyEachRepetition', 'Prepare $Scenario repetition', 'Manual checkpoint was not confirmed', 'requireReadyEachRepetition')) {
         if ($phase21ScenarioSource -notmatch [regex]::Escape($requiredField)) {

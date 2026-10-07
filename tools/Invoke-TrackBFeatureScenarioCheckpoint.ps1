@@ -5,7 +5,7 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $ProcessName = 'KoroneDiscordShell',
 
-    [ValidateSet('blank-webview2', 'discord-app-shell', 'static-dm', 'static-server-text', 'media-heavy', 'voice-idle', 'active-voice', 'video', 'screen-sharing')]
+    [ValidateSet('blank-webview2', 'discord-app-shell', 'static-dm', 'static-server-text', 'active-text', 'channel-navigation', 'scrolling', 'media-heavy', 'voice-idle', 'active-voice', 'video', 'screen-sharing', 'notifications', 'gaming-background')]
     [string] $Scenario = 'static-server-text',
 
     [ValidateRange(5, 86400)]
