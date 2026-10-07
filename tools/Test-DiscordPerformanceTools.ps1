@@ -358,6 +358,12 @@ try {
             throw "Feature-scenario summary does not preserve $requiredField."
         }
     }
+    $environmentProbeSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-DiscordEnvironmentProbe.mjs') -Raw
+    foreach ($requiredField in @('allNativeGroupNames', 'discordNativeAllGroupShapes', 'Object.getOwnPropertyNames(native)')) {
+        if ($environmentProbeSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Environment probe does not preserve complete native group enumeration: $requiredField"
+        }
+    }
     $vanillaLauncherSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Launch-DiscordVanillaDiagnostic.ps1') -Raw
     foreach ($requiredField in @('--vanilla', '--multi-instance', '--start-inactive', '--user-data-dir=', '--remote-debugging-port=', 'does not stop')) {
         if ($vanillaLauncherSource -notmatch [regex]::Escape($requiredField)) {
