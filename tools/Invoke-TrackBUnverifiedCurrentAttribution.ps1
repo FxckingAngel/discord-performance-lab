@@ -139,11 +139,14 @@ try {
     $measureProcess.WaitForExit()
     if ($measureProcess.ExitCode -ne 0) { throw "Process attribution failed with exit code $($measureProcess.ExitCode)." }
 
+    $tree = Get-Content -LiteralPath $processTreePath -Raw | ConvertFrom-Json
+    $treeSamples = @($tree.samples)
+    if ($treeSamples.Count -eq 0) { throw 'Process attribution completed without samples.' }
+    $lastTreeSample = $treeSamples[-1]
     $residentManifest = $null
     if ($CaptureResidentTypes) {
         New-Item -ItemType Directory -Path $residentDirectory -Force | Out-Null
-        $tree = Get-Content -LiteralPath $processTreePath -Raw | ConvertFrom-Json
-        $residentRows = foreach ($process in @($tree.samples[-1].processes | Where-Object { $_.status -ne 'unavailable' -and $null -ne $_.pid })) {
+        $residentRows = foreach ($process in @($lastTreeSample.processes | Where-Object { $_.status -ne 'unavailable' -and $null -ne $_.pid })) {
             $residentPath = Join-Path $residentDirectory ("pid-$($process.pid).json")
             try {
                 & $powershell.Source -NoProfile -File $residentScript -ProcessId ([int]$process.pid) -Role ([string]$process.role) -OutputPath $residentPath | Out-Null
@@ -174,7 +177,7 @@ try {
         }
         $residentManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $residentManifestPath -Encoding utf8
     }
-    $treePids = @($tree.samples[-1].processes | ForEach-Object { [int]$_.pid })
+    $treePids = @($lastTreeSample.processes | ForEach-Object { [int]$_.pid })
     $inventoryCandidate = $null
     $inventoryOverlap = -1
     $inventoryDirectory = Split-Path -Parent $webViewProcessInfoPath

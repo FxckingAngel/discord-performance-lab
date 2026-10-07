@@ -386,6 +386,12 @@ try {
             throw "Memory attribution checkpoint does not preserve a caller-supplied scenario label: $requiredField."
         }
     }
+    $unverifiedAttributionSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBUnverifiedCurrentAttribution.ps1') -Raw
+    foreach ($requiredField in @('$treeSamples = @($tree.samples)', 'Process attribution completed without samples', '$lastTreeSample')) {
+        if ($unverifiedAttributionSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Unverified attribution wrapper does not validate its process-tree result: $requiredField"
+        }
+    }
     $lifecycleTool = Join-Path $resolvedToolsPath 'Invoke-TrackBLifecycleAttribution.ps1'
     $lifecycleSummaryTool = Join-Path $resolvedToolsPath 'Summarize-TrackBLifecycleAttribution.ps1'
     foreach ($requiredPath in @($lifecycleTool, $lifecycleSummaryTool)) {
