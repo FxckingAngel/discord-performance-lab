@@ -20,6 +20,10 @@ Three repetitions occupied a high band around 394–396 MiB. Two occupied a lowe
 
 The route and visible frontend state were not manually confirmed, so the capture cannot determine whether the split is caused by route state, frontend initialization, navigation timing, cache/profile state, or another workload difference. The low band is therefore not an optimization result.
 
-The next controlled experiment must hold the route and visible state constant and record the lifecycle timestamp, renderer private working set, V8 heap, DOM/frame counts, and allocation-base groups together. No renderer behavior change is approved from this capture alone.
+The per-run renderer data points more strongly to a residency transition than to allocation reclamation. Renderer private bytes stayed near 336.51 MiB in the high band and 333.34 MiB in the low band, while renderer private-writable resident memory fell from about 278.28 MiB to 196.91 MiB. The largest allocation-base groups persisted and committed sizes stayed close. Run 4 dropped during capture from about 389 MiB to 176 MiB tree private working set. Run 5 included a renderer page-fault burst of approximately 12,687 faults per second while memory rose again. This pattern is compatible with pages leaving and later re-entering the working set, and may carry a responsiveness cost.
+
+The next controlled capture must keep one manually confirmed static route visible and untouched for a continuous session. It should record private working set, private bytes, committed and resident classifications, allocation groups, page faults, I/O, CPU, CDP V8/DOM state, and renderer identity at the same timestamps. It must not force trimming, force garbage collection, reload, or change renderer behavior.
+
+No renderer behavior change is approved from this capture alone.
 
 Raw process-tree and resident-classifier artifacts remain under the private `artifacts/` directory and are not part of the public repository evidence.
