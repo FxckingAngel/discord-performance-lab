@@ -174,8 +174,26 @@ try {
         }
         $residentManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $residentManifestPath -Encoding utf8
     }
-    if (Test-Path -LiteralPath $webViewProcessInfoPath -PathType Leaf) {
-        Copy-Item -LiteralPath $webViewProcessInfoPath -Destination $webViewProcessInfoOutputPath -Force
+    $treePids = @($tree.samples[-1].processes | ForEach-Object { [int]$_.pid })
+    $inventoryCandidate = $null
+    $inventoryOverlap = -1
+    $inventoryDirectory = Split-Path -Parent $webViewProcessInfoPath
+    foreach ($candidate in @(Get-ChildItem -LiteralPath $inventoryDirectory -Filter 'webview-process-info*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)) {
+        try {
+            $candidateData = Get-Content -LiteralPath $candidate.FullName -Raw | ConvertFrom-Json
+            $candidatePids = @($candidateData.processes | ForEach-Object { [int]$_.processId })
+            $overlap = @($candidatePids | Where-Object { $treePids -contains $_ }).Count
+            if ($overlap -gt $inventoryOverlap) {
+                $inventoryCandidate = $candidate
+                $inventoryOverlap = $overlap
+            }
+        }
+        catch {
+            # Ignore a partially written inventory and continue with other profiles.
+        }
+    }
+    if ($inventoryCandidate -and $inventoryOverlap -gt 0) {
+        Copy-Item -LiteralPath $inventoryCandidate.FullName -Destination $webViewProcessInfoOutputPath -Force
     }
 
     [pscustomobject]@{

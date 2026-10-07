@@ -235,6 +235,12 @@ try {
             throw "Phase 2.1 scenario runner does not preserve $requiredField."
         }
     }
+    $synchronizedAttributionSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Invoke-TrackBUnverifiedCurrentAttribution.ps1') -Raw
+    foreach ($requiredField in @('webview-process-info*.json', '$inventoryOverlap', '$treePids', 'processId')) {
+        if ($synchronizedAttributionSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Synchronized attribution does not select a matching WebView2 inventory: $requiredField"
+        }
+    }
     $residentTypesSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-TrackBResidentMemoryTypes.ps1') -Raw
     foreach ($requiredField in @('RegionBucket', 'privateWritableRegionCount', 'privateWritable16MiBOrLargerResidentBytes', 'privateWritableResidentBucketsMiB', 'GetLargestPrivateWritableRegions', 'largestPrivateWritableRegions', 'allocationBaseGroups', 'allocationBase', 'residentBytes', 'protect')) {
         if ($residentTypesSource -notmatch [regex]::Escape($requiredField)) {
