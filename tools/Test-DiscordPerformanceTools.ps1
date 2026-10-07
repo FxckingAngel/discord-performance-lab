@@ -266,6 +266,12 @@ try {
             throw "Synchronized attribution does not select a matching WebView2 inventory: $requiredField"
         }
     }
+    $phase2MeasureSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
+    foreach ($requiredField in @('Convert-ProcessCreationTimeUtc', 'CreationDate', 'return $false')) {
+        if ($phase2MeasureSource -notmatch [regex]::Escape($requiredField)) {
+            throw "Phase 2 attribution does not validate process ancestry: $requiredField"
+        }
+    }
     $residentTypesSource = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-TrackBResidentMemoryTypes.ps1') -Raw
     foreach ($requiredField in @('RegionBucket', 'privateWritableRegionCount', 'privateWritable16MiBOrLargerResidentBytes', 'privateWritableResidentBucketsMiB', 'GetLargestPrivateWritableRegions', 'largestPrivateWritableRegions', 'allocationBaseGroups', 'allocationBase', 'residentBytes', 'protect')) {
         if ($residentTypesSource -notmatch [regex]::Escape($requiredField)) {

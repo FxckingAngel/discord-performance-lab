@@ -74,17 +74,35 @@ if (-not @($processes | Where-Object { [int] $_.ProcessId -eq $RootPid })) {
     throw "Root PID $RootPid was not found among $ProcessName processes."
 }
 
+function Convert-ProcessCreationTimeUtc {
+    param([object] $Value)
+
+    if ($Value -is [DateTime]) {
+        return ([DateTime] $Value).ToUniversalTime()
+    }
+    $text = [string] $Value
+    if ([string]::IsNullOrWhiteSpace($text)) { return $null }
+    try {
+        return [System.Management.ManagementDateTimeConverter]::ToDateTime($text).ToUniversalTime()
+    }
+    catch {
+        try { return ([DateTime]::Parse($text)).ToUniversalTime() }
+        catch { return $null }
+    }
+}
+
 function Test-CurrentParentProcess {
     param([object] $Parent, [object] $Child)
 
     if ([int] $Child.ParentProcessId -ne [int] $Parent.ProcessId) { return $false }
     try {
-        $parentStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Parent.CreationDate).ToUniversalTime()
-        $childStart = [System.Management.ManagementDateTimeConverter]::ToDateTime([string] $Child.CreationDate).ToUniversalTime()
+        $parentStart = Convert-ProcessCreationTimeUtc -Value $Parent.CreationDate
+        $childStart = Convert-ProcessCreationTimeUtc -Value $Child.CreationDate
+        if ($null -eq $parentStart -or $null -eq $childStart) { return $false }
         return $childStart -ge $parentStart
     }
     catch {
-        return $true
+        return $false
     }
 }
 
