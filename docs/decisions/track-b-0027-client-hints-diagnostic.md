@@ -18,7 +18,7 @@ Sources:
 
 `--diagnostic-desktop-hints` uses a separate WebView2 profile and loopback CDP port 9233. It applies the observed Discord Desktop user-agent string together with the observed vanilla brand family and Windows platform metadata before navigation. It adds no `DiscordNative` object, Electron globals, authentication behavior, permission grant, entitlement, request interception, or protocol change.
 
-The mode exists to answer one narrow question: does matching the client-hints surface change Discord's environment classification or visual behavior? It is not enabled in the normal shell. The normal shell remains the known-good no-bridge baseline until the mode has a live environment probe, visual comparison, functional check, and full-tree resource measurement.
+The mode exists to answer one narrow question: does matching the client-hints surface change Discord's environment classification or visual behavior? The live probe matched the official `userAgentData` brands and Windows platform, but initially exposed `navigator.platform` as `Windows` instead of the official `Win32`. The diagnostic now keeps those values separate: the CDP top-level platform override is `Win32`, while `userAgentMetadata.platform` remains `Windows`. It is not enabled in the normal shell. The normal shell remains the known-good no-bridge baseline until the corrected mode has a live environment probe, visual comparison, functional check, and full-tree resource measurement.
 
 ## Verification status
 
@@ -27,7 +27,9 @@ The mode exists to answer one narrow question: does matching the client-hints su
 | Release build | Passed; existing WindowsBase version-conflict warning remains |
 | Static tool suite | Passed; 72 tools parsed and benchmark fixture passed |
 | Source diff check | Passed |
-| Live diagnostic launch | Not verified in this run; shell runner rejected the GUI process launch |
+| Live diagnostic launch | Passed through the controlled launcher; sanitized probe attached on port 9233 |
+| Corrected environment result | `navigator.platform` = `Win32`; `userAgentData.platform` = `Windows`; brands = `Not/A)Brand`, `Chromium`; `DiscordNative` absent |
+| Visual or functional parity | Not tested; this was an environment-only probe |
 | Normal shell behavior | Unchanged by this diagnostic-only addition |
 
 No production client-hints or desktop capability behavior is claimed from the unverified live run.

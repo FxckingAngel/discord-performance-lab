@@ -237,7 +237,7 @@ public sealed class MainForm : Form
                 {
                     userAgent = DesktopIdentityUserAgent,
                     acceptLanguage = "en-US,en",
-                    platform = "Windows",
+                    platform = "Win32",
                     userAgentMetadata = new
                     {
                         brands = new[]

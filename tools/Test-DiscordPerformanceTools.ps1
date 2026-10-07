@@ -176,6 +176,10 @@ try {
     if ($shellSource -notmatch 'Network\.setUserAgentOverride' -or $shellSource -notmatch 'userAgentMetadata') {
         throw 'Desktop-hints diagnostic mode does not set the evidence-backed client-hints surface.'
     }
+    $desktopHintsLauncher = Join-Path $resolvedToolsPath 'Launch-TrackBDesktopHintsDiagnostic.ps1'
+    if (-not (Test-Path -LiteralPath $desktopHintsLauncher -PathType Leaf)) {
+        throw 'Desktop-hints diagnostic launcher is missing.'
+    }
     $phase2Source = Get-Content -LiteralPath (Join-Path $resolvedToolsPath 'Measure-DiscordPhase2Attribution.ps1') -Raw
     if ($phase2Source -match 'Get-CimInstance Win32_Process -Filter "Name=\$ProcessName\.exe"') {
         throw 'Phase 2 attribution must enumerate all processes before walking the rooted tree.'
