@@ -33,4 +33,12 @@ The fully initialized gate is mandatory before a result can count toward accepta
 
 Track A results from the current Vencord-patched official installation must be labeled Official Discord + Vencord. Do not use them to isolate an Electron or desktop-container tax. Create a pristine Official Discord reference before making that claim. Official Discord is the user's actively used comparison target; do not restart or stop it without confirmation.
 
+## Current phase: parallel desktop-parity validation
+
+Run independent investigations in separate workstreams when practical: desktop capability compatibility, renderer/native memory attribution, active-workload measurement, and pristine official-reference preparation. Keep each workstream's raw traces and account-derived data local. Merge only source-backed code or sanitized aggregate evidence into the main Track B branch.
+
+The active-workload matrix is a product requirement, not a later enhancement. Validate messaging, navigation, scrolling, media, voice, video, screen sharing, notifications, and background gaming against a pristine official reference where possible. A diagnostic static/no-media state may explain a measurement, but it cannot justify disabling visible behavior in production.
+
+The pristine reference must be isolated from the user's active Vencord installation. Never restart, stop, patch, uninstall, or inject into the active installation without explicit confirmation. If an exact same-build clean reference is unavailable, record the channel or version mismatch and do not use it to claim an Electron or desktop-container delta.
+
 Official Discord is the user’s actively used comparison target. Do not restart or stop official Discord without the user’s confirmation. Track B test-shell restarts remain allowed for in-scope engineering diagnostics.
